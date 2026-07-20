@@ -481,7 +481,7 @@ function App() {
   // Ensure staff sub-key alias exists
   const ensureStaffSubKey = async (keyId: string) => {
     try {
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('staff')
         .select('*')
         .eq('activation_key_id', keyId)
