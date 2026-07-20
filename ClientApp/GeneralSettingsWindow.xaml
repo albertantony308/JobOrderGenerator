@@ -1,0 +1,105 @@
+<Window x:Class="ClientApp.GeneralSettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Settings" Height="550" Width="450"
+        WindowStartupLocation="CenterOwner"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent">
+    <Border Background="{DynamicResource SurfaceContainerLowestBrush}" 
+            CornerRadius="24" 
+            BorderThickness="1" 
+            BorderBrush="{DynamicResource SurfaceContainerBrush}"
+            MouseDown="Border_MouseDown">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <!-- Header -->
+            <Grid Grid.Row="0" Margin="32,32,32,0">
+                <StackPanel>
+                    <TextBlock Style="{DynamicResource HeadlineMd}" Text="System Settings" Margin="0,0,0,8"/>
+                    <TextBlock Text="Personalize your workspace experience." Foreground="{DynamicResource OnSurfaceVariantBrush}" Margin="0,0,0,0"/>
+                </StackPanel>
+                
+                <Button Style="{DynamicResource SecondaryButtonStyle}" 
+                        Content="✕" 
+                        Width="32" Height="32" 
+                        Padding="0"
+                        FontSize="16"
+                        HorizontalAlignment="Right" 
+                        VerticalAlignment="Top" 
+                        Click="Save_Click"/>
+            </Grid>
+
+            <!-- Content -->
+            <ScrollViewer Grid.Row="1" Margin="8,16,8,32" VerticalScrollBarVisibility="Auto">
+                <StackPanel Margin="24,0">
+                    <TextBlock Text="APPEARANCE" Style="{DynamicResource BodyMd}" FontWeight="Bold" Foreground="{DynamicResource PrimaryBrush}" FontSize="12" Margin="0,16,0,16" Opacity="0.8"/>
+                    
+                    <Border Background="{DynamicResource SurfaceContainerLowBrush}" CornerRadius="16" Padding="24" Margin="0,0,0,24">
+                        <DockPanel LastChildFill="False">
+                            <StackPanel>
+                                <TextBlock Text="Dark Appearance" Foreground="{DynamicResource OnSurfaceBrush}" FontWeight="SemiBold" FontSize="16" Margin="0,0,0,4"/>
+                                <TextBlock Text="Saves battery and reduces eye strain." Foreground="{DynamicResource OnSurfaceVariantBrush}" FontSize="12"/>
+                            </StackPanel>
+                            <CheckBox x:Name="chkDarkMode" Style="{DynamicResource ToggleSwitchStyle}" DockPanel.Dock="Right" Click="DarkMode_Click" VerticalAlignment="Center"/>
+                        </DockPanel>
+                    </Border>
+
+                    <TextBlock Text="BACKUP &amp; SAFETY" Style="{DynamicResource BodyMd}" FontWeight="Bold" Foreground="{DynamicResource PrimaryBrush}" FontSize="12" Margin="0,0,0,16" Opacity="0.8"/>
+                    
+                    <Border Background="{DynamicResource SurfaceContainerLowBrush}" CornerRadius="16" Padding="24" Margin="0,0,0,24">
+                        <StackPanel>
+                            <DockPanel LastChildFill="False" Margin="0,0,0,16">
+                                <StackPanel>
+                                    <TextBlock Text="Automatic Backups" Foreground="{DynamicResource OnSurfaceBrush}" FontWeight="SemiBold" FontSize="16" Margin="0,0,0,4"/>
+                                    <TextBlock Text="Regularly saves offline database backups." Foreground="{DynamicResource OnSurfaceVariantBrush}" FontSize="12"/>
+                                </StackPanel>
+                                <CheckBox x:Name="chkAutoBackup" Style="{DynamicResource ToggleSwitchStyle}" DockPanel.Dock="Right" VerticalAlignment="Center"/>
+                            </DockPanel>
+                            
+                            <DockPanel LastChildFill="True">
+                                <StackPanel DockPanel.Dock="Left">
+                                    <TextBlock Text="Backup Interval" Foreground="{DynamicResource OnSurfaceBrush}" FontWeight="SemiBold" FontSize="16" Margin="0,0,0,4"/>
+                                    <TextBlock Text="How often backups are auto-saved." Foreground="{DynamicResource OnSurfaceVariantBrush}" FontSize="12"/>
+                                </StackPanel>
+                                <ComboBox x:Name="cmbBackupInterval" Width="130" Height="36" VerticalAlignment="Center" HorizontalAlignment="Right" Padding="8,4"
+                                          Background="{DynamicResource SurfaceContainerLowestBrush}" Foreground="{DynamicResource OnSurfaceBrush}" BorderBrush="{DynamicResource OutlineBrush}">
+                                    <ComboBoxItem Content="1 Minute" Tag="1"/>
+                                    <ComboBoxItem Content="5 Minutes" Tag="5"/>
+                                    <ComboBoxItem Content="10 Minutes" Tag="10"/>
+                                    <ComboBoxItem Content="30 Minutes" Tag="30"/>
+                                    <ComboBoxItem Content="60 Minutes" Tag="60"/>
+                                </ComboBox>
+                            </DockPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <TextBlock Text="ABOUT" Style="{DynamicResource BodyMd}" FontWeight="Bold" Foreground="{DynamicResource PrimaryBrush}" FontSize="12" Margin="0,0,0,16" Opacity="0.8"/>
+                    
+                    <Border Background="{DynamicResource SurfaceContainerLowBrush}" CornerRadius="16" Padding="24" Margin="0,0,0,32">
+                        <StackPanel>
+                            <DockPanel Margin="0,0,0,12">
+                                <TextBlock Text="Version" Foreground="{DynamicResource OnSurfaceVariantBrush}"/>
+                                <TextBlock x:Name="txtVersion" Text="Loading..." Foreground="{DynamicResource OnSurfaceBrush}" DockPanel.Dock="Right" FontWeight="SemiBold"/>
+                            </DockPanel>
+                            <DockPanel Margin="0,0,0,12">
+                                <TextBlock Text="Environment" Foreground="{DynamicResource OnSurfaceVariantBrush}"/>
+                                <TextBlock Text="Desktop Native" Foreground="{DynamicResource OnSurfaceBrush}" DockPanel.Dock="Right" FontWeight="SemiBold"/>
+                            </DockPanel>
+                            <DockPanel>
+                                <TextBlock Text="Database" Foreground="{DynamicResource OnSurfaceVariantBrush}"/>
+                                <TextBlock Text="local_memos.db" Foreground="{DynamicResource OnSurfaceBrush}" DockPanel.Dock="Right" FontWeight="SemiBold"/>
+                            </DockPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <Button Style="{DynamicResource PrimaryButtonStyle}" Content="Close &amp; Apply" Click="Save_Click" HorizontalAlignment="Stretch"/>
+                </StackPanel>
+            </ScrollViewer>
+        </Grid>
+    </Border>
+</Window>

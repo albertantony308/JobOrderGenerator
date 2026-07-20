@@ -1,0 +1,66 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!-- Midnight Dark Theme -->
+    <Color x:Key="BackgroundColor">#0a0a0c</Color>
+    <Color x:Key="SurfaceColor">#0a0a0c</Color>
+    <Color x:Key="SurfaceContainerLowColor">#16181d</Color>
+    <Color x:Key="SurfaceContainerColor">#212429</Color>
+    <Color x:Key="SurfaceContainerHighColor">#2b2f36</Color>
+    <Color x:Key="SurfaceContainerHighestColor">#363b43</Color>
+    <Color x:Key="SurfaceContainerLowestColor">#050505</Color>
+    
+    <Color x:Key="PrimaryColor">#4d7cff</Color>
+    <Color x:Key="PrimaryContainerColor">#2c3e6b</Color>
+    <Color x:Key="OnPrimaryColor">#ffffff</Color>
+
+    <Color x:Key="StatusPendingColor">#2d2400</Color>
+    <Color x:Key="OnStatusPendingColor">#ffca28</Color>
+    <Color x:Key="StatusInProgressColor">#0d1d3a</Color>
+    <Color x:Key="OnStatusInProgressColor">#64b5f6</Color>
+    <Color x:Key="StatusCompletedColor">#062a1a</Color>
+    <Color x:Key="OnStatusCompletedColor">#81c784</Color>
+    <Color x:Key="StatusRepeatedColor">#311b92</Color>
+    <Color x:Key="OnStatusRepeatedColor">#d1c4e9</Color>
+    <Color x:Key="StatusRejectedColor">#2d0808</Color>
+    <Color x:Key="OnStatusRejectedColor">#ef5350</Color>
+    
+    <Color x:Key="OnSurfaceColor">#f0f0f5</Color>
+    <Color x:Key="OnSurfaceVariantColor">#a0abb6</Color>
+    <Color x:Key="OutlineColor">#475569</Color>
+    <Color x:Key="TertiaryColor">#ffffff</Color>
+
+    <SolidColorBrush x:Key="BackgroundBrush" Color="#0a0a0c"/>
+    <SolidColorBrush x:Key="SurfaceBrush" Color="#0a0a0c"/>
+    <SolidColorBrush x:Key="SurfaceContainerLowBrush" Color="#16181d"/>
+    <SolidColorBrush x:Key="SurfaceContainerBrush" Color="#212429"/>
+    <SolidColorBrush x:Key="SurfaceContainerHighBrush" Color="#2b2f36"/>
+    <SolidColorBrush x:Key="SurfaceContainerHighestBrush" Color="#363b43"/>
+    <SolidColorBrush x:Key="SurfaceContainerLowestBrush" Color="#050505"/>
+    
+    <SolidColorBrush x:Key="PrimaryBrush" Color="#4d7cff"/>
+    <SolidColorBrush x:Key="PrimaryContainerBrush" Color="#2c3e6b"/>
+    <SolidColorBrush x:Key="OnPrimaryBrush" Color="#ffffff"/>
+    <SolidColorBrush x:Key="OnPrimaryContainerBrush" Color="#d3e4ff"/>
+
+    <SolidColorBrush x:Key="TertiaryBrush" Color="White"/>
+    <SolidColorBrush x:Key="TertiaryContainerBrush" Color="#1e293b"/>
+    <SolidColorBrush x:Key="OnTertiaryBrush" Color="#4d7cff"/>
+    <SolidColorBrush x:Key="PlaceholderBrush" Color="#94a3b8"/>
+
+    <SolidColorBrush x:Key="StatusPendingBrush" Color="#2d2400"/>
+    <SolidColorBrush x:Key="OnStatusPendingBrush" Color="#ffca28"/>
+    <SolidColorBrush x:Key="StatusInProgressBrush" Color="#0d1d3a"/>
+    <SolidColorBrush x:Key="OnStatusInProgressBrush" Color="#64b5f6"/>
+    <SolidColorBrush x:Key="StatusCompletedBrush" Color="#062a1a"/>
+    <SolidColorBrush x:Key="OnStatusCompletedBrush" Color="#81c784"/>
+    <SolidColorBrush x:Key="StatusRepeatedBrush" Color="#311b92"/>
+    <SolidColorBrush x:Key="OnStatusRepeatedBrush" Color="#d1c4e9"/>
+    <SolidColorBrush x:Key="StatusRejectedBrush" Color="#2d0808"/>
+    <SolidColorBrush x:Key="OnStatusRejectedBrush" Color="#ef5350"/>
+    
+    <SolidColorBrush x:Key="OnSurfaceBrush" Color="#ffffff"/>
+    <SolidColorBrush x:Key="OnSurfaceVariantBrush" Color="#cbd5e1"/>
+    <SolidColorBrush x:Key="OutlineBrush" Color="#334155"/>
+    <SolidColorBrush x:Key="DestructiveRedBrush" Color="#dc2626"/>
+    <SolidColorBrush x:Key="OnDestructiveRedBrush" Color="#ffffff"/>
+</ResourceDictionary>

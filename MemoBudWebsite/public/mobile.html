@@ -1,0 +1,1679 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>MemoBud Staff Console</title>
+  <!-- Global Browser Error Telemetry Logger (Runs before all other scripts) -->
+  <script>
+    window.onerror = function(message, source, lineno, colno, error) {
+      const errDiv = document.createElement('div');
+      errDiv.style.position = 'fixed';
+      errDiv.style.top = '10px';
+      errDiv.style.left = '10px';
+      errDiv.style.right = '10px';
+      errDiv.style.background = '#ef4444';
+      errDiv.style.color = '#ffffff';
+      errDiv.style.padding = '16px';
+      errDiv.style.borderRadius = '8px';
+      errDiv.style.zIndex = '99999';
+      errDiv.style.fontSize = '12px';
+      errDiv.style.fontFamily = 'monospace';
+      errDiv.style.fontWeight = 'bold';
+      errDiv.style.boxShadow = '0 10px 30px rgba(0,0,0,0.5)';
+      errDiv.innerHTML = `⚠️ JS Error: ${message} (Line ${lineno}:${colno})`;
+      if (document.body) {
+        document.body.appendChild(errDiv);
+      } else {
+        window.addEventListener('DOMContentLoaded', () => document.body.appendChild(errDiv));
+      }
+      return false;
+    };
+
+    window.onunhandledrejection = function(event) {
+      const errDiv = document.createElement('div');
+      errDiv.style.position = 'fixed';
+      errDiv.style.top = '10px';
+      errDiv.style.left = '10px';
+      errDiv.style.right = '10px';
+      errDiv.style.background = '#f59e0b';
+      errDiv.style.color = '#ffffff';
+      errDiv.style.padding = '16px';
+      errDiv.style.borderRadius = '8px';
+      errDiv.style.zIndex = '99999';
+      errDiv.style.fontSize = '12px';
+      errDiv.style.fontFamily = 'monospace';
+      errDiv.style.fontWeight = 'bold';
+      errDiv.style.boxShadow = '0 10px 30px rgba(0,0,0,0.5)';
+      errDiv.innerHTML = `⚠️ Unhandled Rejection: ${event.reason}`;
+      if (document.body) {
+        document.body.appendChild(errDiv);
+      } else {
+        window.addEventListener('DOMContentLoaded', () => document.body.appendChild(errDiv));
+      }
+    };
+  </script>
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Supabase JS CDN Client -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  
+  <style>
+    :root {
+      --bg: #090d16;
+      --surface: #0f1524;
+      --surface-low: #151d30;
+      --surface-lowest: #1c273e;
+      --primary: #0067c0;
+      --primary-gradient: linear-gradient(135deg, #004f96 0%, #0067c0 100%);
+      --on-surface: #f1f5f9;
+      --on-surface-variant: #94a3b8;
+      --outline: #334155;
+      
+      --status-pending-bg: rgba(245, 158, 11, 0.15);
+      --status-pending-fg: #f59e0b;
+      --status-progress-bg: rgba(59, 130, 246, 0.15);
+      --status-progress-fg: #3b82f6;
+      --status-completed-bg: rgba(16, 185, 129, 0.15);
+      --status-completed-fg: #10b981;
+      --status-rejected-bg: rgba(239, 68, 68, 0.15);
+      --status-rejected-fg: #ef4444;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Inter', -apple-system, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--on-surface);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: stretch;
+      padding: 0;
+      overflow-x: hidden;
+    }
+
+    /* Mobile Container Shell mimicking a premium phone viewport */
+    .phone-shell {
+      width: 100%;
+      max-width: 480px;
+      background-color: var(--surface);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      box-shadow: 0 0 40px rgba(0,0,0,0.5);
+    }
+
+    header {
+      background: rgba(15, 21, 36, 0.85);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      padding: 20px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--outline);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .brand-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .logo-badge {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: var(--primary-gradient);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      color: #fff;
+      font-size: 14px;
+    }
+
+    .brand-name {
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .conn-status {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 9999px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .status-online {
+      background: rgba(16, 185, 129, 0.15);
+      color: #10b981;
+    }
+
+    .status-offline {
+      background: rgba(245, 158, 11, 0.15);
+      color: #f59e0b;
+    }
+
+    .status-rejected {
+      background: rgba(239, 68, 68, 0.15);
+      color: #ef4444;
+    }
+
+
+
+    main {
+      flex: 1;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      overflow-y: auto;
+    }
+
+    /* Screen Views management */
+    .screen-view {
+      display: none;
+      flex-direction: column;
+      gap: 20px;
+      animation: fadeIn 0.3s ease-out;
+    }
+
+    .screen-view.active {
+      display: flex;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    h2 {
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      margin-bottom: 4px;
+    }
+
+    p.subtitle {
+      font-size: 13px;
+      color: var(--on-surface-variant);
+      line-height: 1.5;
+    }
+
+    /* Premium inputs and floating fields */
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      color: var(--on-surface-variant);
+      text-transform: uppercase;
+    }
+
+    input {
+      background: var(--surface-low);
+      border: 1px solid var(--outline);
+      color: var(--on-surface);
+      border-radius: 12px;
+      padding: 14px 16px;
+      font-size: 14px;
+      font-weight: 500;
+      width: 100%;
+      outline: none;
+      transition: all 0.2s;
+    }
+
+    input:focus {
+      border-color: #717783;
+      background: var(--surface-lowest);
+    }
+
+    .btn {
+      background: var(--primary-gradient);
+      color: #fff;
+      border: none;
+      padding: 14px 20px;
+      font-size: 14px;
+      font-weight: 700;
+      border-radius: 12px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      width: 100%;
+      transition: transform 0.2s, opacity 0.2s;
+    }
+
+    .btn:active {
+      transform: scale(0.98);
+      opacity: 0.95;
+    }
+
+    .btn-secondary {
+      background: var(--surface-low);
+      border: 1px solid var(--outline);
+      color: var(--on-surface);
+    }
+
+    /* Login Steps Wizard styles */
+    .login-step-indicator {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .step-dot {
+      flex: 1;
+      height: 4px;
+      background: var(--outline);
+      border-radius: 2px;
+      transition: background 0.3s;
+    }
+
+    .step-dot.active {
+      background: var(--primary);
+    }
+
+    /* Cards & Glassmorphism Panels */
+    .card {
+      background: var(--surface-low);
+      border: 1px solid var(--outline);
+      border-radius: 16px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .glass-panel {
+      background: rgba(21, 29, 48, 0.7);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid rgba(255,255,255,0.05);
+    }
+
+    .welcome-banner {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .user-avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: 22px;
+      background: var(--primary-gradient);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      font-weight: bold;
+    }
+
+    /* Live Search & Results card */
+    .search-box-container {
+      position: relative;
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 16px;
+      color: var(--on-surface-variant);
+    }
+
+    .search-input {
+      padding-left: 44px;
+    }
+
+    .order-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      border-bottom: 1px solid var(--outline);
+      padding-bottom: 16px;
+      margin-bottom: 16px;
+    }
+
+    .order-number {
+      font-family: monospace;
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--on-surface);
+    }
+
+    .order-spec {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .spec-item {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .spec-label {
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      color: var(--on-surface-variant);
+      text-transform: uppercase;
+    }
+
+    .spec-value {
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    /* Interactive Status Toggles */
+    .status-selector {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 16px;
+      border-top: 1px solid var(--outline);
+      padding-top: 16px;
+    }
+
+    .status-options {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+    }
+
+    .status-btn {
+      border: 1px solid var(--outline);
+      background: var(--surface);
+      color: var(--on-surface-variant);
+      border-radius: 10px;
+      padding: 12px 4px;
+      font-size: 10px;
+      font-weight: 700;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.2s;
+    }
+
+    .status-btn.pending.selected {
+      background: var(--status-pending-bg);
+      color: var(--status-pending-fg);
+      border-color: var(--status-pending-fg);
+    }
+
+    .status-btn.progress.selected {
+      background: var(--status-progress-bg);
+      color: var(--status-progress-fg);
+      border-color: var(--status-progress-fg);
+    }
+
+    .status-btn.completed.selected {
+      background: var(--status-completed-bg);
+      color: var(--status-completed-fg);
+      border-color: var(--status-completed-fg);
+    }
+
+    .status-btn.rejected.selected {
+      background: var(--status-rejected-bg);
+      color: var(--status-rejected-fg);
+      border-color: var(--status-rejected-fg);
+    }
+
+    /* Network Setting Indicator info */
+    .settings-info {
+      font-size: 11px;
+      color: var(--on-surface-variant);
+      text-align: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      cursor: pointer;
+    }
+
+    /* Alert / Overlay box */
+    .revoked-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(9, 13, 22, 0.95);
+      z-index: 10000;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 32px;
+      text-align: center;
+      color: #fff;
+    }
+
+    .revoked-icon {
+      font-size: 60px;
+      color: #ef4444;
+      margin-bottom: 20px;
+    }
+
+    /* Toast Notification Container */
+    .toast-container {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-100px);
+      width: 90%;
+      max-width: 400px;
+      background: rgba(15, 21, 36, 0.95);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 16px;
+      padding: 16px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      z-index: 20000;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s;
+      opacity: 0;
+      pointer-events: none;
+    }
+    
+    .toast-container.show {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+      pointer-events: auto;
+    }
+    
+    .toast-icon {
+      font-size: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .toast-content {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      flex: 1;
+    }
+    
+    .toast-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #ffffff;
+    }
+    
+    .toast-message {
+      font-size: 12px;
+      color: var(--on-surface-variant);
+      line-height: 1.4;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="phone-shell">
+    
+    <header style="padding: 12px 24px;">
+      <div class="brand-logo" style="display: flex; align-items: center; gap: 10px;">
+        <img id="headerCompanyLogo" src="" style="display: none; height: 32px; max-width: 120px; object-fit: contain; border-radius: 4px;" alt="Logo">
+        <span class="brand-name" id="headerCompanyName" style="font-size: 15px; font-weight: 700; letter-spacing: -0.01em;">Staff Portal</span>
+      </div>
+      <div id="connectionIndicator" class="conn-status status-online" onclick="toggleNetworkConfig()">
+        ● Cloud Sync
+      </div>
+    </header>
+
+    <!-- MAIN BODY -->
+    <main>
+
+      <!-- SCREEN 1: LOGIN WIZARD - STEP 1 (ACTIVATION KEY) -->
+      <div id="loginStep1Screen" class="screen-view">
+        <div>
+          <h2>Staff Authorization</h2>
+          <p class="subtitle">Please enter your company's Staff Activation Key code below to sync workspaces.</p>
+        </div>
+
+        <div class="login-step-indicator">
+          <div class="step-dot active"></div>
+          <div class="step-dot"></div>
+        </div>
+
+        <div class="card">
+          <div class="form-group">
+            <label for="actKeyInput">Staff Activation Key</label>
+            <input type="text" id="actKeyInput" placeholder="MB-BSC-XXXXX..." style="text-align: center; font-family: monospace; font-weight: 800; letter-spacing: 0.05em;">
+          </div>
+          <button class="btn" onclick="try { verifyActivationKey(); } catch(e) { showPremiumToast('Click Error: ' + e.message, 'error', 'Error'); }">
+            Next Step →
+          </button>
+        </div>
+        
+      </div>
+
+      <!-- SCREEN 2: LOGIN WIZARD - STEP 2 (STAFF CREDENTIALS) -->
+      <div id="loginStep2Screen" class="screen-view">
+        <div>
+          <h2>Staff Login</h2>
+          <p class="subtitle">Log in using the email address or phone number + password configured in your dashboard.</p>
+        </div>
+
+        <div class="login-step-indicator">
+          <div class="step-dot active"></div>
+          <div class="step-dot active"></div>
+        </div>
+
+        <div class="card">
+          <div class="form-group">
+            <label for="staffLoginId">Email ID or Phone Number</label>
+            <input type="text" id="staffLoginId" placeholder="john@work.com or +12345">
+          </div>
+
+          <div class="form-group">
+            <label for="staffPassword">Assigned Password</label>
+            <input type="password" id="staffPassword" placeholder="••••••••">
+          </div>
+
+          <div style="display: flex; gap: 10px;">
+            <button class="btn btn-secondary" style="flex: 1;" onclick="goBackToStep1()">
+              ← Back
+            </button>
+            <button class="btn" style="flex: 2;" onclick="loginStaff()">
+              Sign In
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- SCREEN 3: STAFF HOME CONSOLE -->
+      <div id="staffConsoleScreen" class="screen-view">
+        <div class="welcome-banner">
+          <div>
+            <span class="spec-label">TECHNICIAN SEAT</span>
+            <h2 id="staffGreetingName">John Doe</h2>
+          </div>
+          <div class="user-avatar" id="avatarPill">JD</div>
+        </div>
+
+        <!-- PERSISTENT SYNC STATUS CARD -->
+        <div id="syncStatusCard" class="card glass-panel" style="padding: 12px 16px; display: flex; flex-direction: row; align-items: center; gap: 12px; border-radius: 12px; margin-bottom: 8px;">
+          <span id="syncStatusIcon" style="font-size: 20px;">📶</span>
+          <div style="display: flex; flex-direction: column;">
+            <span id="syncStatusTitle" style="font-size: 13px; font-weight: 700;">Local Wi-Fi Sync Only</span>
+            <span id="syncStatusDesc" style="font-size: 11px; color: var(--on-surface-variant);">No Cloud tier active for this key</span>
+          </div>
+        </div>
+
+        <!-- SEARCH CONTAINER -->
+        <div class="form-group">
+          <label for="orderSearchInput">Lookup Job / Order ID</label>
+          <div class="search-box-container">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="orderSearchInput" class="search-input" placeholder="e.g. OR-1002 or 1002" onkeyup="checkSearchSubmit(event)">
+          </div>
+          <button class="btn" onclick="searchOrder()" style="height: 48px; border-radius: 12px; margin-top: 8px;">
+            Search
+          </button>
+        </div>
+
+        <!-- LIVE RESULT CARD -->
+        <div id="orderResultCard" class="card glass-panel" style="display: none;">
+          <div class="order-header">
+            <div>
+              <span class="spec-label">Order Reference</span>
+              <div class="order-number" id="resOrderNumber">OR-1002</div>
+            </div>
+            <span id="resStatusBadge" class="conn-status" style="font-size: 10px; font-weight: 800;">
+              In Progress
+            </span>
+          </div>
+
+          <div class="order-spec">
+            <div class="spec-item">
+              <span class="spec-label">Product Name</span>
+              <span class="spec-value" id="resProductName">MacBook Pro M3</span>
+            </div>
+            <div class="spec-item">
+              <span class="spec-label">Brand / Manufacturer</span>
+              <span class="spec-value" id="resBrand">Apple</span>
+            </div>
+            <div class="spec-item">
+              <span class="spec-label">Model Number</span>
+              <span class="spec-value" id="resModel">A2991</span>
+            </div>
+            <div class="spec-item">
+              <span class="spec-label">Serial Number</span>
+              <span class="spec-value" id="resSerial">C02XG123JL4M</span>
+            </div>
+            <div class="spec-item" style="border-top: 1px dashed var(--outline-variant); padding-top: 12px; margin-top: 4px;">
+              <span class="spec-label">Complaint / Reported Issue</span>
+              <span class="spec-value" id="resComplaint" style="font-weight: 500; font-style: italic; line-height: 1.4;">Screen flickering and battery health at 78%</span>
+            </div>
+          </div>
+
+          <!-- Status interactive updates selector -->
+          <div class="status-selector">
+            <span class="spec-label">Set Job Order Status</span>
+            <div class="status-options">
+              <button class="status-btn pending" id="btnStatusPending" onclick="selectStatus('Pending')">Pending</button>
+              <button class="status-btn progress" id="btnStatusProgress" onclick="selectStatus('In Progress')">Progress</button>
+              <button class="status-btn completed" id="btnStatusCompleted" onclick="selectStatus('Completed')">Completed</button>
+              <button class="status-btn rejected" id="btnStatusRejected" onclick="selectStatus('Rejected')">Rejected</button>
+            </div>
+          </div>
+
+          <!-- Order Update Form Container (condenser text box for completed/rejected orders) -->
+          <div id="orderUpdateFormContainer" class="status-selector" style="display: none; border-top: 1px solid var(--outline); padding-top: 16px; margin-top: 16px; flex-direction: column; gap: 8px;">
+            <span class="spec-label">Order Update Details</span>
+            <textarea id="orderUpdateInput" placeholder="Enter comments or updates (e.g. details of completion/rejection)..." style="background: var(--surface-low); border: 1px solid var(--outline); color: var(--on-surface); border-radius: 12px; padding: 12px; font-size: 14px; font-weight: 500; width: 100%; min-height: 80px; resize: vertical; outline: none; margin-top: 4px; transition: all 0.2s;" onfocus="this.style.borderColor='#717783'; this.style.background='var(--surface-lowest)';" onblur="this.style.borderColor='var(--outline)'; this.style.background='var(--surface-low)';"></textarea>
+            <button class="btn" style="height: 44px; border-radius: 12px; margin-top: 8px;" onclick="submitOrderUpdate()">
+              Submit Update & Status
+            </button>
+          </div>
+        </div>
+
+        <!-- EMPTY STATE SEARCH -->
+        <div id="emptySearchState" style="text-align: center; padding: 40px 20px; border: 1px dashed var(--outline); border-radius: 16px; color: var(--on-surface-variant);">
+          <span style="font-size: 32px; display: block; margin-bottom: 12px;">📋</span>
+          <span style="font-size: 13px; font-weight: 500;">Enter an active Order ID to inspect product specifications and update repair status.</span>
+        </div>
+
+        <div style="display: flex; gap: 10px; margin-top: auto;">
+          <button class="btn btn-secondary" onclick="logoutStaffSession()" style="flex: 1; border-color: rgba(239, 68, 68, 0.2); color: #f87171; background: rgba(239, 68, 68, 0.02);">
+            Logout Console
+          </button>
+        </div>
+      </div>
+
+    </main>
+
+    <!-- NETWORK CONFIGURATION MODAL -->
+    <div id="networkModal" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(9,13,22,0.9); z-index: 500; display: none; flex-direction: column; justify-content: center; padding: 32px; animation: fadeIn 0.2s ease-out;">
+      <div class="card" style="background: var(--surface-low); border: 1px solid var(--outline);">
+        <h3 style="margin-bottom: 10px;">Connection Settings</h3>
+        <p class="subtitle" style="margin-bottom: 16px;">Configure your synchronization endpoints. If on the same local Wi-Fi, enter your desktop workstation's local network IP.</p>
+        
+        <div class="form-group" style="margin-bottom: 16px;">
+          <label for="syncModeSelect">Synchronisation Mode</label>
+          <select id="syncModeSelect" onchange="onSyncModeChange()" style="background: var(--surface); border: 1px solid var(--outline); color: var(--on-surface); border-radius: 12px; padding: 12px; font-weight: 600; width: 100%;">
+            <option value="cloud">Supabase Cloud Sync (Default)</option>
+            <option value="wifi">Local Network Wi-Fi Only</option>
+          </select>
+        </div>
+
+        <div class="form-group" id="wifiIpGroup" style="display: none; margin-bottom: 20px;">
+          <label for="workstationIpInput">Workstation LAN IP Address</label>
+          <div style="display: flex; gap: 8px;">
+            <input type="text" id="workstationIpInput" placeholder="e.g. 192.168.1.10">
+            <button id="btnAutoScan" class="btn" style="padding: 12px 14px; font-size: 12px; width: auto; white-space: nowrap;" onclick="scanLocalNetworkForWorkstation()">🔍 Auto-Scan</button>
+          </div>
+          <span style="font-size: 10px; color: var(--on-surface-variant); margin-top: 4px;">⚠️ Port 14010 will be used automatically.</span>
+        </div>
+
+        <div style="display: flex; gap: 12px;">
+          <button class="btn btn-secondary" style="flex: 1;" onclick="closeNetworkConfig()">Cancel</button>
+          <button class="btn" style="flex: 1;" onclick="saveNetworkConfig()">Save Settings</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ACCESS REVOKED KICKOUT OVERLAY -->
+    <div id="revokedOverlay" class="revoked-overlay">
+      <div class="revoked-icon">🔒</div>
+      <h2>Staff Access Revoked</h2>
+      <p class="subtitle" style="color: #f87171; margin-top: 10px; font-weight: bold;">
+        Your staff credentials have been deactivated or removed from the admin console directory.
+      </p>
+      <p class="subtitle" style="margin-top: 14px; line-height: 1.6;">
+        You have been automatically logged out and cannot view company orders. Please contact your system administrator.
+      </p>
+      <button class="btn" onclick="dismissRevokedOverlay()" style="margin-top: 28px; max-width: 200px;">
+        Return to Login
+      </button>
+    </div>
+
+  </div>
+
+  <!-- Premium Toast Notification Card -->
+  <div id="toastNotification" class="toast-container">
+    <div id="toastIcon" class="toast-icon">☁️</div>
+    <div class="toast-content">
+      <div id="toastTitle" class="toast-title">Synced to Cloud</div>
+      <div id="toastMessage" class="toast-message">Data successfully saved and backed up.</div>
+    </div>
+  </div>
+
+  <script>
+
+
+    // Initialize Supabase configuration with a lazy-loading Proxy to prevent load-time ReferenceErrors
+    const supabaseUrl = 'https://qcmcoofnxqzyrrbcwdde.supabase.co';
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFjbWNvb2ZueHF6eXJyYmN3ZGRlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg1NTE0MDYsImV4cCI6MjA5NDEyNzQwNn0.BDse0v5cLXNT9wK9K7bOkLOkyZhPJL9HpZQuFA5fixY';
+    
+    let cachedSupabase = null;
+    const supabaseClient = new Proxy({}, {
+      get: (target, prop) => {
+        if (!cachedSupabase) {
+          if (!window.supabase) {
+            showPremiumToast("The Supabase library did not load correctly. Check connection and reload.", "error", "Supabase Error");
+            throw new Error("Supabase CDN not loaded on window.");
+          }
+          cachedSupabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+        }
+        return cachedSupabase[prop];
+      }
+    });
+
+    // Global Mobile Application State
+    let appState = {
+      activationKeyId: null,
+      activationKeyCode: null,
+      cloudSyncEnabled: false,
+      staffMember: null,
+      syncMode: 'cloud', // 'cloud' or 'wifi'
+      workstationIp: '',
+      currentMemo: null,
+      companyName: null,
+      companyLogoData: null
+    };
+
+    // Load initial configurations from local storage IMMEDIATELY to prevent UI flashing
+    const savedConfig = localStorage.getItem('mb_staff_config');
+    if (savedConfig) {
+      try {
+        appState = JSON.parse(savedConfig);
+      } catch (e) {
+        console.error("Failed to parse saved config:", e);
+      }
+    }
+
+    // Update branding in the main header bar
+    function updateHeaderCompanyName() {
+      const headerTitle = document.getElementById('headerCompanyName');
+      const headerLogo = document.getElementById('headerCompanyLogo');
+      
+      if (headerTitle) {
+        headerTitle.textContent = "Staff Portal";
+      }
+
+      if (headerLogo) {
+        if (appState.companyLogoData) {
+          headerLogo.src = appState.companyLogoData;
+          headerLogo.style.display = 'block';
+        } else {
+          headerLogo.style.display = 'none';
+        }
+      }
+    }
+
+    // Fetch company logo from the workstation LAN API and cache it
+    async function fetchWorkstationLogo() {
+      if (!appState.workstationIp) return;
+      const url = `http://${appState.workstationIp}:14010/api/company/logo`;
+      try {
+        const res = await fetch(url);
+        if (res.ok) {
+          const blob = await res.blob();
+          const reader = new FileReader();
+          reader.onloadend = function() {
+            appState.companyLogoData = reader.result;
+            localStorage.setItem('mb_staff_config', JSON.stringify(appState));
+            updateHeaderCompanyName();
+          };
+          reader.readAsDataURL(blob);
+        }
+      } catch (err) {
+        console.warn("Failed to fetch company logo from workstation:", err);
+      }
+    }
+
+    // Helper functions to show screens cleanly
+    function showStep1Screen() {
+      document.getElementById('loginStep1Screen').classList.add('active');
+      document.getElementById('loginStep2Screen').classList.remove('active');
+      document.getElementById('staffConsoleScreen').classList.remove('active');
+    }
+
+    function showStep2Screen() {
+      document.getElementById('loginStep1Screen').classList.remove('active');
+      document.getElementById('loginStep2Screen').classList.add('active');
+      document.getElementById('staffConsoleScreen').classList.remove('active');
+    }
+
+    // Determine and apply active screen class synchronously before DOMContentLoaded to prevent flash
+    if (appState.activationKeyId && appState.staffMember) {
+      document.getElementById('staffConsoleScreen').classList.add('active');
+    } else if (appState.activationKeyId) {
+      document.getElementById('loginStep2Screen').classList.add('active');
+    } else {
+      document.getElementById('loginStep1Screen').classList.add('active');
+    }
+
+    // Apply header company name immediately
+    updateHeaderCompanyName();
+
+    // Premium Toast Logic
+    let toastTimeout = null;
+    function showPremiumToast(message, type = 'info', title = 'Notification') {
+      const toast = document.getElementById('toastNotification');
+      const icon = document.getElementById('toastIcon');
+      const tTitle = document.getElementById('toastTitle');
+      const tMsg = document.getElementById('toastMessage');
+      
+      if (!toast) return;
+      
+      if (type === 'cloud-sync') {
+        icon.textContent = '☁️';
+        tTitle.textContent = title || 'Synced to Cloud';
+        tTitle.style.color = '#10b981'; // Green
+      } else if (type === 'wifi-sync') {
+        icon.textContent = '📶';
+        tTitle.textContent = title || 'Synced on Wi-Fi';
+        tTitle.style.color = '#f59e0b'; // Amber
+      } else if (type === 'error') {
+        icon.textContent = '❌';
+        tTitle.textContent = title || 'Error';
+        tTitle.style.color = '#ef4444'; // Red
+      } else {
+        icon.textContent = '💡';
+        tTitle.textContent = title || 'Notification';
+        tTitle.style.color = '#3b82f6'; // Blue
+      }
+      
+      tMsg.textContent = message;
+      
+      if (toastTimeout) {
+        clearTimeout(toastTimeout);
+      }
+      
+      toast.classList.add('show');
+      
+      toastTimeout = setTimeout(() => {
+        toast.classList.remove('show');
+      }, 4000);
+    }
+
+    // Load initial configurations from local storage
+    window.addEventListener('DOMContentLoaded', () => {
+      const savedConfig = localStorage.getItem('mb_staff_config');
+      if (savedConfig) {
+        appState = JSON.parse(savedConfig);
+      }
+      
+      // Auto-default workstation IP if empty on localhost
+      if (!appState.workstationIp && (location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {
+        appState.workstationIp = location.hostname;
+      }
+
+      document.getElementById('syncModeSelect').value = appState.syncMode;
+      document.getElementById('workstationIpInput').value = appState.workstationIp || '';
+      onSyncModeChange();
+      
+      updateConnectionIndicator();
+      restoreSession();
+
+      // Ping workstation config or auto-scan if not set
+      setTimeout(() => {
+        if (appState.staffMember && !appState.workstationIp) {
+          scanLocalNetworkForWorkstation();
+        } else {
+          pingWorkstationConfig();
+        }
+      }, 1000);
+    });
+
+    function toggleNetworkConfig() {
+      document.getElementById('networkModal').style.display = 'flex';
+    }
+
+    function closeNetworkConfig() {
+      document.getElementById('networkModal').style.display = 'none';
+    }
+
+    function onSyncModeChange() {
+      const mode = document.getElementById('syncModeSelect').value;
+      const group = document.getElementById('wifiIpGroup');
+      group.style.display = mode === 'wifi' ? 'flex' : 'none';
+    }
+
+    function saveNetworkConfig() {
+      appState.syncMode = document.getElementById('syncModeSelect').value;
+      appState.workstationIp = document.getElementById('workstationIpInput').value.trim();
+      
+      localStorage.setItem('mb_staff_config', JSON.stringify(appState));
+      updateConnectionIndicator();
+      updateSyncStatusCard();
+      closeNetworkConfig();
+      showPremiumToast('Connection settings saved successfully!', 'info', 'Settings Saved');
+    }
+
+    function updateConnectionIndicator() {
+      const indicator = document.getElementById('connectionIndicator');
+      if (appState.syncMode === 'wifi') {
+        indicator.textContent = '● local Wi-Fi';
+        indicator.className = 'conn-status status-offline';
+      } else {
+        indicator.textContent = '● Cloud Sync';
+        indicator.className = 'conn-status status-online';
+      }
+    }
+
+    // Wizard Nav
+    function goBackToStep1() {
+      // Clear company activation credentials on navigation back to Step 1
+      appState.activationKeyId = null;
+      appState.activationKeyCode = null;
+      appState.companyName = null;
+      appState.companyLogoData = null;
+      localStorage.setItem('mb_staff_config', JSON.stringify(appState));
+      
+      const actKeyInput = document.getElementById('actKeyInput');
+      if (actKeyInput) {
+        actKeyInput.value = '';
+      }
+      
+      updateHeaderCompanyName();
+      showStep1Screen();
+    }
+
+    // Step 1: Verify Activation Key
+    async function verifyActivationKey() {
+      const keyInput = document.getElementById('actKeyInput').value.trim().toUpperCase();
+      if (!keyInput) return showPremiumToast('Please enter your Staff Activation Key code.', 'error', 'Input Required');
+
+      try {
+        let targetKeyId = null;
+        let isAlias = false;
+
+        // If the key starts with SMK-, it might be a Staff Management Key Alias stored in the staff table
+        if (keyInput.startsWith('SMK-')) {
+          const { data: staffData, error: staffError } = await supabaseClient
+            .from('staff')
+            .select('activation_key_id')
+            .eq('email', keyInput)
+            .eq('name', '__STAFF_KEY__');
+          
+          if (!staffError && staffData && staffData.length > 0) {
+            targetKeyId = staffData[0].activation_key_id;
+            isAlias = true;
+          }
+        }
+
+        // Query Supabase activation_keys to verify key and fetch cloud status
+        let query = supabaseClient
+          .from('activation_keys')
+          .select('id, key_code, cloud_sync_enabled')
+          .eq('is_active', true);
+        
+        if (isAlias) {
+          query = query.eq('id', targetKeyId);
+        } else {
+          query = query.eq('key_code', keyInput);
+        }
+
+        const { data, error } = await query;
+
+        if (error) throw error;
+
+        if (!data || data.length === 0) {
+          return showPremiumToast('The entered key code is expired or suspended by your administrator.', 'error', 'Key Suspended');
+        }
+
+        // Store authorization key variables
+        appState.activationKeyId = data[0].id;
+        appState.activationKeyCode = data[0].key_code;
+        appState.cloudSyncEnabled = data[0].cloud_sync_enabled === true;
+
+        // Fetch company profile for branding name and logo
+        try {
+          const { data: profileData } = await supabaseClient
+            .from('company_profiles')
+            .select('company_name, logo_base64')
+            .eq('activation_key_id', data[0].id);
+
+          if (profileData && profileData.length > 0) {
+            appState.companyName = profileData[0].company_name;
+            appState.companyLogoData = profileData[0].logo_base64;
+          } else {
+            appState.companyName = "MemoBud";
+            appState.companyLogoData = null;
+          }
+        } catch (profileErr) {
+          console.warn("Failed to fetch company profile:", profileErr);
+          appState.companyName = "MemoBud";
+          appState.companyLogoData = null;
+        }
+
+        localStorage.setItem('mb_staff_config', JSON.stringify(appState));
+        updateHeaderCompanyName();
+
+        // Switch to credentials login screen
+        showStep2Screen();
+      } catch (err) {
+        showPremiumToast('Verification Failed: ' + err.message, 'error', 'Connection Error');
+      }
+    }
+
+    // Step 2: Login Staff member
+    async function loginStaff() {
+      const loginId = document.getElementById('staffLoginId').value.trim();
+      const password = document.getElementById('staffPassword').value.trim();
+
+      if (!loginId || !password) return showPremiumToast('Email/Phone and Password are required.', 'error', 'Credentials Required');
+
+      try {
+        // Query Supabase staff table under the authorized activation key
+        const { data, error } = await supabaseClient
+          .from('staff')
+          .select('*')
+          .eq('activation_key_id', appState.activationKeyId);
+
+        if (error) throw error;
+
+        // Match staff member either by email or phone number
+        const matchedStaff = data.find(s => 
+          (s.email.toLowerCase() === loginId.toLowerCase() || s.phone_number.replace(/\D/g, '') === loginId.replace(/\D/g, '')) &&
+          s.password === password
+        );
+
+        if (!matchedStaff) {
+          return showPremiumToast('Invalid Email ID, Phone Number or Password for the entered company key.', 'error', 'Authentication Failed');
+        }
+
+        // Save active session
+        appState.staffMember = matchedStaff;
+        localStorage.setItem('mb_staff_config', JSON.stringify(appState));
+
+        // Redirect to Home console
+        showConsoleScreen();
+      } catch (err) {
+        showPremiumToast('Authentication Error: ' + err.message, 'error', 'Sign In Error');
+      }
+    }
+
+    // Session Restore
+    function restoreSession() {
+      if (appState.activationKeyId && appState.staffMember) {
+        // Instantly transition to staff console screen to prevent startup delays
+        showConsoleScreen();
+        
+        // Double check session validity in the background
+        verifyStaffStillExistsRealtime();
+      } else if (appState.activationKeyId) {
+        // If activation key is set but not logged in, immediately show Step 2 (Staff Credentials Login)
+        showStep2Screen();
+      } else {
+        // If neither is present, show Step 1 (Activation Key entry)
+        showStep1Screen();
+      }
+    }
+
+    function showConsoleScreen() {
+      document.getElementById('loginStep1Screen').classList.remove('active');
+      document.getElementById('loginStep2Screen').classList.remove('active');
+      
+      const greeting = document.getElementById('staffGreetingName');
+      greeting.textContent = appState.staffMember.name;
+      
+      const avatar = document.getElementById('avatarPill');
+      const initials = appState.staffMember.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
+      avatar.textContent = initials;
+
+      // Update the persistent sync state display
+      updateSyncStatusCard();
+
+      document.getElementById('staffConsoleScreen').classList.add('active');
+    }
+
+    // REAL-TIME SESSION VERIFICATION (AUTOMATIC LOGOUT IF DELETED BY ADMIN OR KEY INACTIVE)
+    async function verifyStaffStillExistsRealtime() {
+      if (!appState.staffMember || !appState.activationKeyId) return false;
+      try {
+        // 1. Verify the activation key status
+        const { data: keyData, error: keyError } = await supabaseClient
+          .from('activation_keys')
+          .select('is_active, cloud_sync_enabled')
+          .eq('id', appState.activationKeyId);
+
+        if (keyError) throw keyError;
+
+        if (!keyData || keyData.length === 0 || !keyData[0].is_active) {
+          // Activation key is deactivated or deleted! Kick out!
+          triggerInstantRevocationKickout();
+          return false;
+        }
+
+        // Dynamically update cloud sync capability in real-time!
+        const latestCloudEnabled = keyData[0].cloud_sync_enabled === true;
+        let stateChanged = false;
+        if (appState.cloudSyncEnabled !== latestCloudEnabled) {
+          appState.cloudSyncEnabled = latestCloudEnabled;
+          stateChanged = true;
+        }
+
+        // Fetch latest company profile branding name and logo
+        try {
+          const { data: profileData } = await supabaseClient
+            .from('company_profiles')
+            .select('company_name, logo_base64')
+            .eq('activation_key_id', appState.activationKeyId);
+
+          if (profileData && profileData.length > 0) {
+            let innerStateChanged = false;
+            if (appState.companyName !== profileData[0].company_name) {
+              appState.companyName = profileData[0].company_name;
+              innerStateChanged = true;
+            }
+            if (appState.companyLogoData !== profileData[0].logo_base64) {
+              appState.companyLogoData = profileData[0].logo_base64;
+              innerStateChanged = true;
+            }
+            if (innerStateChanged) {
+              stateChanged = true;
+              updateHeaderCompanyName();
+            }
+          }
+        } catch (profileErr) {
+          console.warn("Failed to update company profile in background:", profileErr);
+        }
+
+        if (stateChanged) {
+          localStorage.setItem('mb_staff_config', JSON.stringify(appState));
+          updateSyncStatusCard();
+        }
+
+        // 2. Verify the staff member still exists
+        const { data: staffData, error: staffError } = await supabaseClient
+          .from('staff')
+          .select('id')
+          .eq('id', appState.staffMember.id);
+
+        if (staffError) throw staffError;
+
+        if (!staffData || staffData.length === 0) {
+          // Access has been revoked/deleted by the admin! Trigger kickout instantly!
+          triggerInstantRevocationKickout();
+          return false;
+        }
+        return true;
+      } catch (err) {
+        console.error('Revocation check error:', err);
+        return true; // If network fails, fail open to avoid locking out staff due to poor internet
+      }
+    }
+
+    function triggerInstantRevocationKickout() {
+      // Clear session values
+      appState.staffMember = null;
+      appState.currentMemo = null;
+      localStorage.setItem('mb_staff_config', JSON.stringify(appState));
+
+      // Hide views and open kickout overlay
+      document.getElementById('loginStep1Screen').classList.remove('active');
+      document.getElementById('loginStep2Screen').classList.remove('active');
+      document.getElementById('staffConsoleScreen').classList.remove('active');
+      document.getElementById('revokedOverlay').style.display = 'flex';
+    }
+
+    function dismissRevokedOverlay() {
+      document.getElementById('revokedOverlay').style.display = 'none';
+      showStep1Screen();
+    }
+
+    function logoutStaffSession() {
+      if (!confirm('Are you sure you want to log out of the staff console?')) return;
+      appState.staffMember = null;
+      appState.currentMemo = null;
+      localStorage.setItem('mb_staff_config', JSON.stringify(appState));
+
+      document.getElementById('staffConsoleScreen').classList.remove('active');
+      showStep2Screen();
+    }
+
+    function checkSearchSubmit(e) {
+      if (e.key === 'Enter') {
+        searchOrder();
+      }
+    }
+
+    // AUTO-SCAN LOCAL NETWORK FOR DESKTOP WORKSTATION
+    async function scanLocalNetworkForWorkstation() {
+      const scanBtn = document.getElementById('btnAutoScan');
+      if (scanBtn) {
+        scanBtn.disabled = true;
+        scanBtn.textContent = '🔍 Scanning...';
+      }
+      
+      showPremiumToast('Scanning local network subnets for your desktop workstation. Please wait...', 'info', 'Auto-Scan Started');
+      
+      const subnets = ['192.168.1', '192.168.0', '192.168.137', '10.0.0'];
+      let foundIp = null;
+      
+      // Batch size to prevent network socket congestion
+      const batchSize = 35;
+      
+      for (const subnet of subnets) {
+        if (foundIp) break;
+        
+        const ips = [];
+        for (let i = 2; i <= 254; i++) {
+          ips.push(`${subnet}.${i}`);
+        }
+        ips.push(`${subnet}.1`);
+        
+        for (let i = 0; i < ips.length; i += batchSize) {
+          if (foundIp) break;
+          const batch = ips.slice(i, i + batchSize);
+          
+          await Promise.all(batch.map(async (ip) => {
+            if (foundIp) return;
+            try {
+              const controller = new AbortController();
+              const timeoutId = setTimeout(() => controller.abort(), 400); // 400ms timeout
+              
+              const res = await fetch(`http://${ip}:14010/api/config`, {
+                method: 'GET',
+                mode: 'cors',
+                signal: controller.signal
+              });
+              clearTimeout(timeoutId);
+              
+              if (res.status === 200) {
+                const config = await res.json();
+                if (config && config.subscription_key) {
+                  if (appState.activationKeyCode && config.subscription_key.toUpperCase() === appState.activationKeyCode.toUpperCase()) {
+                    foundIp = ip;
+                  }
+                }
+              }
+            } catch (e) {
+              // Ignore
+            }
+          }));
+        }
+      }
+      
+      if (foundIp) {
+        appState.workstationIp = foundIp;
+        document.getElementById('workstationIpInput').value = foundIp;
+        
+        // Save the settings automatically
+        localStorage.setItem('mb_staff_config', JSON.stringify(appState));
+        updateConnectionIndicator();
+        updateSyncStatusCard();
+        
+        showPremiumToast(`Successfully detected workstation at ${foundIp}! Connected automatically.`, 'wifi-sync', 'Workstation Found');
+      } else {
+        showPremiumToast('Could not find any active workstation matching your subscription key on typical subnets.', 'error', 'Scan Completed');
+      }
+      
+      if (scanBtn) {
+        scanBtn.disabled = false;
+        scanBtn.textContent = '🔍 Auto-Scan';
+      }
+    }
+
+    // LAN WORKSTATION DYNAMIC KEY-CHANGE PING
+    async function pingWorkstationConfig() {
+      if (!appState.workstationIp || !appState.staffMember) return true;
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 2000); // 2-second timeout
+
+        const res = await fetch(`http://${appState.workstationIp}:14010/api/config`, {
+          method: 'GET',
+          mode: 'cors',
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+
+        if (res.status === 200) {
+          const config = await res.json();
+          if (config && config.subscription_key) {
+            // Verify if workstation key matches mobile active session key code
+            if (appState.activationKeyCode && config.subscription_key.toUpperCase() !== appState.activationKeyCode.toUpperCase()) {
+              // Workstation has upgraded/changed key! Force logout and prompt staff to use the new key!
+              appState.staffMember = null;
+              appState.activationKeyId = null;
+              appState.activationKeyCode = null;
+              appState.currentMemo = null;
+              localStorage.setItem('mb_staff_config', JSON.stringify(appState));
+              
+              // Hide console screen, reset active screens
+              showStep1Screen();
+              
+              showPremiumToast('Workstation has been upgraded to a new subscription key! Please sign in using the new key.', 'error', 'Key Mismatch');
+              return false;
+            }
+
+            // Dynamically sync cloud capability based on local workstation state
+            const latestCloudEnabled = config.cloud_sync_enabled === true;
+            let stateChanged = false;
+            if (appState.cloudSyncEnabled !== latestCloudEnabled) {
+              appState.cloudSyncEnabled = latestCloudEnabled;
+              stateChanged = true;
+            }
+            if (config.company_name && appState.companyName !== config.company_name) {
+              appState.companyName = config.company_name;
+              stateChanged = true;
+              updateHeaderCompanyName();
+            }
+            fetchWorkstationLogo();
+            if (stateChanged) {
+              localStorage.setItem('mb_staff_config', JSON.stringify(appState));
+              updateSyncStatusCard();
+            }
+          }
+        }
+        return true;
+      } catch (err) {
+        console.warn('LAN Workstation ping failed:', err);
+        return true; // Ignore if offline/unreachable on LAN
+      }
+    }
+
+    // UPDATE PERSISTENT SYNC STATUS CARD
+    function updateSyncStatusCard() {
+      const card = document.getElementById('syncStatusCard');
+      const icon = document.getElementById('syncStatusIcon');
+      const title = document.getElementById('syncStatusTitle');
+      const desc = document.getElementById('syncStatusDesc');
+      
+      if (!card) return;
+      
+      const isCloudActive = appState.syncMode !== 'wifi' && appState.cloudSyncEnabled;
+      
+      if (isCloudActive) {
+        icon.textContent = '☁️';
+        title.textContent = 'Real-time Cloud Sync Active';
+        title.style.color = '#10b981'; // Green
+        desc.textContent = 'Data automatically synced to central cloud servers';
+      } else {
+        icon.textContent = '📶';
+        title.textContent = 'Syncing over Wi-Fi only (No Cloud)';
+        title.style.color = '#f59e0b'; // Amber
+        if (!appState.cloudSyncEnabled) {
+          desc.textContent = 'Your company subscription key does not have cloud enabled';
+        } else {
+          desc.textContent = 'Manual Local network Wi-Fi override active';
+        }
+      }
+    }
+
+    // SEARCH ORDER
+    async function searchOrder() {
+      const orderIdInput = document.getElementById('orderSearchInput').value.trim();
+      if (!orderIdInput) return showPremiumToast('Please enter an Order ID.', 'error', 'Input Required');
+
+      // Perform a real-time deauthorization check first!
+      const isAuthorized = await verifyStaffStillExistsRealtime();
+      if (!isAuthorized) return; // Exit if access revoked
+
+      // Ping workstation key mismatch check first!
+      const isMatching = await pingWorkstationConfig();
+      if (isMatching === false) return; // Exit if logged out due to key change
+
+      document.getElementById('emptySearchState').style.display = 'none';
+      
+      const cleanId = orderIdInput.trim();
+      const strippedId = cleanId.replace(/^or-/i, '').trim();
+      const paddedId = 'OR-' + strippedId;
+
+      // Show loader
+      const resultCard = document.getElementById('orderResultCard');
+      resultCard.style.display = 'none';
+
+      let found = false;
+
+      // 1. Try Supabase Cloud first (priority lookup)
+      try {
+        // Get devices linked to our activation_key_id
+        const { data: devices, error: devError } = await supabaseClient
+          .from('devices')
+          .select('id')
+          .eq('activation_key_id', appState.activationKeyId);
+
+        if (devError) throw devError;
+
+        if (devices && devices.length > 0) {
+          const deviceIds = devices.map(d => d.id);
+
+          // Query service_memos with case-insensitive exact matching
+          let query = supabaseClient.from('service_memos')
+            .select('*')
+            .in('device_id', deviceIds)
+            .or(`memo_number.ilike."${cleanId}",memo_number.ilike."${strippedId}",memo_number.ilike."${paddedId}"`);
+
+          const { data: memos, error: memoError } = await query;
+          if (memoError) throw memoError;
+
+          if (memos && memos.length > 0) {
+            const memo = JSON.parse(memos[0].json_data);
+            appState.currentMemo = memos[0]; // Store cloud database reference
+            appState.currentMemo.parsedData = memo;
+
+            renderOrderResult(memo);
+            showPremiumToast(`Fetched order ${memo.MemoNumber} from Cloud.`, 'cloud-sync', 'Synced to Cloud');
+            found = true;
+          }
+        }
+      } catch (err) {
+        console.warn("Cloud lookup failed, falling back to local network:", err);
+      }
+
+      // 2. If not found or LAN was unreachable, and cloud is enabled, fetch from local workstation via Wi-Fi LAN
+      if (!found && appState.workstationIp) {
+        try {
+          const res = await fetch(`http://${appState.workstationIp}:14010/api/memo?id=${encodeURIComponent(cleanId)}`, {
+            method: 'GET',
+            mode: 'cors'
+          });
+
+          if (res.ok) {
+            const memo = await res.json();
+            renderOrderResult(memo);
+            showPremiumToast(`Fetched order ${memo.MemoNumber} from local workstation.`, 'wifi-sync', 'Synced on Wi-Fi');
+            found = true;
+          }
+        } catch (err) {
+          console.warn("Direct LAN lookup failed/unreachable:", err);
+        }
+      }
+
+      // 3. Handle not found state
+      if (!found) {
+        document.getElementById('emptySearchState').style.display = 'block';
+        document.getElementById('emptySearchState').querySelector('span:nth-child(2)').textContent = 
+          `Order ID "${cleanId}" not found. Ensure the workstation is running, on the same network, or synced to the cloud.`;
+      }
+    }
+
+    function renderOrderResult(memo) {
+      document.getElementById('resOrderNumber').textContent = memo.MemoNumber;
+      document.getElementById('resProductName').textContent = memo.DeviceName || 'N/A';
+      document.getElementById('resBrand').textContent = memo.Brand || 'N/A';
+      document.getElementById('resModel').textContent = memo.DeviceModel || 'N/A';
+      document.getElementById('resSerial').textContent = memo.SerialNumber || 'N/A';
+      document.getElementById('resComplaint').textContent = memo.IssueDescription || 'N/A';
+
+      // Status Badge
+      const statusBadge = document.getElementById('resStatusBadge');
+      statusBadge.textContent = memo.Status || 'Pending';
+      statusBadge.className = 'conn-status ' + getStatusClass(memo.Status);
+
+      // Highlight active status buttons
+      highlightStatusButtons(memo.Status);
+
+      // Show/prefill the updates form if Completed or Rejected
+      const formContainer = document.getElementById('orderUpdateFormContainer');
+      if (memo.Status === 'Completed' || memo.Status === 'Rejected') {
+        formContainer.style.display = 'flex';
+        appState.selectedStatus = memo.Status;
+        document.getElementById('orderUpdateInput').value = memo.OrderUpdates || '';
+      } else {
+        formContainer.style.display = 'none';
+        appState.selectedStatus = null;
+      }
+
+      // Save local memory reference
+      appState.currentMemoData = memo;
+      
+      document.getElementById('orderResultCard').style.display = 'flex';
+    }
+
+    function getStatusClass(status) {
+      if (status === 'Completed') return 'status-online';
+      if (status === 'Rejected') return 'status-rejected';
+      if (status === 'In Progress') return 'status-offline'; // maps to Progress color scheme
+      return 'status-offline'; // maps to Pending
+    }
+
+    function highlightStatusButtons(status) {
+      const btnPending = document.getElementById('btnStatusPending');
+      const btnProgress = document.getElementById('btnStatusProgress');
+      const btnCompleted = document.getElementById('btnStatusCompleted');
+      const btnRejected = document.getElementById('btnStatusRejected');
+
+      btnPending.classList.remove('selected');
+      btnProgress.classList.remove('selected');
+      btnCompleted.classList.remove('selected');
+      if (btnRejected) btnRejected.classList.remove('selected');
+
+      if (status === 'Completed') btnCompleted.classList.add('selected');
+      else if (status === 'In Progress') btnProgress.classList.add('selected');
+      else if (status === 'Rejected') {
+        if (btnRejected) btnRejected.classList.add('selected');
+      }
+      else btnPending.classList.add('selected');
+    }
+
+    function selectStatus(status) {
+      highlightStatusButtons(status);
+      const formContainer = document.getElementById('orderUpdateFormContainer');
+      formContainer.style.display = 'flex';
+      appState.selectedStatus = status;
+        
+      // Prefill text box with current updates if any
+      const memo = appState.currentMemoData;
+      document.getElementById('orderUpdateInput').value = memo ? (memo.OrderUpdates || '') : '';
+    }
+
+    async function submitOrderUpdate() {
+      const status = appState.selectedStatus;
+      if (!status) return;
+      const updatesText = document.getElementById('orderUpdateInput').value.trim();
+      await updateOrderStatus(status, updatesText);
+    }
+
+    // UPDATE ORDER STATUS
+    async function updateOrderStatus(newStatus, updatesText = null) {
+      if (!appState.currentMemoData) return;
+
+      // Perform a real-time deauthorization check first!
+      const isAuthorized = await verifyStaffStillExistsRealtime();
+      if (!isAuthorized) return; // Exit if access revoked
+
+      const memo = appState.currentMemoData;
+      const originalStatus = memo.Status;
+      const originalUpdates = memo.OrderUpdates;
+
+      // Update locally
+      memo.Status = newStatus;
+      memo.TechnicianName = appState.staffMember.name;
+      memo.UpdatedAt = new Date().toISOString();
+      if (updatesText !== null) {
+        memo.OrderUpdates = updatesText;
+      }
+
+      let cloudSynced = false;
+      let wifiSynced = false;
+
+      // 1. First priority: Update in Supabase cloud backups
+      if (appState.currentMemo) {
+        try {
+          const updatedJson = JSON.stringify(memo);
+          const { error } = await supabaseClient
+            .from('service_memos')
+            .update({
+              json_data: updatedJson,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', appState.currentMemo.id);
+
+          if (error) throw error;
+          cloudSynced = true;
+          
+          // Render updated UI immediately
+          renderOrderResult(memo);
+          showPremiumToast('Job status successfully synced to Cloud!', 'cloud-sync', 'Synced to Cloud');
+        } catch (err) {
+          console.warn('Cloud Sync Failed:', err);
+        }
+      }
+
+      // 2. Second priority: Fallback to local Wi-Fi ONLY if cloud failed
+      if (!cloudSynced && appState.workstationIp) {
+        try {
+          const res = await fetch(`http://${appState.workstationIp}:14010/api/memo/status`, {
+            method: 'POST',
+            mode: 'cors',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              MemoNumber: memo.MemoNumber,
+              Status: newStatus,
+              TechnicianName: appState.staffMember.name,
+              OrderUpdates: updatesText !== null ? updatesText : (memo.OrderUpdates || "")
+            })
+          });
+
+          if (res.ok) {
+            wifiSynced = true;
+            renderOrderResult(memo);
+            showPremiumToast('Job status updated on Wi-Fi (Cloud unavailable).', 'wifi-sync', 'Synced on Wi-Fi');
+          }
+        } catch (err) {
+          console.warn("Real-time LAN Wi-Fi sync failed/unreachable:", err);
+        }
+      }
+
+      // 3. Error Handling if BOTH failed
+      if (!cloudSynced && !wifiSynced) {
+        memo.Status = originalStatus; // roll back
+        memo.OrderUpdates = originalUpdates;
+        showPremiumToast('Could not reach workstation or cloud. Please check connection.', 'error', 'Sync Failed');
+      }
+    }
+  </script>
+</body>
+</html>

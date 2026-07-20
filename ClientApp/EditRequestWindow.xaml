@@ -1,0 +1,347 @@
+<Window x:Class="ClientApp.EditRequestWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Edit Job Order" Height="750" Width="600"
+        WindowStyle="None" AllowsTransparency="True" Background="Transparent"
+        WindowStartupLocation="CenterOwner"
+        PreviewKeyDown="Window_PreviewKeyDown"
+        ResizeMode="CanResizeWithGrip">
+    <Grid>
+        <Border Background="{DynamicResource SurfaceContainerLowestBrush}" 
+                CornerRadius="16" BorderBrush="{DynamicResource OutlineBrush}" BorderThickness="1"
+                Margin="20">
+            <Border.Effect>
+                <DropShadowEffect Color="#000000" BlurRadius="40" Opacity="0.15" ShadowDepth="5" Direction="270"/>
+            </Border.Effect>
+
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <!-- Custom Header -->
+                <Grid Grid.Row="0" Margin="32,24,32,0">
+                    <StackPanel>
+                        <TextBlock Style="{DynamicResource HeadlineMd}" Text="Edit Job Order" Margin="0,0,0,4"/>
+                        <TextBlock x:Name="txtMemoNumber" Foreground="{DynamicResource PrimaryBrush}" FontSize="14" FontWeight="SemiBold"/>
+                    </StackPanel>
+                    <Button HorizontalAlignment="Right" VerticalAlignment="Top" 
+                            Width="32" Height="32" Click="Cancel_Click"
+                            Background="Transparent" BorderThickness="0">
+                        <Path Data="M0,0 L12,12 M12,0 L0,12" Stroke="{DynamicResource OnSurfaceVariantBrush}" StrokeThickness="2" 
+                               HorizontalAlignment="Center" VerticalAlignment="Center" Width="12" Height="12"/>
+                    </Button>
+                </Grid>
+
+                <ScrollViewer x:Name="FormScrollViewer" Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="32,24,32,0">
+                    <StackPanel>
+                        <!-- Customer & Phone Row -->
+                        <Grid Margin="0,0,0,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="16"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="Customer Name" Foreground="{DynamicResource OnSurfaceVariantBrush}" 
+                                           FontSize="12" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                                <TextBox x:Name="txtCustomerName" Style="{DynamicResource InputStyle}"/>
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="2">
+                                <TextBlock Text="Phone Number" Foreground="{DynamicResource OnSurfaceVariantBrush}" 
+                                           FontSize="12" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="90"/>
+                                        <ColumnDefinition Width="8"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <ComboBox x:Name="cmbCountryCode" Grid.Column="0" Style="{DynamicResource PremiumComboBoxStyle}" Focusable="False" IsTabStop="False">
+                                        <ComboBox.ItemContainerStyle>
+                                            <Style TargetType="ComboBoxItem">
+                                                <Setter Property="ContentTemplate">
+                                                    <Setter.Value>
+                                                        <DataTemplate>
+                                                            <TextBlock Text="{Binding DisplayText}"/>
+                                                        </DataTemplate>
+                                                    </Setter.Value>
+                                                </Setter>
+                                            </Style>
+                                        </ComboBox.ItemContainerStyle>
+                                    </ComboBox>
+                                    <TextBox x:Name="txtPhoneNumber" Grid.Column="2" Style="{DynamicResource InputStyle}"/>
+                                </Grid>
+                            </StackPanel>
+                        </Grid>
+
+                        <StackPanel>
+                            <TextBlock Text="Customer Address (Optional)" Foreground="{DynamicResource OnSurfaceVariantBrush}" 
+                                       FontSize="12" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                            <TextBox x:Name="txtCustomerAddress" Style="{DynamicResource InputStyle}" Margin="0,0,0,16" TextWrapping="Wrap" AcceptsReturn="True" Height="65" VerticalContentAlignment="Top" Padding="8"/>
+                        </StackPanel>
+
+
+
+                        <Grid Margin="0,0,0,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="16"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="2">
+                                <TextBlock Text="Brand (Optional)" Foreground="{DynamicResource OnSurfaceVariantBrush}" 
+                                            FontSize="12" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                                <TextBox x:Name="txtBrand" Style="{DynamicResource InputStyle}"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="Device Name" Foreground="{DynamicResource OnSurfaceVariantBrush}" 
+                                           FontSize="12" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                                <TextBox x:Name="txtDeviceName" Style="{DynamicResource InputStyle}"/>
+                            </StackPanel>
+                        </Grid>
+                        
+                        <Grid Margin="0,0,0,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="16"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="Model Number (Optional)" Foreground="{DynamicResource OnSurfaceVariantBrush}" 
+                                           FontSize="12" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                                <TextBox x:Name="txtDeviceModel" Style="{DynamicResource InputStyle}"/>
+                            </StackPanel>
+ 
+                            <StackPanel Grid.Column="2">
+                                <TextBlock Text="Serial Number (Optional)" Foreground="{DynamicResource OnSurfaceVariantBrush}" 
+                                           FontSize="12" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                                <TextBox x:Name="txtSerialNumber" Style="{DynamicResource InputStyle}"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <!-- Complaint -->
+                        <TextBlock Text="Complaint / Issue Description" Foreground="{DynamicResource OnSurfaceVariantBrush}" 
+                                   FontSize="12" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                        <TextBox x:Name="txtComplaint" Style="{DynamicResource InputStyle}"
+                                 TextWrapping="Wrap" AcceptsReturn="True" Height="80" Margin="0,0,0,16"/>
+
+                        <TextBlock Text="Accessories (Provided by Customer)" Foreground="{DynamicResource OnSurfaceVariantBrush}" 
+                                   FontSize="12" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                        <TextBlock Text="Enter comma separated values e.g. Charger, Cover, Earphones" 
+                                   Foreground="{DynamicResource OnSurfaceVariantBrush}" FontSize="10" 
+                                   FontStyle="Italic" Opacity="0.65" Margin="0,0,0,6"/>
+                        <TextBox x:Name="txtAccessories" Style="{DynamicResource InputStyle}" Margin="0,0,0,16"/>
+
+                        <TextBlock Text="Est. Cost" Foreground="{DynamicResource OnSurfaceVariantBrush}" 
+                                   FontSize="12" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                        <TextBox x:Name="txtEstCost" Style="{DynamicResource InputStyle}" Margin="0,0,0,16"/>
+
+                        <!-- Technician Name -->
+                        <TextBlock Text="Technician Name (Optional)" Foreground="{DynamicResource OnSurfaceVariantBrush}" 
+                                   FontSize="12" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                        <TextBox x:Name="txtTechnician" Style="{DynamicResource InputStyle}" Margin="0,0,0,16"/>
+                        
+                        <!-- Diagnostics -->
+                        <TextBlock Text="Diagnostics (Optional)" Foreground="{DynamicResource OnSurfaceVariantBrush}" 
+                                   FontSize="12" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                        <TextBox x:Name="txtDiagnostics" Style="{DynamicResource InputStyle}"
+                                 TextWrapping="Wrap" AcceptsReturn="True" Height="80" Margin="0,0,0,16"/>
+
+                        <!-- Repeated Device Status Info (shown when IsRepeatedDevice is true) -->
+                        <Grid x:Name="RepeatedDeviceBanner" Visibility="Collapsed" Margin="0,0,0,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <Border Background="#FCE8E6" BorderBrush="#F44336" BorderThickness="1" CornerRadius="8" Padding="12,8">
+                                <StackPanel Orientation="Horizontal">
+                                    <!-- Warning Alert Icon -->
+                                    <Path Data="M12,2C6.48,2 2,6.48 2,12s4.48,10 10,10 10,-4.48 10,-10S17.52,2 12,2zm1,15h-2v-2h2v2zm0-4h-2V7h2v6z" 
+                                          Fill="#D93025" Width="16" Height="16" Stretch="Uniform" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Repeated Device was enabled" Foreground="#C5221F" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Border>
+
+                            <Button Grid.Column="1" Margin="8,0,0,0" ToolTip="Edit Repeated Device Status" 
+                                    Width="32" Height="32" Click="EditRepeatedDevice_Click"
+                                    Background="Transparent" BorderThickness="1" BorderBrush="{DynamicResource OutlineBrush}" Cursor="Hand">
+                                <Button.Template>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border x:Name="Border" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="8">
+                                            <Path Data="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" 
+                                                  Fill="{DynamicResource OnSurfaceVariantBrush}" Width="14" Height="14" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="Border" Property="Background" Value="{DynamicResource SurfaceContainerLowBrush}"/>
+                                                <Setter TargetName="Border" Property="BorderBrush" Value="{DynamicResource PrimaryBrush}"/>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Button.Template>
+                            </Button>
+                        </Grid>
+
+                        <!-- Repeated Device Toggle (shown when IsRepeatedDevice is false) -->
+                        <Border x:Name="RepeatedDeviceToggleBar" BorderThickness="1"
+                                CornerRadius="8" Padding="14,12" Margin="0,0,0,16" Visibility="Visible">
+                            <Border.Style>
+                                <Style TargetType="Border">
+                                    <Setter Property="Background" Value="{DynamicResource SurfaceContainerBrush}"/>
+                                    <Setter Property="BorderBrush" Value="{DynamicResource OutlineBrush}"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding ElementName=toggleRepeatedDevice, Path=IsKeyboardFocusWithin}" Value="True">
+                                            <Setter Property="Background" Value="{DynamicResource SurfaceContainerLowestBrush}"/>
+                                            <Setter Property="BorderBrush" Value="{DynamicResource PrimaryBrush}"/>
+                                            <Setter Property="BorderThickness" Value="2"/>
+                                            <Setter Property="Padding" Value="13,11"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <!-- Icon -->
+                                <Border Grid.Column="0" Width="28" Height="28" CornerRadius="14"
+                                        Background="{DynamicResource PrimaryBrush}" Margin="0,0,10,0" VerticalAlignment="Center">
+                                    <TextBlock Text="&#x1F504;" FontSize="14" HorizontalAlignment="Center" 
+                                               VerticalAlignment="Center"/>
+                                </Border>
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                    <TextBlock Text="Repeated Device" FontWeight="SemiBold" FontSize="13" 
+                                               Foreground="{DynamicResource OnSurfaceBrush}"/>
+                                    <TextBlock Text="Enable if this is a previously serviced device coming back." 
+                                               FontSize="10" Foreground="{DynamicResource OnSurfaceVariantBrush}" 
+                                               Opacity="0.75" TextWrapping="Wrap"/>
+                                </StackPanel>
+                                <!-- Toggle -->
+                                <ToggleButton x:Name="toggleRepeatedDevice" Grid.Column="2"
+                                              Width="44" Height="24" Cursor="Hand" IsChecked="False"
+                                              Checked="ToggleRepeatedDevice_Checked" Unchecked="ToggleRepeatedDevice_Unchecked">
+                                    <ToggleButton.Template>
+                                        <ControlTemplate TargetType="ToggleButton">
+                                            <Border x:Name="TrackBorder" CornerRadius="12" Width="44" Height="24"
+                                                    Background="#CCCCCC">
+                                                <Border x:Name="Thumb" Width="18" Height="18" CornerRadius="9"
+                                                        Background="White" HorizontalAlignment="Left" 
+                                                        VerticalAlignment="Center" Margin="3,0,0,0">
+                                                    <Border.Effect>
+                                                        <DropShadowEffect BlurRadius="4" ShadowDepth="1" Opacity="0.3"/>
+                                                    </Border.Effect>
+                                                </Border>
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsChecked" Value="True">
+                                                    <Setter TargetName="TrackBorder" Property="Background" Value="#FFC107"/>
+                                                    <Setter TargetName="Thumb" Property="HorizontalAlignment" Value="Right"/>
+                                                    <Setter TargetName="Thumb" Property="Margin" Value="0,0,3,0"/>
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </ToggleButton.Template>
+                                </ToggleButton>
+                            </Grid>
+                        </Border>
+
+                        <!-- Status -->
+                        <TextBlock Text="Status" Foreground="{DynamicResource OnSurfaceVariantBrush}" 
+                                   FontSize="12" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                        <ComboBox x:Name="cmbStatus" Margin="0,0,0,16" PreviewMouseWheel="cmbStatus_PreviewMouseWheel">
+                            <ComboBox.Style>
+                                <Style TargetType="ComboBox" BasedOn="{StaticResource PremiumComboBoxStyle}">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding RelativeSource={RelativeSource Self}, Path=SelectedItem.Content}" Value="Rejected">
+                                            <Setter Property="Foreground" Value="#E53935"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </ComboBox.Style>
+                            <ComboBoxItem Content="Pending"/>
+                            <ComboBoxItem Content="In Progress"/>
+                            <ComboBoxItem Content="Completed"/>
+                            <ComboBoxItem Content="Rejected" Foreground="#E53935" FontWeight="SemiBold"/>
+                        </ComboBox>
+
+                        <!-- Image Section -->
+                        <TextBlock Text="Product Images (Max 5)" Foreground="{DynamicResource OnSurfaceVariantBrush}" 
+                                   FontSize="12" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                        <Border x:Name="ImageSectionBorder" BorderThickness="1" CornerRadius="8" Padding="12" Margin="0,0,0,24">
+                            <Border.Style>
+                                <Style TargetType="Border">
+                                    <Setter Property="BorderBrush" Value="{DynamicResource SurfaceContainerBrush}"/>
+                                    <Setter Property="Background" Value="Transparent"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding RelativeSource={RelativeSource Self}, Path=IsKeyboardFocusWithin}" Value="True">
+                                            <Setter Property="Background" Value="{DynamicResource SurfaceContainerLowestBrush}"/>
+                                            <Setter Property="BorderBrush" Value="{DynamicResource PrimaryBrush}"/>
+                                            <Setter Property="BorderThickness" Value="2"/>
+                                            <Setter Property="Padding" Value="11"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
+                            <StackPanel>
+                                <ItemsControl x:Name="ImagesList" Focusable="False" IsTabStop="False">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <WrapPanel/>
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Grid Margin="0,0,8,8">
+                                                <Border Width="60" Height="60" CornerRadius="6" BorderThickness="1" BorderBrush="{DynamicResource OutlineBrush}" ClipToBounds="True">
+                                                    <Image Source="{Binding}" Stretch="UniformToFill"/>
+                                                </Border>
+                                                <Button Width="18" Height="18" HorizontalAlignment="Right" VerticalAlignment="Top" 
+                                                        Margin="0,-4,-4,0" Background="#ff4444" BorderThickness="0" 
+                                                        Click="RemoveImage_Click" Tag="{Binding}" Padding="0">
+                                                    <Button.Template>
+                                                        <ControlTemplate TargetType="Button">
+                                                            <Border Background="{TemplateBinding Background}" CornerRadius="9">
+                                                                <Path Data="M0,0 L6,6 M6,0 L0,6" Stroke="White" StrokeThickness="1.5" HorizontalAlignment="Center" VerticalAlignment="Center" Width="6" Height="6"/>
+                                                            </Border>
+                                                        </ControlTemplate>
+                                                    </Button.Template>
+                                                </Button>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                <Button x:Name="btnAddImage" Content="+ Add Image" Click="SelectImage_Click" 
+                                        Style="{DynamicResource SecondaryButtonStyle}" FontSize="12" HorizontalAlignment="Left"/>
+                                <TextBlock x:Name="txtImageCount" Margin="0,8,0,0" VerticalAlignment="Center" Text="0 / 5 images selected" FontSize="11" Foreground="{DynamicResource OnSurfaceVariantBrush}"/>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+
+                <!-- Actions Fixed at Bottom -->
+                <Border Grid.Row="2" Padding="32" Background="{DynamicResource SurfaceContainerLowBrush}" CornerRadius="0,0,16,16">
+                    <StackPanel>
+                        <Button Style="{DynamicResource PrimaryButtonStyle}" Content="Preview &amp; Print Memo" Margin="0,0,0,12" Click="PreviewPrint_Click"/>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="16"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Button Grid.Column="0" Style="{DynamicResource SecondaryButtonStyle}" Content="Save Changes" Click="Save_Click"/>
+                            <Button Grid.Column="2" Style="{DynamicResource SecondaryButtonStyle}" Content="Cancel" Click="Cancel_Click"/>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

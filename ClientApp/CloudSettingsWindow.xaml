@@ -1,0 +1,270 @@
+<Window x:Class="ClientApp.CloudSettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Cloud Sync Settings" Height="780" Width="520"
+        WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource BackgroundBrush}"
+        Foreground="{DynamicResource OnSurfaceBrush}"
+        WindowStyle="None" ResizeMode="NoResize"
+        AllowsTransparency="True">
+    
+    <Window.Resources>
+        <!-- Premium Custom Progress Bar Style with Rounded Ends and Gradient Indicator -->
+        <Style x:Key="PremiumProgressBarStyle" TargetType="ProgressBar">
+            <Setter Property="Height" Value="10"/>
+            <Setter Property="Background" Value="{DynamicResource SurfaceContainerHighestBrush}"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ProgressBar">
+                        <Grid x:Name="TemplateRoot">
+                            <Border CornerRadius="5" Background="{TemplateBinding Background}" BorderThickness="0"/>
+                            <Border x:Name="PART_Indicator" CornerRadius="5" HorizontalAlignment="Left" BorderThickness="0">
+                                <Border.Background>
+                                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                        <GradientStop Color="#004f96" Offset="0.0"/>
+                                        <GradientStop Color="#0067c0" Offset="1.0"/>
+                                    </LinearGradientBrush>
+                                </Border.Background>
+                            </Border>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <Border BorderBrush="{DynamicResource OutlineBrush}" BorderThickness="1.5" CornerRadius="24" Background="{DynamicResource BackgroundBrush}">
+        <Grid Margin="28">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <!-- Window Header with Title and Close Drag bar -->
+            <Grid Grid.Row="0" Margin="0,0,0,24" MouseLeftButtonDown="Header_MouseLeftButtonDown">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                
+                <StackPanel Grid.Column="0">
+                    <TextBlock Text="SERVICE MEMO CLOUD" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource PrimaryBrush}"/>
+                    <TextBlock Text="Sync &amp; Storage" FontSize="20" FontWeight="Bold" Foreground="{DynamicResource OnSurfaceBrush}" Margin="0,4,0,0"/>
+                </StackPanel>
+
+                <Button Grid.Column="1" Width="32" Height="32" Click="Close_Click" Cursor="Hand"
+                        Background="Transparent" BorderThickness="0" HorizontalAlignment="Right" VerticalAlignment="Top">
+                    <Path Data="M0,0 L12,12 M12,0 L0,12" Stroke="{DynamicResource OnSurfaceVariantBrush}" StrokeThickness="2" 
+                          HorizontalAlignment="Center" VerticalAlignment="Center" Width="12" Height="12"/>
+                </Button>
+            </Grid>
+
+            <!-- Main Content Area -->
+            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                <Grid>
+                    
+                    <!-- 1. INACTIVE CLOUD SYNC: Welcome & Benefits Showcase -->
+                    <StackPanel x:Name="IntroSection" Visibility="Visible">
+                        <!-- Top Glassmorphic Showcase Card -->
+                        <Border Background="{DynamicResource PrimaryContainerBrush}" CornerRadius="20" Padding="24" Margin="0,0,0,24">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                    <TextBlock Text="Elevate Your Workspace" FontSize="18" FontWeight="Bold" Foreground="{DynamicResource OnPrimaryContainerBrush}"/>
+                                    <TextBlock Text="Unlock real-time synchronization, automatic backups, and seamless multi-device work flows." 
+                                               FontSize="12" Foreground="{DynamicResource OnPrimaryContainerBrush}" Opacity="0.8" TextWrapping="Wrap" Margin="0,8,0,0" LineHeight="18"/>
+                                </StackPanel>
+                                <TextBlock Grid.Column="1" Text="☁️" FontSize="54" VerticalAlignment="Center" Margin="16,0,0,0"/>
+                            </Grid>
+                        </Border>
+
+                        <!-- Benefits Grid System (Tonal depth cards, no borders) -->
+                        <TextBlock Text="PREMIUM CLOUD FEATURES" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource OnSurfaceVariantBrush}" Margin="4,0,0,12"/>
+                        
+                        <Grid Margin="0,0,0,24">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <!-- Feature 1: Real-time Sync -->
+                            <Border Grid.Row="0" Grid.Column="0" Background="{DynamicResource SurfaceContainerLowBrush}" CornerRadius="16" Padding="16" Margin="0,0,6,12">
+                                <StackPanel>
+                                    <TextBlock Text="🔄" FontSize="20" Margin="0,0,0,8"/>
+                                    <TextBlock Text="Real-Time Sync" FontWeight="Bold" FontSize="13" Foreground="{DynamicResource OnSurfaceBrush}" Margin="0,0,0,4"/>
+                                    <TextBlock Text="Instantly update technician memos across all platforms in real-time." FontSize="11" Foreground="{DynamicResource OnSurfaceVariantBrush}" TextWrapping="Wrap" LineHeight="15"/>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Feature 2: Secure Backup -->
+                            <Border Grid.Row="0" Grid.Column="1" Background="{DynamicResource SurfaceContainerLowBrush}" CornerRadius="16" Padding="16" Margin="6,0,0,12">
+                                <StackPanel>
+                                    <TextBlock Text="🛡️" FontSize="20" Margin="0,0,0,8"/>
+                                    <TextBlock Text="Secure Backup" FontWeight="Bold" FontSize="13" Foreground="{DynamicResource OnSurfaceBrush}" Margin="0,0,0,4"/>
+                                    <TextBlock Text="Never lose a memo. Complete protection from local device loss." FontSize="11" Foreground="{DynamicResource OnSurfaceVariantBrush}" TextWrapping="Wrap" LineHeight="15"/>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Feature 3: Multi-device -->
+                            <Border Grid.Row="1" Grid.Column="0" Background="{DynamicResource SurfaceContainerLowBrush}" CornerRadius="16" Padding="16" Margin="0,0,6,0">
+                                <StackPanel>
+                                    <TextBlock Text="💻" FontSize="20" Margin="0,0,0,8"/>
+                                    <TextBlock Text="Multi-Device Access" FontWeight="Bold" FontSize="13" Foreground="{DynamicResource OnSurfaceBrush}" Margin="0,0,0,4"/>
+                                    <TextBlock Text="Create, edit, and search service records from any active terminal." FontSize="11" Foreground="{DynamicResource OnSurfaceVariantBrush}" TextWrapping="Wrap" LineHeight="15"/>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Feature 4: Cloud Design Library -->
+                            <Border Grid.Row="1" Grid.Column="1" Background="{DynamicResource SurfaceContainerLowBrush}" CornerRadius="16" Padding="16" Margin="6,0,0,0">
+                                <StackPanel>
+                                    <TextBlock Text="🎨" FontSize="20" Margin="0,0,0,8"/>
+                                    <TextBlock Text="Template Library" FontWeight="Bold" FontSize="13" Foreground="{DynamicResource OnSurfaceBrush}" Margin="0,0,0,4"/>
+                                    <TextBlock Text="Store, share, and synchronize custom corporate templates." FontSize="11" Foreground="{DynamicResource OnSurfaceVariantBrush}" TextWrapping="Wrap" LineHeight="15"/>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+
+                        <!-- Action Buttons -->
+                        <Button Style="{DynamicResource PrimaryButtonStyle}" Content="Get a Cloud Package" Click="Purchase_Click" Height="48" Margin="0,0,0,12"/>
+                        <Button Style="{DynamicResource SecondaryButtonStyle}" Content="Activate Cloud Key" Click="StartActivation_Click" Height="48" Margin="0,0,0,12"/>
+                    </StackPanel>
+
+                    
+                    <!-- 2. ACTIVATION FORM SECTION -->
+                    <StackPanel x:Name="ActivationSection" Visibility="Collapsed">
+                        <TextBlock Text="Enter Subscription Key" FontSize="15" FontWeight="Bold" Foreground="{DynamicResource OnSurfaceBrush}" Margin="0,0,0,8"/>
+                        <TextBlock Text="Please input your premium license key to register your device seats and link the workspace to the cloud database." 
+                                   Foreground="{DynamicResource OnSurfaceVariantBrush}" TextWrapping="Wrap" FontSize="12" Margin="0,0,0,24" LineHeight="18"/>
+                        
+                        <Border Background="{DynamicResource SurfaceContainerLowBrush}" CornerRadius="16" Padding="20" Margin="0,0,0,24">
+                            <StackPanel>
+                                <TextBlock Text="LICENSE KEY" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource OnSurfaceVariantBrush}" Margin="0,0,0,8"/>
+                                <TextBox x:Name="txtSubscriptionKey" Style="{DynamicResource InputStyle}" Margin="0,0,0,8" Tag="e.g. MB-TRIAL-XXXXX-XXXXX"/>
+                                <TextBlock x:Name="lblStatus" Text="Ready to activate." Foreground="{DynamicResource OnSurfaceVariantBrush}" FontSize="11" FontWeight="SemiBold"/>
+                            </StackPanel>
+                        </Border>
+
+                        <Button Style="{DynamicResource PrimaryButtonStyle}" Content="Verify &amp; Link Workspace" Click="Verify_Click" Height="48" Margin="0,0,0,12"/>
+                        <Button Style="{DynamicResource SecondaryButtonStyle}" Content="Back to Benefits" Click="BackToIntro_Click" Height="48"/>
+                    </StackPanel>
+
+                    
+                    <!-- 3. ACTIVE DASHBOARD AND METRICS SECTION -->
+                    <StackPanel x:Name="ConfigSection" Visibility="Collapsed">
+                        <!-- Cloud Offline Warning Card -->
+                        <Border x:Name="borderConfigCloudOffline" Background="#FEE2E2" BorderBrush="#EF4444" BorderThickness="1" CornerRadius="12" Padding="12" Margin="0,0,0,16" Visibility="Collapsed">
+                            <StackPanel>
+                                <TextBlock Text="⚠️ Cloud Connection Issue" FontSize="13" Foreground="#991B1B" FontWeight="Bold"/>
+                                <TextBlock Text="The application cannot reach the Cloud database. Memos are currently saving locally. Contact your administrator if cloud usage is required." FontSize="11" Foreground="#991B1B" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Plan Status Card -->
+                        <Border Background="{DynamicResource SurfaceContainerLowestBrush}" CornerRadius="16" Padding="20" Margin="0,0,0,16">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                
+                                <TextBlock Grid.Column="0" Text="☁️" FontSize="36" VerticalAlignment="Center" Margin="0,0,16,0"/>
+                                
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                    <TextBlock Text="CURRENT PLAN" FontSize="9" FontWeight="Bold" Foreground="{DynamicResource OnSurfaceVariantBrush}"/>
+                                    <TextBlock x:Name="lblActivePlan" Text="Professional Subscription" FontSize="16" FontWeight="Bold" Foreground="{DynamicResource OnSurfaceBrush}" Margin="0,2,0,0"/>
+                                    <TextBlock x:Name="lblActiveUser" Text="customer@example.com" FontSize="11" Foreground="{DynamicResource OnSurfaceVariantBrush}" Margin="0,2,0,0"/>
+                                </StackPanel>
+
+                                <!-- Premium Plan Pill Badge -->
+                                <Border Grid.Column="2" x:Name="brdPlanBadge" Background="{DynamicResource SecondaryContainerBrush}" CornerRadius="12" Padding="10,6" VerticalAlignment="Center">
+                                    <TextBlock x:Name="lblBadgeText" Text="ACTIVE" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource OnSurfaceBrush}"/>
+                                </Border>
+                            </Grid>
+                        </Border>
+
+                        <!-- Storage Space Utilization Metric Card -->
+                        <Border Background="{DynamicResource SurfaceContainerLowestBrush}" CornerRadius="16" Padding="20" Margin="0,0,0,24">
+                            <StackPanel>
+                                <Grid Margin="0,0,0,8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="Cloud Storage Space" FontSize="13" FontWeight="Bold" Foreground="{DynamicResource OnSurfaceBrush}"/>
+                                    <TextBlock Grid.Column="1" x:Name="lblStorageUsedText" Text="2.1 GB of 10.0 GB used" FontSize="12" Foreground="{DynamicResource OnSurfaceVariantBrush}"/>
+                                </Grid>
+
+                                <!-- Sleek progress bar component -->
+                                <ProgressBar x:Name="pbStorageUsed" Style="{StaticResource PremiumProgressBarStyle}" Value="21" Maximum="100" Margin="0,4,0,12"/>
+
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <!-- Device Seats status -->
+                                    <StackPanel Grid.Column="0" Orientation="Horizontal">
+                                        <TextBlock Text="💻 Registered Device Seats: " FontSize="11" Foreground="{DynamicResource OnSurfaceVariantBrush}"/>
+                                        <TextBlock x:Name="lblDeviceSeats" Text="1 of 3" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource OnSurfaceBrush}"/>
+                                    </StackPanel>
+                                    <TextBlock Grid.Column="1" x:Name="lblStorageRemainingPercent" Text="79% Left" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource PrimaryBrush}"/>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Active Synchronization Preferences Checkboxes -->
+                        <TextBlock Text="SYNCHRONIZATION OPTIONS" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource OnSurfaceVariantBrush}" Margin="4,0,0,12"/>
+
+                        <Border Background="{DynamicResource SurfaceContainerLowBrush}" CornerRadius="16" Padding="16,10" Margin="0,0,0,24">
+                            <StackPanel>
+                                <!-- Real-time sync checkbox -->
+                                <Grid Margin="0,10">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                        <TextBlock Text="Automatic Synchronization" FontWeight="Bold" FontSize="13" Foreground="{DynamicResource OnSurfaceBrush}"/>
+                                        <TextBlock Text="Allows immediate upload and fetch of service memos in real-time." FontSize="11" Foreground="{DynamicResource OnSurfaceVariantBrush}" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                                    </StackPanel>
+                                    <CheckBox Grid.Column="1" x:Name="chkEnableSync" VerticalAlignment="Center" Style="{DynamicResource ToggleSwitchStyle}"/>
+                                </Grid>
+
+                                <Border BorderBrush="{DynamicResource OutlineBrush}" BorderThickness="0,0.5,0,0" Opacity="0.2"/>
+
+                                <!-- Image sync checkbox -->
+                                <Grid Margin="0,10">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                        <TextBlock Text="Synchronize Product Images" FontWeight="Bold" FontSize="13" Foreground="{DynamicResource OnSurfaceBrush}"/>
+                                        <TextBlock Text="Sync high-resolution service pictures across connected terminals." FontSize="11" Foreground="{DynamicResource OnSurfaceVariantBrush}" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                                    </StackPanel>
+                                    <CheckBox Grid.Column="1" x:Name="chkSyncImages" VerticalAlignment="Center" Style="{DynamicResource ToggleSwitchStyle}"/>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Configuration Section Actions -->
+                        <Button Style="{DynamicResource PrimaryButtonStyle}" Content="Save Synchronization Preferences" Click="SaveConfig_Click" Height="48" Margin="0,0,0,12"/>
+                        
+                        <Button Style="{DynamicResource SecondaryButtonStyle}" Content="Deactivate Cloud Sync" Click="Deactivate_Click" 
+                                BorderThickness="0" Background="#10d32f2f" Foreground="#d32f2f" Height="44" FontSize="12"/>
+                    </StackPanel>
+                    
+                </Grid>
+            </ScrollViewer>
+        </Grid>
+    </Border>
+</Window>

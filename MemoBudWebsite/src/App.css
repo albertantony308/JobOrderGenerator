@@ -1,0 +1,255 @@
+/* local styles for MemoBud application components */
+.interactive-playground {
+  position: relative;
+  background: var(--surface-container);
+  border-radius: 20px;
+  padding: 40px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  box-shadow: var(--shadow-premium);
+  border: 1px solid var(--outline-variant);
+}
+
+.playground-header {
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.playground-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+  align-items: stretch;
+}
+
+@media (max-width: 768px) {
+  .playground-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.canvas-cell {
+  background: var(--surface-container-lowest);
+  border: 1px solid var(--outline-variant);
+  border-radius: 8px;
+  padding: 16px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  text-align: left;
+}
+
+.canvas-cell:hover {
+  border-color: var(--primary);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+.canvas-cell.active {
+  box-shadow: inset 0 0 0 2px var(--primary);
+  background: var(--secondary-container);
+}
+
+.editor-sidebar {
+  background: var(--surface-container-low);
+  border-radius: 12px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  border: 1px solid var(--outline-variant);
+}
+
+.editor-label {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--on-surface-variant);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 6px;
+}
+
+.video-frame-container {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16/9;
+  border-radius: 16px;
+  overflow: hidden;
+  background: #000;
+  box-shadow: var(--shadow-premium);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.video-play-btn {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-container) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  box-shadow: 0 8px 24px rgba(0, 79, 150, 0.4);
+  transition: all var(--transition-fast);
+  z-index: 10;
+}
+
+.video-frame-container:hover .video-play-btn {
+  transform: scale(1.1);
+  box-shadow: 0 12px 32px rgba(0, 79, 150, 0.6);
+}
+
+.video-poster-img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.75;
+  transition: transform var(--transition-smooth), opacity var(--transition-smooth);
+}
+
+.video-frame-container:hover .video-poster-img {
+  transform: scale(1.03);
+  opacity: 0.6;
+}
+
+.video-overlay-text {
+  position: absolute;
+  bottom: 24px;
+  left: 24px;
+  z-index: 5;
+  color: #fff;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.8);
+  text-align: left;
+}
+
+/* Modal Popup Window */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(15, 17, 21, 0.6);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.modal-content-wrapper {
+  width: 90%;
+  max-width: 480px;
+  border-radius: 20px;
+  overflow: hidden;
+  animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Mock Credit Card Graphics */
+.credit-card-preview {
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  border-radius: 12px;
+  padding: 20px;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  aspect-ratio: 1.586/1;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+  margin-bottom: 20px;
+  border: 1px solid rgba(255,255,255,0.1);
+  position: relative;
+  overflow: hidden;
+}
+
+.credit-card-preview::before {
+  content: '';
+  position: absolute;
+  width: 150px;
+  height: 150px;
+  background: radial-gradient(circle, rgba(0,79,150,0.3) 0%, rgba(0,79,150,0) 70%);
+  top: -50px;
+  right: -50px;
+}
+
+.card-network {
+  font-size: 1.1rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  font-style: italic;
+  text-align: right;
+}
+
+.card-chip {
+  width: 36px;
+  height: 28px;
+  background: linear-gradient(135deg, #d97706 0%, #f59e0b 100%);
+  border-radius: 4px;
+}
+
+.card-number-display {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 1.25rem;
+  letter-spacing: 0.15em;
+  word-spacing: 0.2em;
+  margin: 16px 0;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+}
+
+.card-holder-display {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #94a3b8;
+}
+
+.card-holder-name {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.card-expiry-display {
+  text-align: right;
+}
+
+/* Page features and lists */
+.feature-row {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+  padding: 16px 0;
+}
+
+.feature-icon-box {
+  background: var(--secondary-container);
+  color: var(--primary);
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { transform: translateY(30px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}

@@ -1,0 +1,72 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    
+    <!-- Light Mode Colors -->
+    <Color x:Key="BackgroundColor">#f8f9fb</Color>
+    <Color x:Key="SurfaceColor">#f8f9fb</Color>
+    <Color x:Key="SurfaceContainerLowColor">#f3f4f6</Color>
+    <Color x:Key="SurfaceContainerColor">#edeef0</Color>
+    <Color x:Key="SurfaceContainerHighColor">#e7e8ea</Color>
+    <Color x:Key="SurfaceContainerHighestColor">#e1e2e4</Color>
+    <Color x:Key="SurfaceContainerLowestColor">#ffffff</Color>
+    
+    <Color x:Key="PrimaryColor">#004f96</Color>
+    <Color x:Key="PrimaryContainerColor">#0067c0</Color>
+    <Color x:Key="OnPrimaryColor">#ffffff</Color>
+    
+    <Color x:Key="OnSurfaceColor">#191c1e</Color>
+    <Color x:Key="OnSurfaceVariantColor">#414752</Color>
+    <Color x:Key="OutlineColor">#717783</Color>
+
+    <SolidColorBrush x:Key="BackgroundBrush" Color="#f8f9fb"/>
+    <SolidColorBrush x:Key="SurfaceBrush" Color="#f8f9fb"/>
+    <SolidColorBrush x:Key="SurfaceContainerLowBrush" Color="#f3f4f6"/>
+    <SolidColorBrush x:Key="SurfaceContainerBrush" Color="#edeef0"/>
+    <SolidColorBrush x:Key="SurfaceContainerHighBrush" Color="#e7e8ea"/>
+    <SolidColorBrush x:Key="SurfaceContainerHighestBrush" Color="#e1e2e4"/>
+    <SolidColorBrush x:Key="SurfaceContainerLowestBrush" Color="#ffffff"/>
+    
+    <SolidColorBrush x:Key="PrimaryBrush" Color="#004f96"/>
+    <SolidColorBrush x:Key="PrimaryContainerBrush" Color="#0067c0"/>
+    <SolidColorBrush x:Key="OnPrimaryBrush" Color="#ffffff"/>
+    
+    <SolidColorBrush x:Key="OnSurfaceBrush" Color="#191c1e"/>
+    <SolidColorBrush x:Key="OnSurfaceVariantBrush" Color="#414752"/>
+    <SolidColorBrush x:Key="OutlineBrush" Color="#717783"/>
+
+    <!-- Light Mode Status Colors (Pastel with high contrast text) -->
+    <Color x:Key="StatusPendingColor">#fff9c4</Color>
+    <Color x:Key="OnStatusPendingColor">#827717</Color>
+    <Color x:Key="StatusInProgressColor">#e3f2fd</Color>
+    <Color x:Key="OnStatusInProgressColor">#1565c0</Color>
+    <Color x:Key="StatusCompletedColor">#e8f5e9</Color>
+    <Color x:Key="OnStatusCompletedColor">#2e7d32</Color>
+    <Color x:Key="StatusRepeatedColor">#f3e5f5</Color>
+    <Color x:Key="OnStatusRepeatedColor">#7b1fa2</Color>
+    <Color x:Key="StatusRejectedColor">#ffebee</Color>
+    <Color x:Key="OnStatusRejectedColor">#c62828</Color>
+
+    <SolidColorBrush x:Key="StatusPendingBrush" Color="{StaticResource StatusPendingColor}"/>
+    <SolidColorBrush x:Key="OnStatusPendingBrush" Color="{StaticResource OnStatusPendingColor}"/>
+    <SolidColorBrush x:Key="StatusInProgressBrush" Color="{StaticResource StatusInProgressColor}"/>
+    <SolidColorBrush x:Key="OnStatusInProgressBrush" Color="{StaticResource OnStatusInProgressColor}"/>
+    <SolidColorBrush x:Key="StatusCompletedBrush" Color="{StaticResource StatusCompletedColor}"/>
+    <SolidColorBrush x:Key="OnStatusCompletedBrush" Color="{StaticResource OnStatusCompletedColor}"/>
+    <SolidColorBrush x:Key="StatusRepeatedBrush" Color="{StaticResource StatusRepeatedColor}"/>
+    <SolidColorBrush x:Key="OnStatusRepeatedBrush" Color="{StaticResource OnStatusRepeatedColor}"/>
+    <SolidColorBrush x:Key="StatusRejectedBrush" Color="{StaticResource StatusRejectedColor}"/>
+    <SolidColorBrush x:Key="OnStatusRejectedBrush" Color="{StaticResource OnStatusRejectedColor}"/>
+
+    <!-- WhatsApp Specific (Solid Vibrant Green) -->
+    <SolidColorBrush x:Key="WhatsAppBrush" Color="#25D366"/>
+    <SolidColorBrush x:Key="WhatsAppHoverBrush" Color="#128C7E"/>
+    <SolidColorBrush x:Key="OnWhatsAppBrush" Color="White"/>
+
+    <!-- Close Button -->
+    <SolidColorBrush x:Key="CloseButtonBrush" Color="#414752"/>
+    
+    <!-- ScrollBar -->
+    <SolidColorBrush x:Key="ScrollBarTrackBrush" Color="#15000000"/>
+    <SolidColorBrush x:Key="ScrollBarThumbBrush" Color="#66000000"/>
+    <SolidColorBrush x:Key="ScrollBarThumbHoverBrush" Color="#99000000"/>
+</ResourceDictionary>

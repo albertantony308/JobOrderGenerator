@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="ClientApp/ClientApp.csproj" />
+  <Project Path="LicenseServer/LicenseServer.csproj" />
+</Solution>

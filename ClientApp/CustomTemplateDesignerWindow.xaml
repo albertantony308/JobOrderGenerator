@@ -1,0 +1,683 @@
+<Window x:Class="ClientApp.CustomTemplateDesignerWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Memo Template Designer" Height="760" Width="1100"
+        WindowStyle="None" AllowsTransparency="True" Background="Transparent"
+        WindowStartupLocation="CenterOwner" KeyDown="Window_KeyDown"
+        Closing="Window_Closing" StateChanged="Window_StateChanged">
+    
+    <Window.Resources>
+        <Style x:Key="ColorDotStyle" TargetType="Button">
+            <Setter Property="Width" Value="24"/>
+            <Setter Property="Height" Value="24"/>
+            <Setter Property="Margin" Value="4"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Focusable" Value="False"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border" Background="{TemplateBinding Background}" 
+                                CornerRadius="12" BorderBrush="{DynamicResource OutlineBrush}" BorderThickness="1">
+                            <VisualStateManager.VisualStateGroups>
+                                <VisualStateGroup x:Name="CommonStates">
+                                    <VisualState x:Name="Normal"/>
+                                    <VisualState x:Name="MouseOver">
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="border" Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)" To="1.2" Duration="0:0:0.1"/>
+                                            <DoubleAnimation Storyboard.TargetName="border" Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)" To="1.2" Duration="0:0:0.1"/>
+                                        </Storyboard>
+                                    </VisualState>
+                                    <VisualState x:Name="Pressed">
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="border" Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)" To="0.9" Duration="0:0:0.05"/>
+                                            <DoubleAnimation Storyboard.TargetName="border" Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)" To="0.9" Duration="0:0:0.05"/>
+                                        </Storyboard>
+                                    </VisualState>
+                                </VisualStateGroup>
+                            </VisualStateManager.VisualStateGroups>
+                            <Border.RenderTransform>
+                                <ScaleTransform ScaleX="1" ScaleY="1" CenterX="12" CenterY="12"/>
+                            </Border.RenderTransform>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+    
+    <Grid>
+        <Border x:Name="MainBorder" Background="{DynamicResource SurfaceContainerLowestBrush}" 
+                CornerRadius="16" BorderBrush="{DynamicResource OutlineBrush}" BorderThickness="1"
+                Margin="20">
+            <Border.Effect>
+                <DropShadowEffect Color="#000000" BlurRadius="40" Opacity="0.15" ShadowDepth="5" Direction="270"/>
+            </Border.Effect>
+
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <!-- Title Bar -->
+                <Grid Grid.Row="0" Height="40" Background="Transparent" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
+                    <TextBlock Text="Advanced Memo Designer" VerticalAlignment="Center" Margin="24,0" 
+                               FontWeight="Black" Foreground="{DynamicResource PrimaryBrush}" FontSize="14"/>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,12,0">
+                        <Button Focusable="False" Width="32" Height="32" Click="Minimize_Click" Background="Transparent" BorderThickness="0">
+                            <Path Data="M0,5 H10" Stroke="{DynamicResource OnSurfaceVariantBrush}" StrokeThickness="2.5" 
+                                   HorizontalAlignment="Center" VerticalAlignment="Center" Width="12" Height="10"/>
+                        </Button>
+                        <Button Focusable="False" Width="32" Height="32" Click="Maximize_Click" Background="Transparent" BorderThickness="0">
+                            <Path x:Name="MaximizeIcon" Data="M0,0 H10 V10 H0 Z M2,2 V8 H8 V2 Z" Stroke="{DynamicResource OnSurfaceVariantBrush}" StrokeThickness="1.5" 
+                                   HorizontalAlignment="Center" VerticalAlignment="Center" Width="10" Height="10"/>
+                        </Button>
+                        <Button Focusable="False" Width="32" Height="32" Click="Close_Click" Background="Transparent" BorderThickness="0">
+                            <Path Data="M0,0 L10,10 M10,0 L0,10" Stroke="{DynamicResource OnSurfaceVariantBrush}" StrokeThickness="2" 
+                                   HorizontalAlignment="Center" VerticalAlignment="Center" Width="10" Height="10"/>
+                        </Button>
+                    </StackPanel>
+                </Grid>
+
+                <!-- Designer Workspace -->
+                <Grid Grid.Row="1">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="220"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="260"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Left: Elements -->
+                    <Border Grid.Column="0" Background="{DynamicResource SurfaceContainerLowBrush}" Padding="20">
+                        <StackPanel>
+                            <TextBlock Text="CANVAS SETTINGS" Style="{DynamicResource BodyMd}" FontWeight="Bold" Opacity="0.5" Margin="0,0,0,12" Foreground="{DynamicResource OnSurfaceBrush}"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                                <TextBlock Text="Preview Placeholders" VerticalAlignment="Center" Margin="0,0,12,0" Foreground="{DynamicResource OnSurfaceBrush}" FontWeight="SemiBold"/>
+                                <CheckBox x:Name="tglPreviewPlaceholders" IsChecked="True" Checked="PreviewPlaceholders_Changed" Unchecked="PreviewPlaceholders_Changed" Style="{DynamicResource ToggleSwitchStyle}" Height="32"/>
+                            </StackPanel>
+                            <UniformGrid Columns="2" Margin="0,0,0,24">
+                                <RadioButton x:Name="radioFullA4" Content="Full A4" IsChecked="True" Checked="CanvasSize_Checked" Foreground="{DynamicResource OnSurfaceBrush}"/>
+                                <RadioButton x:Name="radioHalfA4" Content="Half A4" Checked="CanvasSize_Checked" Foreground="{DynamicResource OnSurfaceBrush}"/>
+                            </UniformGrid>
+
+                            <TextBlock Text="Elements" Style="{DynamicResource HeadlineSmall}" Margin="0,0,0,4" Foreground="{DynamicResource OnSurfaceBrush}"/>
+                            <TextBlock Text="Drag to Canvas" FontSize="11" Foreground="{DynamicResource OnSurfaceVariantBrush}" Margin="0,0,0,24"/>
+                            
+                            <ScrollViewer MaxHeight="550">
+                                <ItemsControl x:Name="PlaceholderList">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Margin="0,0,0,16">
+                                                <TextBlock Text="{Binding GroupName}" Style="{DynamicResource BodyMd}" FontWeight="Bold" Opacity="0.5" Margin="0,0,0,8" Foreground="{DynamicResource OnSurfaceBrush}"/>
+                                                <ItemsControl ItemsSource="{Binding Items}">
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate>
+                                                            <Border Background="{DynamicResource SurfaceContainerBrush}" CornerRadius="12" Padding="12" Margin="0,0,0,8" 
+                                                                    Cursor="Hand" MouseLeftButtonDown="Placeholder_MouseDown" Tag="{Binding Id}">
+                                                                <StackPanel Orientation="Horizontal">
+                                                                    <TextBlock Text="{Binding Icon}" FontSize="16" Margin="0,0,12,0" Foreground="{DynamicResource OnSurfaceBrush}"/>
+                                                                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold" VerticalAlignment="Center" Foreground="{DynamicResource OnSurfaceBrush}"/>
+                                                                </StackPanel>
+                                                            </Border>
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                </ItemsControl>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </ScrollViewer>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Center: A4 Canvas -->
+                    <ScrollViewer x:Name="DesignerScroller" Grid.Column="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" Background="{DynamicResource BackgroundBrush}" PreviewMouseWheel="ScrollViewer_PreviewMouseWheel" MouseDown="Scroller_MouseDown" MouseMove="Scroller_MouseMove" MouseUp="Scroller_MouseUp">
+                        <Grid x:Name="CanvasContainer" Margin="40" VerticalAlignment="Center" HorizontalAlignment="Center"
+                              ManipulationDelta="CanvasContainer_ManipulationDelta" IsManipulationEnabled="True">
+                            <Border x:Name="CanvasBorder" Width="794" Height="1123" Background="White" BorderBrush="#DDDDDD" BorderThickness="1" TextElement.Foreground="Black">
+                                <Border.LayoutTransform>
+                                    <ScaleTransform x:Name="CanvasScale" ScaleX="0.6" ScaleY="0.6"/>
+                                </Border.LayoutTransform>
+                                <Border.Effect>
+                                    <DropShadowEffect BlurRadius="30" ShadowDepth="10" Opacity="0.1"/>
+                                </Border.Effect>
+                                <Canvas x:Name="DesignerCanvas" Background="White" AllowDrop="True" Drop="DesignerCanvas_Drop" DragOver="DesignerCanvas_DragOver" DragEnter="DesignerCanvas_DragEnter" DragLeave="DesignerCanvas_DragLeave" MouseLeftButtonDown="DesignerCanvas_MouseLeftButtonDown" MouseMove="DesignerCanvas_MouseMove" MouseLeftButtonUp="DesignerCanvas_MouseLeftButtonUp">
+                                    <Rectangle x:Name="DropPreview" Width="150" Height="40" Fill="#201A73E8" Stroke="#1A73E8" StrokeThickness="1" StrokeDashArray="4,2" Visibility="Collapsed" IsHitTestVisible="False"/>
+                                </Canvas>
+                            </Border>
+                        </Grid>
+                    </ScrollViewer>
+
+                    <!-- Right: Properties -->
+                    <Border Grid.Column="2" Background="{DynamicResource SurfaceContainerLowBrush}">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="20">
+                            <StackPanel x:Name="PropertiesPanel" Visibility="Hidden">
+                                <TextBlock Text="Properties" Style="{DynamicResource HeadlineSmall}" Margin="0,0,0,4" Foreground="{DynamicResource OnSurfaceBrush}"/>
+                                <TextBlock x:Name="lblSelectedElement" Text="No element selected" FontSize="11" Foreground="{DynamicResource PrimaryBrush}" FontWeight="Bold" Margin="0,0,0,24"/>
+
+                                <!-- Font Family -->
+                                <TextBlock Text="FONT FAMILY" Style="{DynamicResource BodyMd}" FontWeight="Bold" Opacity="0.5" Margin="0,0,0,8" Foreground="{DynamicResource OnSurfaceBrush}"/>
+                                <ComboBox Focusable="False" x:Name="comboFontFamily" SelectionChanged="FontFamily_Changed" Margin="0,0,0,24" 
+                                          Style="{DynamicResource PremiumComboBoxStyle}" Padding="8,4" Height="36">
+                                    <ComboBox.ItemContainerStyle>
+                                        <Style TargetType="ComboBoxItem" BasedOn="{StaticResource {x:Type ComboBoxItem}}">
+                                            <EventSetter Event="MouseEnter" Handler="FontItem_MouseEnter"/>
+                                            <EventSetter Event="MouseLeave" Handler="FontItem_MouseLeave"/>
+                                        </Style>
+                                    </ComboBox.ItemContainerStyle>
+                                    <!-- Sans-Serif Modern Fonts -->
+                                    <ComboBoxItem Content="Inter" FontFamily="Inter" FontSize="14"/>
+                                    <ComboBoxItem Content="Roboto" FontFamily="Roboto" FontSize="14"/>
+                                    <ComboBoxItem Content="Segoe UI" FontFamily="Segoe UI" FontSize="14"/>
+                                    <ComboBoxItem Content="Montserrat" FontFamily="Montserrat" FontSize="14"/>
+                                    <ComboBoxItem Content="Poppins" FontFamily="Poppins" FontSize="14"/>
+                                    <ComboBoxItem Content="Open Sans" FontFamily="Open Sans" FontSize="14"/>
+                                    <ComboBoxItem Content="Lato" FontFamily="Lato" FontSize="14"/>
+                                    <ComboBoxItem Content="Outfit" FontFamily="Outfit" FontSize="14"/>
+                                    <ComboBoxItem Content="Arial" FontFamily="Arial" FontSize="14"/>
+                                    <ComboBoxItem Content="Calibri" FontFamily="Calibri" FontSize="14"/>
+                                    <ComboBoxItem Content="Century Gothic" FontFamily="Century Gothic" FontSize="14"/>
+                                    <ComboBoxItem Content="Tahoma" FontFamily="Tahoma" FontSize="14"/>
+                                    <ComboBoxItem Content="Trebuchet MS" FontFamily="Trebuchet MS" FontSize="14"/>
+                                    <ComboBoxItem Content="Verdana" FontFamily="Verdana" FontSize="14"/>
+                                    
+                                    <!-- Editorial Serif Fonts -->
+                                    <ComboBoxItem Content="Playfair Display" FontFamily="Playfair Display" FontSize="14"/>
+                                    <ComboBoxItem Content="Cinzel" FontFamily="Cinzel" FontSize="14"/>
+                                    <ComboBoxItem Content="Cambria" FontFamily="Cambria" FontSize="14"/>
+                                    <ComboBoxItem Content="Garamond" FontFamily="Garamond" FontSize="14"/>
+                                    <ComboBoxItem Content="Georgia" FontFamily="Georgia" FontSize="14"/>
+                                    <ComboBoxItem Content="Times New Roman" FontFamily="Times New Roman" FontSize="14"/>
+                                    <ComboBoxItem Content="Bookman Old Style" FontFamily="Bookman Old Style" FontSize="14"/>
+                                    <ComboBoxItem Content="Palatino Linotype" FontFamily="Palatino Linotype" FontSize="14"/>
+
+                                    <!-- Monospace & Technical Fonts -->
+                                    <ComboBoxItem Content="Consolas" FontFamily="Consolas" FontSize="14"/>
+                                    <ComboBoxItem Content="Courier New" FontFamily="Courier New" FontSize="14"/>
+
+                                    <!-- Display / Bold Fonts -->
+                                    <ComboBoxItem Content="Oswald" FontFamily="Oswald" FontSize="14"/>
+                                    <ComboBoxItem Content="Arial Black" FontFamily="Arial Black" FontSize="14"/>
+                                    <ComboBoxItem Content="Impact" FontFamily="Impact" FontSize="14"/>
+                                    <ComboBoxItem Content="Copperplate Gothic Bold" FontFamily="Copperplate Gothic Bold" FontSize="14"/>
+                                    <ComboBoxItem Content="Franklin Gothic Medium" FontFamily="Franklin Gothic Medium" FontSize="14"/>
+
+                                    <!-- Elegant Script & Handwriting Fonts -->
+                                    <ComboBoxItem Content="Monotype Corsiva" FontFamily="Monotype Corsiva" FontSize="14"/>
+                                    <ComboBoxItem Content="Segoe Print" FontFamily="Segoe Print" FontSize="14"/>
+                                    <ComboBoxItem Content="Segoe Script" FontFamily="Segoe Script" FontSize="14"/>
+                                    <ComboBoxItem Content="Lucida Handwriting" FontFamily="Lucida Handwriting" FontSize="14"/>
+                                    <ComboBoxItem Content="Great Vibes" FontFamily="Great Vibes" FontSize="14"/>
+                                </ComboBox>
+
+                                <!-- Text Color -->
+                                <TextBlock x:Name="lblTextColor" Text="TEXT COLOR" Style="{DynamicResource BodyMd}" FontWeight="Bold" Opacity="0.5" Margin="0,0,0,8" Foreground="{DynamicResource OnSurfaceBrush}"/>
+                                <StackPanel Margin="0,0,0,24">
+                                    <Grid Margin="0,0,0,12">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Border x:Name="previewTextColor" Width="36" Height="36" CornerRadius="8" BorderBrush="{DynamicResource OutlineBrush}" BorderThickness="2" Background="#1A73E8"/>
+                                        <TextBox x:Name="txtTextColorHex" Grid.Column="1" Margin="8,0" VerticalContentAlignment="Center" MaxLength="7" Text="#1A73E8" TextChanged="ColorHex_TextChanged" KeyDown="ColorHex_KeyDown" Tag="Text" Background="{DynamicResource SurfaceContainerBrush}" Foreground="{DynamicResource OnSurfaceBrush}" BorderThickness="1" BorderBrush="{DynamicResource OutlineBrush}" Padding="8,0"/>
+                                        <Button Grid.Column="2" Content="🎨" Width="36" Height="36" Click="OpenColorPicker_Click" Tag="Text" Style="{DynamicResource SecondaryButtonStyle}" Padding="0"/>
+                                    </Grid>
+                                    <WrapPanel>
+                                        <Button Style="{DynamicResource ColorDotStyle}" Background="Transparent" Click="Color_Click" Tag="Transparent" ToolTip="None"/>
+                                        <Button Style="{DynamicResource ColorDotStyle}" Background="#FFFFFF" Click="Color_Click" Tag="#FFFFFF"/>
+                                        <Button Style="{DynamicResource ColorDotStyle}" Background="#000000" Click="Color_Click" Tag="#000000"/>
+                                        <Button Style="{DynamicResource ColorDotStyle}" Background="#1A73E8" Click="Color_Click" Tag="#1A73E8"/>
+                                        <Button Style="{DynamicResource ColorDotStyle}" Background="#D93025" Click="Color_Click" Tag="#D93025"/>
+                                        <Button Style="{DynamicResource ColorDotStyle}" Background="#188038" Click="Color_Click" Tag="#188038"/>
+                                        <Button Style="{DynamicResource ColorDotStyle}" Background="#F9AB00" Click="Color_Click" Tag="#F9AB00"/>
+                                        <Button Style="{DynamicResource ColorDotStyle}" Background="#A142F4" Click="Color_Click" Tag="#A142F4"/>
+                                        <Button Style="{DynamicResource ColorDotStyle}" Background="#666666" Click="Color_Click" Tag="#666666"/>
+                                        <Button Style="{DynamicResource ColorDotStyle}" Background="#333333" Click="Color_Click" Tag="#333333"/>
+                                    </WrapPanel>
+                                    <TextBlock Text="RECENT" FontSize="10" FontWeight="Bold" Opacity="0.3" Margin="4,8,0,4" Visibility="Collapsed" x:Name="lblRecentText"/>
+                                    <WrapPanel x:Name="panelRecentTextColor"/>
+                                </StackPanel>
+
+                                <!-- Font Size -->
+                                <Grid Margin="0,0,0,8">
+                                    <TextBlock Text="FONT SIZE" Style="{DynamicResource BodyMd}" FontWeight="Bold" Opacity="0.5" Foreground="{DynamicResource OnSurfaceBrush}"/>
+                                    <TextBlock Text="{Binding Value, ElementName=sliderFontSize, StringFormat={}{0:0}px}" 
+                                               HorizontalAlignment="Right" Foreground="{DynamicResource PrimaryBrush}" FontWeight="Bold" FontSize="11"/>
+                                </Grid>
+                                <Slider Focusable="False" x:Name="sliderFontSize" Minimum="8" Maximum="48" Value="12" Margin="0,0,0,24" ValueChanged="FontSize_Changed"/>
+
+                                <!-- Opacity -->
+                                <TextBlock Text="TRANSPARENCY" Style="{DynamicResource BodyMd}" FontWeight="Bold" Opacity="0.5" Margin="0,0,0,8" Foreground="{DynamicResource OnSurfaceBrush}"/>
+                                <Slider Focusable="False" x:Name="sliderOpacity" Minimum="0.0" Maximum="1.0" Value="1.0" Margin="0,0,0,24" ValueChanged="Opacity_Changed"/>
+
+                                <!-- Text Alignment -->
+                                <TextBlock Text="TEXT ALIGNMENT" Style="{DynamicResource BodyMd}" FontWeight="Bold" Opacity="0.5" Margin="0,0,0,8" Foreground="{DynamicResource OnSurfaceBrush}"/>
+                                <UniformGrid Columns="3" Margin="0,0,0,24">
+                                    <ToggleButton Focusable="False" x:Name="tglAlignLeft" Content="Left" Click="Alignment_Click" Tag="Left" Style="{DynamicResource SecondaryToggleButtonStyle}" Height="32" Padding="0"/>
+                                    <ToggleButton Focusable="False" x:Name="tglAlignCenter" Content="Center" Click="Alignment_Click" Tag="Center" Style="{DynamicResource SecondaryToggleButtonStyle}" Height="32" Padding="0"/>
+                                    <ToggleButton Focusable="False" x:Name="tglAlignRight" Content="Right" Click="Alignment_Click" Tag="Right" Style="{DynamicResource SecondaryToggleButtonStyle}" Height="32" Padding="0"/>
+                                </UniformGrid>
+
+                                <!-- Custom Text -->
+                                <TextBlock x:Name="lblCustomText" Text="CUSTOM TEXT" Style="{DynamicResource BodyMd}" FontWeight="Bold" Opacity="0.5" Margin="0,0,0,8" Foreground="{DynamicResource OnSurfaceBrush}" Visibility="Collapsed"/>
+                                <TextBox x:Name="txtCustomText" Margin="0,0,0,24" Visibility="Collapsed" TextChanged="CustomText_Changed" Background="{DynamicResource SurfaceContainerBrush}" Foreground="{DynamicResource OnSurfaceBrush}"/>
+
+                                <!-- Font Style -->
+                                <TextBlock Text="TEXT STYLE" Style="{DynamicResource BodyMd}" FontWeight="Bold" Opacity="0.5" Margin="0,0,0,8" Foreground="{DynamicResource OnSurfaceBrush}"/>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,24">
+                                    <ToggleButton Focusable="False" x:Name="tglBold" Content="B" FontWeight="Bold" Width="40" Height="40" Margin="0,0,8,0" Click="Style_Changed" Style="{DynamicResource SecondaryToggleButtonStyle}"/>
+                                    <ToggleButton Focusable="False" x:Name="tglItalic" Content="I" FontStyle="Italic" Width="40" Height="40" Margin="0,0,8,0" Click="Style_Changed" Style="{DynamicResource SecondaryToggleButtonStyle}"/>
+                                    <ToggleButton Focusable="False" x:Name="tglUnderline" Content="U" Width="40" Height="40" Click="Style_Changed" Style="{DynamicResource SecondaryToggleButtonStyle}">
+                                        <ToggleButton.ContentTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="U" TextDecorations="Underline"/>
+                                            </DataTemplate>
+                                        </ToggleButton.ContentTemplate>
+                                    </ToggleButton>
+                                </StackPanel>
+
+                                <!-- Shape Properties -->
+                                <StackPanel x:Name="ShapePropertiesPanel" Visibility="Collapsed" Margin="0,0,0,24">
+                                    <TextBlock Text="SHAPE BORDER COLOR" Style="{DynamicResource BodyMd}" FontWeight="Bold" Opacity="0.5" Margin="0,0,0,8" Foreground="{DynamicResource OnSurfaceBrush}"/>
+                                    <StackPanel Margin="0,0,0,12">
+                                        <Grid Margin="0,0,0,8">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <Border x:Name="previewShapeBorderColor" Width="32" Height="32" CornerRadius="4" BorderBrush="{DynamicResource OutlineBrush}" BorderThickness="1" Background="Transparent"/>
+                                            <TextBox x:Name="txtShapeBorderColorHex" Grid.Column="1" Margin="8,0" VerticalContentAlignment="Center" MaxLength="7" Text="#000000" TextChanged="ColorHex_TextChanged" KeyDown="ColorHex_KeyDown" Tag="ShapeBorder" Background="{DynamicResource SurfaceContainerBrush}" Foreground="{DynamicResource OnSurfaceBrush}" BorderThickness="1" BorderBrush="{DynamicResource OutlineBrush}"/>
+                                            <Button Grid.Column="2" Content="🎨" Width="32" Height="32" Click="OpenColorPicker_Click" Tag="ShapeBorder" Style="{DynamicResource SecondaryButtonStyle}" Padding="0"/>
+                                        </Grid>
+                                        <WrapPanel>
+                                            <Button Style="{DynamicResource ColorDotStyle}" Background="Transparent" Click="ShapeBorderColor_Click" Tag="Transparent"/>
+                                            <Button Style="{DynamicResource ColorDotStyle}" Background="#000000" Click="ShapeBorderColor_Click" Tag="#000000"/>
+                                            <Button Style="{DynamicResource ColorDotStyle}" Background="#CCCCCC" Click="ShapeBorderColor_Click" Tag="#CCCCCC"/>
+                                            <Button Style="{DynamicResource ColorDotStyle}" Background="#1A73E8" Click="ShapeBorderColor_Click" Tag="#1A73E8"/>
+                                            <Button Style="{DynamicResource ColorDotStyle}" Background="#D93025" Click="ShapeBorderColor_Click" Tag="#D93025"/>
+                                        </WrapPanel>
+                                        <TextBlock Text="RECENT" FontSize="10" FontWeight="Bold" Opacity="0.3" Margin="4,8,0,4" Visibility="Collapsed" x:Name="lblRecentShapeBorder"/>
+                                        <WrapPanel x:Name="panelRecentShapeBorderColor"/>
+                                    </StackPanel>
+
+                                    <TextBlock Text="SHAPE BORDER WEIGHT" Style="{DynamicResource BodyMd}" FontWeight="Bold" Opacity="0.5" Margin="0,0,0,8" Foreground="{DynamicResource OnSurfaceBrush}"/>
+                                    <Slider Focusable="False" x:Name="sliderShapeBorderWeight" Minimum="0" Maximum="20" Value="0" Margin="0,0,0,12" ValueChanged="ShapeBorderWeight_Changed"/>
+
+                                    <TextBlock x:Name="lblShapeBorderRadius" Text="CORNER RADIUS" Style="{DynamicResource BodyMd}" FontWeight="Bold" Opacity="0.5" Margin="0,0,0,8" Foreground="{DynamicResource OnSurfaceBrush}"/>
+                                    <Slider Focusable="False" x:Name="sliderShapeBorderRadius" Minimum="0" Maximum="100" Value="0" Margin="0,0,0,12" ValueChanged="ShapeBorderRadius_Changed"/>
+
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                        <TextBlock x:Name="lblPolygonSides" Text="NUMBER OF EDGES" Style="{DynamicResource BodyMd}" FontWeight="Bold" Opacity="0.5" Foreground="{DynamicResource OnSurfaceBrush}" Visibility="Collapsed"/>
+                                        <TextBlock x:Name="lblPolygonSidesValue" Text="3" Style="{DynamicResource BodyMd}" FontWeight="Bold" Margin="8,0,0,0" Foreground="{DynamicResource PrimaryBrush}" Visibility="Collapsed"/>
+                                    </StackPanel>
+                                    <Slider Focusable="False" x:Name="sliderPolygonSides" Minimum="3" Maximum="12" Value="3" IsSnapToTickEnabled="True" TickFrequency="1" Margin="0,0,0,12" ValueChanged="PolygonSides_Changed" Visibility="Collapsed"/>
+                                </StackPanel>
+
+                                <!-- Table Properties -->
+                                <StackPanel x:Name="TablePropertiesPanel" Visibility="Collapsed" Margin="0,0,0,24">
+                                    <TextBlock Text="TABLE SETTINGS" Style="{DynamicResource BodyMd}" FontWeight="Bold" Opacity="0.5" Margin="0,0,0,8" Foreground="{DynamicResource OnSurfaceBrush}"/>
+                                    
+                                    <TextBlock Text="Table Background Color" FontSize="11" Margin="0,0,0,4" Foreground="{DynamicResource OnSurfaceVariantBrush}"/>
+                                    <StackPanel Margin="0,0,0,12">
+                                        <Grid Margin="0,0,0,8">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <Border x:Name="previewTableBgColor" Width="28" Height="28" CornerRadius="4" BorderBrush="{DynamicResource OutlineBrush}" BorderThickness="1" Background="Transparent"/>
+                                            <TextBox x:Name="txtTableBgColorHex" Grid.Column="1" Margin="8,0" VerticalContentAlignment="Center" MaxLength="7" Text="#FFFFFF" TextChanged="ColorHex_TextChanged" KeyDown="ColorHex_KeyDown" Tag="TableBg" Background="{DynamicResource SurfaceContainerBrush}" Foreground="{DynamicResource OnSurfaceBrush}" BorderThickness="1" BorderBrush="{DynamicResource OutlineBrush}"/>
+                                            <Button Grid.Column="2" Content="🎨" Width="28" Height="28" Click="OpenColorPicker_Click" Tag="TableBg" Style="{DynamicResource SecondaryButtonStyle}" Padding="0"/>
+                                        </Grid>
+                                        <WrapPanel>
+                                            <Button Style="{DynamicResource ColorDotStyle}" Width="18" Height="18" Background="Transparent" Click="TableBackgroundColor_Click" Tag="Transparent"/>
+                                            <Button Style="{DynamicResource ColorDotStyle}" Width="18" Height="18" Background="#FFFFFF" Click="TableBackgroundColor_Click" Tag="#FFFFFF"/>
+                                            <Button Style="{DynamicResource ColorDotStyle}" Width="18" Height="18" Background="#EEEEEE" Click="TableBackgroundColor_Click" Tag="#EEEEEE"/>
+                                            <Button Style="{DynamicResource ColorDotStyle}" Width="18" Height="18" Background="#1A73E8" Click="TableBackgroundColor_Click" Tag="#1A73E8"/>
+                                            <Button Style="{DynamicResource ColorDotStyle}" Width="18" Height="18" Background="#F9AB00" Click="TableBackgroundColor_Click" Tag="#F9AB00"/>
+                                        </WrapPanel>
+                                        <TextBlock Text="RECENT" FontSize="10" FontWeight="Bold" Opacity="0.3" Margin="4,8,0,4" Visibility="Collapsed" x:Name="lblRecentTableBg"/>
+                                        <WrapPanel x:Name="panelRecentTableBgColor"/>
+                                    </StackPanel>
+
+                                    <TextBlock Text="Table Border Color (All Cells)" FontSize="11" Margin="0,0,0,4" Foreground="{DynamicResource OnSurfaceVariantBrush}"/>
+                                    <StackPanel Margin="0,0,0,12">
+                                        <Grid Margin="0,0,0,8">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <Border x:Name="previewTableBorderColor" Width="28" Height="28" CornerRadius="4" BorderBrush="{DynamicResource OutlineBrush}" BorderThickness="1" Background="#000000"/>
+                                            <TextBox x:Name="txtTableBorderColorHex" Grid.Column="1" Margin="8,0" VerticalContentAlignment="Center" MaxLength="7" Text="#000000" TextChanged="ColorHex_TextChanged" KeyDown="ColorHex_KeyDown" Tag="TableBorder" Background="{DynamicResource SurfaceContainerBrush}" Foreground="{DynamicResource OnSurfaceBrush}" BorderThickness="1" BorderBrush="{DynamicResource OutlineBrush}"/>
+                                            <Button Grid.Column="2" Content="🎨" Width="28" Height="28" Click="OpenColorPicker_Click" Tag="TableBorder" Style="{DynamicResource SecondaryButtonStyle}" Padding="0"/>
+                                        </Grid>
+                                        <WrapPanel>
+                                            <Button Style="{DynamicResource ColorDotStyle}" Width="18" Height="18" Background="Transparent" Click="TableBorderColor_Click" Tag="Transparent"/>
+                                            <Button Style="{DynamicResource ColorDotStyle}" Width="18" Height="18" Background="#000000" Click="TableBorderColor_Click" Tag="#000000"/>
+                                            <Button Style="{DynamicResource ColorDotStyle}" Width="18" Height="18" Background="#CCCCCC" Click="TableBorderColor_Click" Tag="#CCCCCC"/>
+                                            <Button Style="{DynamicResource ColorDotStyle}" Width="18" Height="18" Background="#1A73E8" Click="TableBorderColor_Click" Tag="#1A73E8"/>
+                                        </WrapPanel>
+                                    </StackPanel>
+
+                                    <TextBlock Text="Table Border Thickness (All Cells)" FontSize="11" Margin="0,0,0,4" Foreground="{DynamicResource OnSurfaceVariantBrush}"/>
+                                    <UniformGrid Columns="2" Margin="0,0,0,12">
+                                        <StackPanel Orientation="Horizontal" Margin="2">
+                                            <TextBlock Text="All" FontSize="10" Width="35" VerticalAlignment="Center" Foreground="{DynamicResource OnSurfaceVariantBrush}"/>
+                                            <Button Focusable="False" Content="-" Width="16" Height="20" Click="TableBorderThicknessMinus_Click" Padding="0"/>
+                                            <TextBox x:Name="txtTableBorderAll" Width="24" TextAlignment="Center" IsReadOnly="True" BorderThickness="0" Background="Transparent" Foreground="{DynamicResource OnSurfaceBrush}" Text="1"/>
+                                            <Button Focusable="False" Content="+" Width="16" Height="20" Click="TableBorderThicknessPlus_Click" Padding="0"/>
+                                        </StackPanel>
+                                    </UniformGrid>
+
+                                    <TextBlock Text="Table Border Style (All Cells)" FontSize="11" Margin="0,0,0,4" Foreground="{DynamicResource OnSurfaceVariantBrush}"/>
+                                    <ComboBox Focusable="False" x:Name="comboTableBorderStyle" SelectionChanged="TableBorderStyle_Changed" Margin="0,0,0,12" Style="{DynamicResource PremiumComboBoxStyle}">
+                                        <ComboBoxItem Content="Solid" Tag="Solid"/>
+                                        <ComboBoxItem Content="Dashed" Tag="Dashed"/>
+                                        <ComboBoxItem Content="Dotted" Tag="Dotted"/>
+                                    </ComboBox>
+
+                                    <TextBlock x:Name="lblSelectedCellName" Text="CELL SETTINGS (Select a cell)" Style="{DynamicResource BodyMd}" FontWeight="Bold" Opacity="0.5" Margin="0,0,0,8" Foreground="{DynamicResource OnSurfaceBrush}"/>
+                                    
+                                    <UniformGrid Columns="2" Margin="0,0,0,12">
+                                        <Button Focusable="False" x:Name="btnMergeCells" Content="Merge Cells" Click="MergeCells_Click" Visibility="Collapsed" Margin="0,0,4,0" Style="{DynamicResource SecondaryButtonStyle}" Height="28"/>
+                                        <Button Focusable="False" x:Name="btnUnmergeCells" Content="Unmerge" Click="UnmergeCells_Click" Visibility="Collapsed" Margin="4,0,0,0" Style="{DynamicResource SecondaryButtonStyle}" Height="28"/>
+                                    </UniformGrid>
+
+                                    <TextBox x:Name="txtCellText" TextChanged="CellText_Changed" Margin="0,0,0,12" Background="{DynamicResource SurfaceContainerBrush}" Foreground="{DynamicResource OnSurfaceBrush}" ToolTip="Cell Text"/>
+                                    
+                                    <TextBlock Text="Cell Text Alignment" FontSize="11" Margin="0,0,0,4" Foreground="{DynamicResource OnSurfaceVariantBrush}"/>
+                                    <UniformGrid Columns="3" Margin="0,0,0,12">
+                                        <ToggleButton Focusable="False" x:Name="tglCellAlignLeft" Content="Left" Click="CellAlignment_Click" Tag="Left" Style="{DynamicResource SecondaryToggleButtonStyle}" Height="32" Padding="0"/>
+                                        <ToggleButton Focusable="False" x:Name="tglCellAlignCenter" Content="Center" Click="CellAlignment_Click" Tag="Center" Style="{DynamicResource SecondaryToggleButtonStyle}" Height="32" Padding="0"/>
+                                        <ToggleButton Focusable="False" x:Name="tglCellAlignRight" Content="Right" Click="CellAlignment_Click" Tag="Right" Style="{DynamicResource SecondaryToggleButtonStyle}" Height="32" Padding="0"/>
+                                    </UniformGrid>
+                                    
+                                    <TextBlock Text="Cell Background Color" FontSize="11" Margin="0,0,0,4" Foreground="{DynamicResource OnSurfaceVariantBrush}"/>
+                                    <StackPanel Margin="0,0,0,12">
+                                        <Grid Margin="0,0,0,8">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <Border x:Name="previewCellBgColor" Width="28" Height="28" CornerRadius="4" BorderBrush="{DynamicResource OutlineBrush}" BorderThickness="1" Background="Transparent"/>
+                                            <TextBox x:Name="txtCellBgColorHex" Grid.Column="1" Margin="8,0" VerticalContentAlignment="Center" MaxLength="7" Text="#FFFFFF" TextChanged="ColorHex_TextChanged" KeyDown="ColorHex_KeyDown" Tag="CellBg" Background="{DynamicResource SurfaceContainerBrush}" Foreground="{DynamicResource OnSurfaceBrush}" BorderThickness="1" BorderBrush="{DynamicResource OutlineBrush}"/>
+                                            <Button Grid.Column="2" Content="🎨" Width="28" Height="28" Click="OpenColorPicker_Click" Tag="CellBg" Style="{DynamicResource SecondaryButtonStyle}" Padding="0"/>
+                                        </Grid>
+                                        <WrapPanel>
+                                            <Button Style="{DynamicResource ColorDotStyle}" Width="18" Height="18" Background="Transparent" Click="CellBackgroundColor_Click" Tag="Transparent"/>
+                                            <Button Style="{DynamicResource ColorDotStyle}" Width="18" Height="18" Background="#FFFFFF" Click="CellBackgroundColor_Click" Tag="#FFFFFF"/>
+                                            <Button Style="{DynamicResource ColorDotStyle}" Width="18" Height="18" Background="#EEEEEE" Click="CellBackgroundColor_Click" Tag="#EEEEEE"/>
+                                            <Button Style="{DynamicResource ColorDotStyle}" Width="18" Height="18" Background="#1A73E8" Click="CellBackgroundColor_Click" Tag="#1A73E8"/>
+                                        </WrapPanel>
+                                        <TextBlock Text="RECENT" FontSize="10" FontWeight="Bold" Opacity="0.3" Margin="4,8,0,4" Visibility="Collapsed" x:Name="lblRecentCellBg"/>
+                                        <WrapPanel x:Name="panelRecentCellBgColor"/>
+                                    </StackPanel>
+
+                                    <TextBlock Text="Cell Border Color" FontSize="11" Margin="0,0,0,4" Foreground="{DynamicResource OnSurfaceVariantBrush}"/>
+                                    <StackPanel Margin="0,0,0,12">
+                                        <Grid Margin="0,0,0,8">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <Border x:Name="previewCellBorderColor" Width="28" Height="28" CornerRadius="4" BorderBrush="{DynamicResource OutlineBrush}" BorderThickness="1" Background="#000000"/>
+                                            <TextBox x:Name="txtCellBorderColorHex" Grid.Column="1" Margin="8,0" VerticalContentAlignment="Center" MaxLength="7" Text="#000000" TextChanged="ColorHex_TextChanged" KeyDown="ColorHex_KeyDown" Tag="CellBorder" Background="{DynamicResource SurfaceContainerBrush}" Foreground="{DynamicResource OnSurfaceBrush}" BorderThickness="1" BorderBrush="{DynamicResource OutlineBrush}"/>
+                                            <Button Grid.Column="2" Content="🎨" Width="28" Height="28" Click="OpenColorPicker_Click" Tag="CellBorder" Style="{DynamicResource SecondaryButtonStyle}" Padding="0"/>
+                                        </Grid>
+                                        <WrapPanel>
+                                            <Button Style="{DynamicResource ColorDotStyle}" Width="18" Height="18" Background="Transparent" Click="CellBorderColor_Click" Tag="Transparent"/>
+                                            <Button Style="{DynamicResource ColorDotStyle}" Width="18" Height="18" Background="#000000" Click="CellBorderColor_Click" Tag="#000000"/>
+                                            <Button Style="{DynamicResource ColorDotStyle}" Width="18" Height="18" Background="#CCCCCC" Click="CellBorderColor_Click" Tag="#CCCCCC"/>
+                                            <Button Style="{DynamicResource ColorDotStyle}" Width="18" Height="18" Background="#1A73E8" Click="CellBorderColor_Click" Tag="#1A73E8"/>
+                                        </WrapPanel>
+                                        <TextBlock Text="RECENT" FontSize="10" FontWeight="Bold" Opacity="0.3" Margin="4,8,0,4" Visibility="Collapsed" x:Name="lblRecentCellBorder"/>
+                                        <WrapPanel x:Name="panelRecentCellBorderColor"/>
+                                    </StackPanel>
+
+                                    <TextBlock Text="Cell Border Thickness" FontSize="11" Margin="0,0,0,4" Foreground="{DynamicResource OnSurfaceVariantBrush}"/>
+                                    <UniformGrid Columns="2" Margin="0,0,0,12">
+                                        <StackPanel Orientation="Horizontal" Margin="2">
+                                            <TextBlock Text="Left" FontSize="10" Width="35" VerticalAlignment="Center" Foreground="{DynamicResource OnSurfaceVariantBrush}"/>
+                                            <Button Focusable="False" Content="-" Width="16" Height="20" Tag="L" Click="BorderThicknessMinus_Click" Padding="0"/>
+                                            <TextBox x:Name="txtBorderL" Width="24" TextAlignment="Center" IsReadOnly="True" BorderThickness="0" Background="Transparent" Foreground="{DynamicResource OnSurfaceBrush}"/>
+                                            <Button Focusable="False" Content="+" Width="16" Height="20" Tag="L" Click="BorderThicknessPlus_Click" Padding="0"/>
+                                        </StackPanel>
+                                        <StackPanel Orientation="Horizontal" Margin="2">
+                                            <TextBlock Text="Top" FontSize="10" Width="35" VerticalAlignment="Center" Foreground="{DynamicResource OnSurfaceVariantBrush}"/>
+                                            <Button Focusable="False" Content="-" Width="16" Height="20" Tag="T" Click="BorderThicknessMinus_Click" Padding="0"/>
+                                            <TextBox x:Name="txtBorderT" Width="24" TextAlignment="Center" IsReadOnly="True" BorderThickness="0" Background="Transparent" Foreground="{DynamicResource OnSurfaceBrush}"/>
+                                            <Button Focusable="False" Content="+" Width="16" Height="20" Tag="T" Click="BorderThicknessPlus_Click" Padding="0"/>
+                                        </StackPanel>
+                                        <StackPanel Orientation="Horizontal" Margin="2">
+                                            <TextBlock Text="Right" FontSize="10" Width="35" VerticalAlignment="Center" Foreground="{DynamicResource OnSurfaceVariantBrush}"/>
+                                            <Button Focusable="False" Content="-" Width="16" Height="20" Tag="R" Click="BorderThicknessMinus_Click" Padding="0"/>
+                                            <TextBox x:Name="txtBorderR" Width="24" TextAlignment="Center" IsReadOnly="True" BorderThickness="0" Background="Transparent" Foreground="{DynamicResource OnSurfaceBrush}"/>
+                                            <Button Focusable="False" Content="+" Width="16" Height="20" Tag="R" Click="BorderThicknessPlus_Click" Padding="0"/>
+                                        </StackPanel>
+                                        <StackPanel Orientation="Horizontal" Margin="2">
+                                            <TextBlock Text="Bottom" FontSize="10" Width="35" VerticalAlignment="Center" Foreground="{DynamicResource OnSurfaceVariantBrush}"/>
+                                            <Button Focusable="False" Content="-" Width="16" Height="20" Tag="B" Click="BorderThicknessMinus_Click" Padding="0"/>
+                                            <TextBox x:Name="txtBorderB" Width="24" TextAlignment="Center" IsReadOnly="True" BorderThickness="0" Background="Transparent" Foreground="{DynamicResource OnSurfaceBrush}"/>
+                                            <Button Focusable="False" Content="+" Width="16" Height="20" Tag="B" Click="BorderThicknessPlus_Click" Padding="0"/>
+                                        </StackPanel>
+                                    </UniformGrid>
+
+                                    <TextBlock Text="Cell Border Style" FontSize="11" Margin="0,0,0,4" Foreground="{DynamicResource OnSurfaceVariantBrush}"/>
+                                    <ComboBox Focusable="False" x:Name="comboCellBorderStyle" SelectionChanged="CellBorderStyle_Changed" Margin="0,0,0,12" Style="{DynamicResource PremiumComboBoxStyle}">
+                                        <ComboBoxItem Content="Solid" Tag="Solid"/>
+                                        <ComboBoxItem Content="Dashed" Tag="Dashed"/>
+                                        <ComboBoxItem Content="Dotted" Tag="Dotted"/>
+                                    </ComboBox>
+                                </StackPanel>
+
+                                <Button Focusable="False" Style="{DynamicResource SecondaryButtonStyle}" Content="🗑️ Remove Element" HorizontalAlignment="Stretch" Click="Remove_Click" Cursor="Hand"/>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </Border>
+                </Grid>
+
+                <!-- Footer Actions -->
+                <Border Grid.Row="2" Padding="20" Background="{DynamicResource SurfaceContainerLowBrush}" CornerRadius="0,0,16,16">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Left: Undo/Redo & Actions -->
+                        <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                            <Button x:Name="btnUndo" Focusable="False" Style="{DynamicResource SecondaryButtonStyle}" Click="Undo_Click" Width="40" Height="40" Cursor="Hand" ToolTip="Undo (Ctrl+Z)" Padding="0">
+                                <Path Data="M9,5 L9,9 L15,9 C17.76,9 20,11.24 20,14 C20,16.76 17.76,19 15,19 L5,19 L5,17 L15,17 C16.66,17 18,15.66 18,14 C18,12.34 16.66,11 15,11 L9,11 L9,15 L4,10 L9,5 Z" 
+                                      Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" Stretch="Uniform" Width="20" Height="20"/>
+                            </Button>
+                            <Button x:Name="btnRedo" Focusable="False" Style="{DynamicResource SecondaryButtonStyle}" Margin="8,0,0,0" Click="Redo_Click" Width="40" Height="40" Cursor="Hand" ToolTip="Redo (Ctrl+Y)" Padding="0">
+                                <Path Data="M15,5 L15,9 L9,9 C6.24,9 4,11.24 4,14 C4,16.76 6.24,19 9,19 L19,19 L19,17 L9,17 C7.34,17 6,15.66 6,14 C6,12.34 7.34,11 9,11 L15,11 L15,15 L20,10 L15,5 Z" 
+                                      Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" Stretch="Uniform" Width="20" Height="20"/>
+                            </Button>
+                            <Separator Width="1" Margin="16,8" Background="{DynamicResource OutlineBrush}"/>
+                            <Button Focusable="False" Style="{DynamicResource SecondaryButtonStyle}" Content="Clear" Click="Clear_Click" Width="80" Height="40" Cursor="Hand"/>
+                            <Button Focusable="False" Style="{DynamicResource SecondaryButtonStyle}" Content="Reset" Margin="8,0,0,0" Click="Reset_Click" Width="80" Height="40" Cursor="Hand" ToolTip="Import Current Selection"/>
+                        </StackPanel>
+
+                        <!-- Center: Zoom Controls -->
+                        <Border Grid.Column="1" Background="{DynamicResource SurfaceContainerBrush}" CornerRadius="20" Padding="12,4">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <Button Focusable="False" Content="-" Width="28" Height="28" Click="ZoomOut_Click" Style="{DynamicResource SecondaryButtonStyle}" Padding="0" BorderThickness="0"/>
+                                <Slider x:Name="ZoomSlider" Minimum="0.1" Maximum="3.0" Value="0.6" Width="120" Margin="12,0" VerticalAlignment="Center" ValueChanged="ZoomSlider_ValueChanged"/>
+                                <Button Focusable="False" Content="+" Width="28" Height="28" Click="ZoomIn_Click" Style="{DynamicResource SecondaryButtonStyle}" Padding="0" BorderThickness="0"/>
+                                <TextBlock Text="{Binding Value, ElementName=ZoomSlider, StringFormat={}{0:P0}}" VerticalAlignment="Center" Margin="12,0,0,0" Foreground="{DynamicResource OnSurfaceVariantBrush}" FontSize="12" Width="45" FontWeight="Bold"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Right: Save/Cancel/Export -->
+                        <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                            <Button x:Name="btnExport" Focusable="False" Style="{DynamicResource SecondaryButtonStyle}" Content="Export" Margin="0,0,12,0" Click="Export_Click" Width="80" Height="40" Cursor="Hand" ToolTip="Export to .mbld file"/>
+                            <Button x:Name="btnSave" Focusable="False" Style="{DynamicResource PrimaryButtonStyle}" Click="Save_Click" Width="100" Height="40" Cursor="Hand" Content="Save"/>
+                            <Button x:Name="btnSaveAs" Focusable="False" Style="{DynamicResource SecondaryButtonStyle}" Content="Save As New" Margin="12,0,0,0" Click="SaveAs_Click" Width="120" Height="40" Cursor="Hand"/>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+            </Grid>
+        </Border>
+        
+        <!-- Unsaved Changes Overlay -->
+        <Grid x:Name="UnsavedChangesOverlay" Visibility="Collapsed">
+            <Border Background="#AA000000"/>
+            <Border Background="{DynamicResource SurfaceContainerBrush}" 
+                    Width="440" Height="420" VerticalAlignment="Center" HorizontalAlignment="Center"
+                    CornerRadius="32" BorderBrush="{DynamicResource OutlineBrush}" BorderThickness="1">
+                <Grid>
+                    <Button Focusable="False" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="20" 
+                            Width="32" Height="32" Click="CancelExit_Click" Background="Transparent" BorderThickness="0">
+                        <Path Data="M0,0 L10,10 M10,0 L0,10" Stroke="{DynamicResource OnSurfaceVariantBrush}" StrokeThickness="2" 
+                               HorizontalAlignment="Center" VerticalAlignment="Center" Width="10" Height="10"/>
+                    </Button>
+                    
+                    <StackPanel VerticalAlignment="Center" Margin="40">
+                        <TextBlock Text="⚠️ Unsaved Changes" Style="{DynamicResource HeadlineSmall}" Foreground="{DynamicResource OnSurfaceBrush}" HorizontalAlignment="Center" Margin="0,0,0,12"/>
+                        <TextBlock Text="You have made some modifications to your template. Would you like to save them before exiting the designer?" 
+                                   Style="{DynamicResource BodyMd}" Foreground="{DynamicResource OnSurfaceVariantBrush}" HorizontalAlignment="Center" 
+                                   TextAlignment="Center" Margin="0,0,0,32" TextWrapping="Wrap" LineHeight="20"/>
+                        
+                        <Button Style="{DynamicResource PrimaryButtonStyle}" Content="✨ Save &amp; Exit" Click="SaveAndExit_Click" Height="54" Margin="0,0,0,16" FontWeight="Bold" FontSize="16">
+                            <Button.Background>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                    <GradientStop Color="{Binding Color, Source={StaticResource PrimaryBrush}}" Offset="0"/>
+                                    <GradientStop Color="#4285F4" Offset="1"/>
+                                </LinearGradientBrush>
+                            </Button.Background>
+                        </Button>
+                        <Button Style="{DynamicResource DestructiveButtonStyle}" Content="Discard &amp; Exit" Click="ExitWithoutSave_Click" Height="48" Margin="0,0,0,16"/>
+                        <Button Style="{DynamicResource SecondaryButtonStyle}" Content="Return to Editor" Click="CancelExit_Click" Height="48"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </Grid>
+
+        <!-- Template Naming Overlay -->
+        <Grid x:Name="TemplateNamingOverlay" Visibility="Collapsed" Background="#CC000000">
+            <Border Background="{DynamicResource SurfaceContainerLowestBrush}" CornerRadius="32" Width="440" Padding="40" VerticalAlignment="Center">
+                <Grid>
+                    <Button Focusable="False" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="-20,-20,0,0" 
+                            Width="32" Height="32" Click="CancelNaming_Click" Background="Transparent" BorderThickness="0">
+                        <Path Data="M0,0 L10,10 M10,0 L0,10" Stroke="{DynamicResource OnSurfaceVariantBrush}" StrokeThickness="2" 
+                               HorizontalAlignment="Center" VerticalAlignment="Center" Width="10" Height="10"/>
+                    </Button>
+
+                    <StackPanel>
+                        <TextBlock Text="Save Your Masterpiece" Style="{DynamicResource HeadlineSmall}" Margin="0,0,0,12"/>
+                        <TextBlock Text="Please provide a unique name for your template to save it to your library." Foreground="{DynamicResource OnSurfaceVariantBrush}" Margin="0,0,0,32" TextWrapping="Wrap"/>
+                        
+                        <TextBox x:Name="txtTemplateName" Style="{DynamicResource AccentedInputStyle}" Tag="e.g. My Premium Layout" Margin="0,0,0,32" Height="50" FontSize="16" VerticalContentAlignment="Center" KeyDown="txtTemplateName_KeyDown"/>
+                        
+                        <Button x:Name="btnConfirmSave" Style="{DynamicResource PrimaryButtonStyle}" Content="Confirm &amp; Save" Click="ConfirmSave_Click" Height="54" Margin="0,0,0,16" FontWeight="Bold"/>
+                        <Button Style="{DynamicResource SecondaryButtonStyle}" Content="Cancel" Click="CancelNaming_Click" Height="48"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </Grid>
+        <!-- Modern Color Picker Overlay -->
+        <Grid x:Name="ColorPickerOverlay" Visibility="Collapsed">
+            <Border Background="#AA000000" MouseLeftButtonDown="CancelColorPicker_Click"/>
+            <Border Background="{DynamicResource SurfaceContainerLowestBrush}" 
+                    Width="360" VerticalAlignment="Center" HorizontalAlignment="Center"
+                    CornerRadius="24" BorderBrush="{DynamicResource OutlineBrush}" BorderThickness="1" Padding="24">
+                <StackPanel>
+                    <TextBlock Text="Choose Color" Style="{DynamicResource HeadlineSmall}" Margin="0,0,0,20"/>
+                    
+                    <!-- Color Spectrum Canvas -->
+                    <Border Height="200" CornerRadius="12" ClipToBounds="True" Margin="0,0,0,16">
+                        <Grid>
+                            <!-- Main Spectrum (Hue) -->
+                            <Rectangle x:Name="ColorSpectrum" MouseDown="Spectrum_MouseDown" MouseMove="Spectrum_MouseMove" MouseUp="Spectrum_MouseUp">
+                                <Rectangle.Fill>
+                                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                        <GradientStop Color="#FF0000" Offset="0"/>
+                                        <GradientStop Color="#FFFF00" Offset="0.16"/>
+                                        <GradientStop Color="#00FF00" Offset="0.33"/>
+                                        <GradientStop Color="#00FFFF" Offset="0.5"/>
+                                        <GradientStop Color="#0000FF" Offset="0.66"/>
+                                        <GradientStop Color="#FF00FF" Offset="0.83"/>
+                                        <GradientStop Color="#FF0000" Offset="1"/>
+                                    </LinearGradientBrush>
+                                </Rectangle.Fill>
+                            </Rectangle>
+                            <!-- Saturation/Value Overlay (Simplified for this task) -->
+                            <Rectangle IsHitTestVisible="False" Opacity="0.3">
+                                <Rectangle.Fill>
+                                    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                        <GradientStop Color="White" Offset="0"/>
+                                        <GradientStop Color="Transparent" Offset="0.5"/>
+                                        <GradientStop Color="Black" Offset="1"/>
+                                    </LinearGradientBrush>
+                                </Rectangle.Fill>
+                            </Rectangle>
+                        </Grid>
+                    </Border>
+
+                    <!-- Color Shade / Brightness Slider -->
+                    <TextBlock Text="SHADE / BRIGHTNESS" FontSize="10" FontWeight="Bold" Opacity="0.5" Margin="0,8,0,4" Foreground="{DynamicResource OnSurfaceBrush}"/>
+                    <Grid Margin="0,0,0,16">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <Slider x:Name="sliderColorShade" Minimum="0" Maximum="100" Value="50" ValueChanged="ColorShade_ValueChanged" Height="28" VerticalAlignment="Center"/>
+                        <TextBlock Grid.Column="1" Text="{Binding Value, ElementName=sliderColorShade, StringFormat={}{0:0}%}" Width="40" TextAlignment="Right" VerticalAlignment="Center" FontWeight="Bold" Foreground="{DynamicResource OnSurfaceBrush}"/>
+                    </Grid>
+
+                    <Grid Margin="0,0,0,24">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Border x:Name="ColorPickerPreview" Width="80" Height="80" CornerRadius="12" BorderBrush="{DynamicResource OutlineBrush}" BorderThickness="2" Background="#1A73E8">
+                            <TextBlock x:Name="lblColorPickerHexDisplay" Text="#1A73E8" Foreground="White" FontWeight="Bold" VerticalAlignment="Center" HorizontalAlignment="Center" FontSize="12">
+                                <TextBlock.Effect>
+                                    <DropShadowEffect BlurRadius="4" ShadowDepth="0" Opacity="0.5"/>
+                                </TextBlock.Effect>
+                            </TextBlock>
+                        </Border>
+                        <StackPanel Grid.Column="1" Margin="16,0,0,0" VerticalAlignment="Center">
+                            <TextBlock Text="HEX CODE" FontSize="10" FontWeight="Bold" Opacity="0.5" Margin="0,0,0,4"/>
+                            <TextBox x:Name="txtColorPickerHex" FontSize="20" FontWeight="Bold" Background="Transparent" BorderThickness="0" Text="#1A73E8" TextChanged="ColorPickerHex_Changed" Foreground="{DynamicResource OnSurfaceBrush}"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <UniformGrid Columns="2">
+                        <Button Style="{DynamicResource SecondaryButtonStyle}" Content="Cancel" Click="CancelColorPicker_Click" Height="48" Margin="0,0,6,0"/>
+                        <Button Style="{DynamicResource PrimaryButtonStyle}" Content="Apply Color" Click="ApplyColorPicker_Click" Height="48" Margin="6,0,0,0"/>
+                    </UniformGrid>
+                </StackPanel>
+            </Border>
+        </Grid>
+        <!-- Modern Stylish Toast / Snackbar Notification -->
+        <Border x:Name="ToastNotification" VerticalAlignment="Bottom" HorizontalAlignment="Center" 
+                Margin="0,0,0,40" Padding="20,12" CornerRadius="12" Visibility="Collapsed" Opacity="0">
+            <Border.Background>
+                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                    <GradientStop Color="#323232" Offset="0"/>
+                    <GradientStop Color="#212121" Offset="1"/>
+                </LinearGradientBrush>
+            </Border.Background>
+            <Border.Effect>
+                <DropShadowEffect BlurRadius="20" Opacity="0.4" ShadowDepth="4"/>
+            </Border.Effect>
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="💡" Margin="0,0,12,0" VerticalAlignment="Center" FontSize="16"/>
+                <TextBlock x:Name="ToastMessage" Text="Placeholder values are not editable. Use custom text element for fixed text." 
+                           Foreground="White" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center"/>
+            </StackPanel>
+            <Border.RenderTransform>
+                <TranslateTransform x:Name="ToastTranslate" Y="20"/>
+            </Border.RenderTransform>
+        </Border>
+    </Grid>
+</Window>

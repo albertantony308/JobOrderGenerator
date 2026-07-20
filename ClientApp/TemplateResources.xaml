@@ -1,0 +1,211 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- Value Converters -->
+    <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+
+    <Style x:Key="PrintCanvasStyle" TargetType="Border">
+        <Setter Property="Width" Value="794"/>
+        <Setter Property="Height" Value="1123"/>
+        <Setter Property="Background" Value="White"/>
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding IsHalfA4}" Value="True">
+                <Setter Property="Height" Value="561"/>
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- Custom Template (Universal Renderer for ALL templates) -->
+    <DataTemplate x:Key="CustomTemplate">
+        <Border Style="{StaticResource PrintCanvasStyle}" Padding="40">
+            <ItemsControl ItemsSource="{Binding CustomBlocks}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <Canvas />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemContainerStyle>
+                    <Style TargetType="ContentPresenter">
+                        <Setter Property="Canvas.Left" Value="{Binding X}"/>
+                        <Setter Property="Canvas.Top" Value="{Binding Y}"/>
+                    </Style>
+                </ItemsControl.ItemContainerStyle>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Grid Width="{Binding Width}" Height="{Binding Height}" Opacity="{Binding Opacity}">
+                            <!-- Text Elements -->
+                            <TextBlock x:Name="txtDisplay" TextAlignment="Center" TextWrapping="Wrap" VerticalAlignment="Center"
+                                       FontSize="{Binding FontSize}" Foreground="{Binding ColorHex}">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="FontWeight" Value="Normal"/>
+                                        <Setter Property="FontStyle" Value="Normal"/>
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsBold}" Value="True">
+                                                <Setter Property="FontWeight" Value="Bold"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding IsItalic}" Value="True">
+                                                <Setter Property="FontStyle" Value="Italic"/>
+                                            </DataTrigger>
+                                            
+                                            <!-- Field Mappings -->
+                                            <DataTrigger Binding="{Binding Id}" Value="name">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                                <Setter Property="Text" Value="{Binding DataContext.CompanyName, RelativeSource={RelativeSource AncestorType=ItemsControl}}"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding Id}" Value="address">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                                <Setter Property="Text" Value="{Binding DataContext.CompanyAddress, RelativeSource={RelativeSource AncestorType=ItemsControl}}"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding Id}" Value="phone">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                                <Setter Property="Text" Value="{Binding DataContext.CompanyContact, RelativeSource={RelativeSource AncestorType=ItemsControl}}"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding Id}" Value="memo_id">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                                <Setter Property="Text" Value="{Binding DataContext.MemoNumber, RelativeSource={RelativeSource AncestorType=ItemsControl}}"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding Id}" Value="date">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                                <Setter Property="Text" Value="{Binding DataContext.Date, RelativeSource={RelativeSource AncestorType=ItemsControl}}"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding Id}" Value="customer_name">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                                <Setter Property="Text" Value="{Binding DataContext.CustomerName, RelativeSource={RelativeSource AncestorType=ItemsControl}}"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding Id}" Value="customer_phone">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                                <Setter Property="Text" Value="{Binding DataContext.CustomerPhone, RelativeSource={RelativeSource AncestorType=ItemsControl}}"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding Id}" Value="brand">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                                <Setter Property="Text" Value="{Binding DataContext.Brand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding Id}" Value="model">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                                <Setter Property="Text" Value="{Binding DataContext.DeviceModel, RelativeSource={RelativeSource AncestorType=ItemsControl}}"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding Id}" Value="serial_number">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                                <Setter Property="Text" Value="{Binding DataContext.SerialNumber, RelativeSource={RelativeSource AncestorType=ItemsControl}}"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding Id}" Value="accessories">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                                <Setter Property="Text" Value="{Binding DataContext.Accessories, RelativeSource={RelativeSource AncestorType=ItemsControl}}"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding Id}" Value="issue">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                                <Setter Property="Text" Value="{Binding DataContext.IssueDescription, RelativeSource={RelativeSource AncestorType=ItemsControl}}"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding Id}" Value="terms">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                                <Setter Property="Text" Value="{Binding DataContext.TermsAndConditions, RelativeSource={RelativeSource AncestorType=ItemsControl}}"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding Id}" Value="diagnostics">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                                <Setter Property="Text" Value="{Binding DataContext.Diagnostics, RelativeSource={RelativeSource AncestorType=ItemsControl}}"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding Id}" Value="technician_name">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                                <Setter Property="Text" Value="{Binding DataContext.TechnicianName, RelativeSource={RelativeSource AncestorType=ItemsControl}}"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding Id}" Value="custom_text">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                                <Setter Property="Text" Value="{Binding CustomText}"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding Id}" Value="cost">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                                <Setter Property="Text" Value="{Binding DataContext.EstimatedCost, RelativeSource={RelativeSource AncestorType=ItemsControl}}"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                                <TextBlock.FontFamily>
+                                    <Binding Path="FontFamily"/>
+                                </TextBlock.FontFamily>
+                            </TextBlock>
+
+                            <!-- Special Elements (Line, Image, Signatures) -->
+                            <Rectangle Fill="{Binding ColorHex}">
+                                <Rectangle.Style>
+                                    <Style TargetType="Rectangle">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding Id}" Value="line">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Rectangle.Style>
+                            </Rectangle>
+
+                            <Image Source="{Binding ImagePath}" Stretch="Uniform">
+                                <Image.Style>
+                                    <Style TargetType="Image">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding Id}" Value="image">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Image.Style>
+                            </Image>
+
+                            <Grid>
+                                <Grid.Style>
+                                    <Style TargetType="Grid">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding Id}" Value="signatures">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding Id}" Value="customer_signature">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding Id}" Value="technician_signature">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding Id}" Value="company_signature">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Grid.Style>
+                                
+                                <StackPanel HorizontalAlignment="Left" VerticalAlignment="Bottom">
+                                    <Border BorderBrush="{Binding ColorHex}" BorderThickness="0,1,0,0" Width="120" Margin="0,10,0,2"/>
+                                    <TextBlock Text="Customer" FontSize="8" HorizontalAlignment="Center" Foreground="{Binding ColorHex}"/>
+                                </StackPanel>
+                                <StackPanel HorizontalAlignment="Right" VerticalAlignment="Bottom">
+                                    <Border BorderBrush="{Binding ColorHex}" BorderThickness="0,1,0,0" Width="120" Margin="0,10,0,2"/>
+                                    <TextBlock Text="Receiver" FontSize="8" HorizontalAlignment="Center" Foreground="{Binding ColorHex}"/>
+                                </StackPanel>
+                            </Grid>
+                            
+                            <!-- Logo / Custom Image -->
+                            <Image Source="{Binding ImagePath}" Stretch="Uniform">
+                                <Image.Style>
+                                    <Style TargetType="Image">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding Id}" Value="logo">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding Id}" Value="custom_image">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Image.Style>
+                            </Image>
+                        </Grid>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </Border>
+    </DataTemplate>
+
+
+</ResourceDictionary>

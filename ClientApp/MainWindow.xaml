@@ -1,0 +1,1133 @@
+<Window x:Class="ClientApp.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Job Order Manager" Height="800" Width="1100"
+        WindowStartupLocation="CenterScreen"
+        FontSize="{DynamicResource AppFontSize}">
+    <Grid Background="{DynamicResource BackgroundBrush}">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="240"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+        
+        <!-- Sidebar -->
+        <Border Grid.Column="0" Background="{DynamicResource SurfaceContainerLowBrush}" Padding="24,32">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                
+                <StackPanel Grid.Row="0">
+                    <TextBlock x:Name="txtSidebarWorkspaceHeader" Style="{DynamicResource HeadlineMd}" Text="memobud workspace" Margin="0,0,0,32" TextWrapping="Wrap"/>
+                    
+                    <TextBlock Text="Navigation" Foreground="{DynamicResource OnSurfaceVariantBrush}" 
+                               FontSize="{DynamicResource CaptionFontSize}" FontWeight="SemiBold" Margin="0,0,0,12"/>
+                    
+                    <Button x:Name="btnNavMemos" Content="Job Orders" Style="{DynamicResource NavigationButtonStyle}" Tag="Active" Click="NavMemos_Click"/>
+                    <Button x:Name="btnNavCustom" Content="Order Layouts" Style="{DynamicResource NavigationButtonStyle}" Click="NavCustom_Click"/>
+                    <Button x:Name="btnNavSettings" Content="App Settings" Style="{DynamicResource NavigationButtonStyle}" Click="NavSettings_Click"/>
+
+                </StackPanel>
+
+                <StackPanel Grid.Row="1" Margin="0,16,0,0">
+                    <!-- Sync Activity Indicator (Spinner) -->
+                    <StackPanel x:Name="panelSyncLoading" Orientation="Horizontal" Visibility="Collapsed" Margin="0,0,0,12" HorizontalAlignment="Center">
+                        <Ellipse Width="12" Height="12" Stroke="{DynamicResource PrimaryBrush}" StrokeThickness="2" StrokeDashArray="3 1">
+                            <Ellipse.RenderTransform>
+                                <RotateTransform x:Name="spinnerTransform" Angle="0" CenterX="6" CenterY="6"/>
+                            </Ellipse.RenderTransform>
+                            <Ellipse.Triggers>
+                                <EventTrigger RoutedEvent="Loaded">
+                                    <BeginStoryboard>
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="spinnerTransform"
+                                                             Storyboard.TargetProperty="Angle"
+                                                             From="0" To="360" Duration="0:0:1"
+                                                             RepeatBehavior="Forever"/>
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </EventTrigger>
+                            </Ellipse.Triggers>
+                        </Ellipse>
+                        <TextBlock Text="Syncing..." FontSize="11" Foreground="{DynamicResource OnSurfaceVariantBrush}" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                    </StackPanel>
+
+                    <!-- Cloud Sync block -->
+                    <TextBlock Text="Cloud Sync" Foreground="{DynamicResource OnSurfaceVariantBrush}" 
+                               FontSize="{DynamicResource CaptionFontSize}" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                    <Border Background="{DynamicResource TertiaryContainerBrush}" 
+                            BorderBrush="{DynamicResource TertiaryBrush}" 
+                            BorderThickness="1"
+                            CornerRadius="16" Padding="16" Margin="0,0,0,16">
+                        <StackPanel>
+                            <!-- Disconnected State -->
+                            <StackPanel x:Name="panelSidebarCloudDisconnected" Visibility="Visible">
+                                <TextBlock x:Name="SyncStatusText" Text="Not Connected" FontSize="13" Margin="0,0,0,12" FontWeight="Bold" Foreground="{DynamicResource OnSurfaceBrush}"/>
+                                <Button x:Name="btnCloudLogin" Content="Configure Cloud" Click="CloudSettings_Click" Style="{DynamicResource AccentedButtonStyle}" FontSize="12" Padding="12,8" HorizontalAlignment="Stretch"/>
+                            </StackPanel>
+
+                            <!-- Connected State (Progress Bar Meter) -->
+                            <StackPanel x:Name="panelSidebarCloudConnected" Visibility="Collapsed">
+                                <TextBlock Text="Connected" FontSize="13" Margin="0,0,0,8" FontWeight="Bold" Foreground="#10b981"/>
+                                <TextBlock x:Name="txtSidebarStorageDisplay" Text="0.00 MB / 5 GB" FontSize="11" Foreground="{DynamicResource OnSurfaceVariantBrush}" Margin="0,0,0,8"/>
+                                <ProgressBar x:Name="pbSidebarStorage" Height="6" Minimum="0" Maximum="100" Value="0">
+                                    <ProgressBar.Resources>
+                                        <Style TargetType="Border">
+                                            <Setter Property="CornerRadius" Value="3"/>
+                                        </Style>
+                                    </ProgressBar.Resources>
+                                </ProgressBar>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Local Network Sync Section -->
+                    <TextBlock Text="Local Network Sync" Foreground="{DynamicResource OnSurfaceVariantBrush}" 
+                               FontSize="{DynamicResource CaptionFontSize}" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                    <Border Background="{DynamicResource SurfaceContainerBrush}" 
+                            BorderBrush="{DynamicResource OutlineBrush}" 
+                            BorderThickness="1"
+                            CornerRadius="16" Padding="16">
+                        <StackPanel>
+                            <DockPanel Margin="0,0,0,6">
+                                <TextBlock Text="LAN Sync:" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource OnSurfaceVariantBrush}"/>
+                                <TextBlock x:Name="txtLanSyncStatus" Text="Active" FontSize="12" FontWeight="Bold" Foreground="#10b981" HorizontalAlignment="Right" DockPanel.Dock="Right"/>
+                            </DockPanel>
+                            <DockPanel Margin="0,0,0,6">
+                                <TextBlock Text="Active Peers:" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource OnSurfaceVariantBrush}"/>
+                                <TextBlock x:Name="txtLanPeersCount" Text="0 Devices" FontSize="12" FontWeight="Bold" Foreground="{DynamicResource OnSurfaceBrush}" HorizontalAlignment="Right" DockPanel.Dock="Right"/>
+                            </DockPanel>
+                            <ScrollViewer MaxHeight="80" VerticalScrollBarVisibility="Auto" Margin="0,4,0,0">
+                                <TextBlock x:Name="txtLanPeersList" Text="No active peers found on LAN." FontSize="11" Foreground="{DynamicResource OnSurfaceVariantBrush}" TextWrapping="Wrap" Opacity="0.8"/>
+                            </ScrollViewer>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </Grid>
+        </Border>
+        
+        <!-- Main Content Area -->
+        <Grid Grid.Column="1">
+            <Grid.Background>
+                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                    <GradientStop Color="{DynamicResource BackgroundColor}" Offset="0"/>
+                    <GradientStop Color="{DynamicResource SurfaceContainerLowestColor}" Offset="1"/>
+                </LinearGradientBrush>
+            </Grid.Background>
+            
+            <!-- Dashboard View -->
+            <Grid x:Name="DashboardView" Margin="24" Visibility="Visible">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+                
+                <!-- Notification Area -->
+                <StackPanel Grid.Row="0" Orientation="Vertical" Margin="0,0,0,16">
+                    <!-- Cloud Disconnect Toast -->
+                    <Border x:Name="borderCloudOfflineToast" Background="#FEE2E2" BorderBrush="#EF4444" BorderThickness="1" CornerRadius="8" Padding="12" Margin="0,0,0,8" Visibility="Collapsed">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="⚠️" FontSize="16" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,12,0">
+                                <TextBlock Text="Cloud Connection Error" FontSize="13" Foreground="#991B1B" FontWeight="Bold"/>
+                                <TextBlock Text="Memos are saving locally. Contact your administrator if cloud usage is required." FontSize="12" Foreground="#991B1B" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                            </StackPanel>
+                            <Button Grid.Column="2" x:Name="btnSwitchOffline" Content="Use App Offline" Click="SwitchOffline_Click" Style="{DynamicResource SecondaryButtonStyle}" Padding="10,4" FontSize="11" Height="26" VerticalAlignment="Center"/>
+                        </Grid>
+                    </Border>
+
+                    <!-- License Warning Toast -->
+                    <Border x:Name="borderLicenseWarningToast" Background="{DynamicResource StatusRejectedBrush}" BorderBrush="{DynamicResource OnStatusRejectedBrush}" BorderThickness="1" CornerRadius="8" Padding="12" Visibility="Collapsed">
+                        <DockPanel>
+                            <TextBlock Text="⚠️" FontSize="16" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                            <TextBlock x:Name="txtLicenseWarningText" Text="Your trial will expire today. Recharge or upgrade your subscription to continue using the app." FontSize="13" Foreground="{DynamicResource OnStatusRejectedBrush}" FontWeight="Bold" VerticalAlignment="Center" TextWrapping="Wrap"/>
+                        </DockPanel>
+                    </Border>
+                </StackPanel>
+
+                <TextBlock Grid.Row="1" Style="{DynamicResource HeadlineLg}" Text="Job Orders" Margin="0,0,0,24" Foreground="{DynamicResource TertiaryBrush}"/>
+                
+                <!-- Search & Actions -->
+                <Grid Grid.Row="2" Margin="0,0,0,24">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    
+                    <Button Grid.Column="0" Style="{DynamicResource PrimaryButtonStyle}" Content="New Order" Click="NewRequest_Click" Margin="0,0,16,0"/>
+                    
+                    <TextBox x:Name="txtSearch" Grid.Column="1" 
+                             Style="{DynamicResource AccentedInputStyle}" 
+                             Background="{DynamicResource SurfaceContainerLowBrush}"
+                             Tag="Search by Order #, Name, Phone, or Device..." 
+                             Padding="16,12"
+                             TextChanged="txtSearch_TextChanged"/>
+                    
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="16,0,0,0">
+                        <Button Style="{DynamicResource SecondaryButtonStyle}" Content="Refresh" Click="Refresh_Click"/>
+                    </StackPanel>
+                </Grid>
+                
+                <!-- Premium Data Card -->
+                <Grid Grid.Row="3">
+                    <ProgressBar x:Name="dbSyncProgress" IsIndeterminate="True" Height="4" VerticalAlignment="Top" Visibility="Collapsed" Background="Transparent" Foreground="{DynamicResource PrimaryBrush}" BorderThickness="0" Panel.ZIndex="10"/>
+                    <DataGrid x:Name="MemosDataGrid" AutoGenerateColumns="False" 
+                               ItemsSource="{Binding ServiceMemos}"
+                               Style="{DynamicResource DataGridStyle}"
+                               IsReadOnly="True" SelectionMode="Single"
+                               ScrollViewer.CanContentScroll="True" 
+                               ScrollViewer.VerticalScrollBarVisibility="Auto"
+                               VerticalAlignment="Stretch"
+                               HorizontalScrollBarVisibility="Auto"
+                               MouseDoubleClick="MemosDataGrid_MouseDoubleClick"
+                               PreviewKeyDown="MemosDataGrid_PreviewKeyDown">
+                        <DataGrid.GroupStyle>
+                            <GroupStyle>
+                                <GroupStyle.ContainerStyle>
+                                    <Style TargetType="{x:Type GroupItem}">
+                                        <Setter Property="Template">
+                                            <Setter.Value>
+                                                <ControlTemplate TargetType="{x:Type GroupItem}">
+                                                    <StackPanel>
+                                                        <Border Padding="16,8" Margin="0,2,0,0">
+                                                            <TextBlock Text="{Binding Name}" FontWeight="Bold" FontSize="11" 
+                                                                       Foreground="{DynamicResource OnSurfaceVariantBrush}" />
+                                                        </Border>
+                                                        <ItemsPresenter />
+                                                    </StackPanel>
+                                                </ControlTemplate>
+                                            </Setter.Value>
+                                        </Setter>
+                                    </Style>
+                                </GroupStyle.ContainerStyle>
+                            </GroupStyle>
+                        </DataGrid.GroupStyle>
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="ORDER ID" Binding="{Binding MemoNumber}" Width="Auto" MinWidth="80">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock" BasedOn="{StaticResource BodyMd}">
+                                        <Setter Property="FontWeight" Value="Bold"/>
+                                        <Setter Property="VerticalAlignment" Value="Center"/>
+                                        <Setter Property="Margin" Value="0"/>
+                                        <Setter Property="Foreground" Value="{DynamicResource PrimaryBrush}"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+                            <DataGridTemplateColumn Header="CUSTOMER" Width="1.2*" MinWidth="120">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <StackPanel VerticalAlignment="Center" Margin="0">
+                                            <TextBlock Text="{Binding CustomerName}" FontSize="{DynamicResource BodyMdFontSize}" FontWeight="Bold" Foreground="{DynamicResource OnSurfaceBrush}" TextTrimming="CharacterEllipsis"/>
+                                            <TextBlock Text="{Binding PhoneNumber}" FontSize="{DynamicResource CaptionFontSize}" Opacity="0.7" Foreground="{DynamicResource OnSurfaceVariantBrush}"/>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTextColumn Header="DEVICE" Binding="{Binding DeviceName}" Width="1*" MinWidth="100">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock" BasedOn="{StaticResource BodyMd}">
+                                        <Setter Property="VerticalAlignment" Value="Center"/>
+                                        <Setter Property="Margin" Value="0"/>
+                                        <Setter Property="FontWeight" Value="SemiBold"/>
+                                        <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+                            <DataGridTextColumn Header="COMPLAINT" Binding="{Binding IssueDescription}" Width="1.8*" MinWidth="150">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock" BasedOn="{StaticResource BodyMd}">
+                                        <Setter Property="TextWrapping" Value="NoWrap"/>
+                                        <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+                                        <Setter Property="VerticalAlignment" Value="Center"/>
+                                        <Setter Property="Margin" Value="0"/>
+                                        <Setter Property="Opacity" Value="0.8"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+                             <DataGridTemplateColumn Header="STATUS" Width="Auto" MinWidth="90">
+                                 <DataGridTemplateColumn.CellTemplate>
+                                     <DataTemplate>
+                                         <Border CornerRadius="20" Padding="12,6" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,2">
+                                             <Border.Style>
+                                                 <Style TargetType="Border">
+                                                     <Setter Property="Background" Value="{DynamicResource StatusPendingBrush}"/>
+                                                     <Style.Triggers>
+                                                         <DataTrigger Binding="{Binding Status}" Value="In Progress">
+                                                             <Setter Property="Background" Value="{DynamicResource StatusInProgressBrush}"/>
+                                                         </DataTrigger>
+                                                         <DataTrigger Binding="{Binding Status}" Value="Completed">
+                                                             <Setter Property="Background" Value="{DynamicResource StatusCompletedBrush}"/>
+                                                         </DataTrigger>
+                                                         <DataTrigger Binding="{Binding Status}" Value="Repeated">
+                                                             <Setter Property="Background" Value="{DynamicResource StatusRepeatedBrush}"/>
+                                                         </DataTrigger>
+                                                         <DataTrigger Binding="{Binding Status}" Value="Rejected">
+                                                             <Setter Property="Background" Value="{DynamicResource StatusRejectedBrush}"/>
+                                                         </DataTrigger>
+                                                     </Style.Triggers>
+                                                 </Style>
+                                             </Border.Style>
+                                             <TextBlock Text="{Binding Status}" FontWeight="ExtraBold" FontSize="10" VerticalAlignment="Center" TextAlignment="Center">
+                                                 <TextBlock.Style>
+                                                     <Style TargetType="TextBlock">
+                                                         <Setter Property="Foreground" Value="{DynamicResource OnStatusPendingBrush}"/>
+                                                         <Style.Triggers>
+                                                             <DataTrigger Binding="{Binding Status}" Value="In Progress">
+                                                                  <Setter Property="Foreground" Value="{DynamicResource OnStatusInProgressBrush}"/>
+                                                              </DataTrigger>
+                                                               <DataTrigger Binding="{Binding Status}" Value="Completed">
+                                                                   <Setter Property="Foreground" Value="{DynamicResource OnStatusCompletedBrush}"/>
+                                                               </DataTrigger>
+                                                               <DataTrigger Binding="{Binding Status}" Value="Repeated">
+                                                                   <Setter Property="Foreground" Value="{DynamicResource OnStatusRepeatedBrush}"/>
+                                                               </DataTrigger>
+                                                               <DataTrigger Binding="{Binding Status}" Value="Rejected">
+                                                                   <Setter Property="Foreground" Value="{DynamicResource OnStatusRejectedBrush}"/>
+                                                               </DataTrigger>
+                                                          </Style.Triggers>
+                                                      </Style>
+                                                  </TextBlock.Style>
+                                              </TextBlock>
+                                          </Border>
+                                     </DataTemplate>
+                                 </DataGridTemplateColumn.CellTemplate>
+                             </DataGridTemplateColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
+            </Grid>
+
+            <!-- Settings View -->
+            <Grid x:Name="SettingsView" Visibility="Collapsed">
+                <ScrollViewer x:Name="SettingsScroller" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Margin="48" PreviewMouseWheel="SettingsScroller_PreviewMouseWheel">
+                    <StackPanel MaxWidth="1000" HorizontalAlignment="Stretch">
+                        <TextBlock Style="{DynamicResource HeadlineLg}" Text="App Settings" Margin="0,0,0,8" Foreground="{DynamicResource TertiaryBrush}"/>
+                        <TextBlock Text="Personalize your workspace experience." Foreground="{DynamicResource OnSurfaceVariantBrush}" Margin="0,0,0,48"/>
+
+                    <TextBlock Text="LICENSE &amp; PROFILE" Style="{DynamicResource BodyMd}" FontWeight="Bold" Foreground="{DynamicResource TertiaryBrush}" FontSize="12" Margin="0,0,0,16" Opacity="0.8"/>
+                    <Border Background="{DynamicResource SurfaceContainerLowBrush}" CornerRadius="16" Padding="32" Margin="0,0,0,32">
+                        <StackPanel>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0">
+                                    <TextBlock Text="Active License Key" Foreground="{DynamicResource OnSurfaceVariantBrush}" FontSize="13" Margin="0,0,0,4"/>
+                                    <TextBlock x:Name="txtLicenseKeyDisplay" Text="XXXX-XXXX-XXXX-XXXX" Foreground="{DynamicResource PrimaryBrush}" FontWeight="Bold" FontSize="18"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="1" HorizontalAlignment="Right" Margin="32,0,0,0">
+                                    <TextBlock Text="Registered Devices" Foreground="{DynamicResource OnSurfaceVariantBrush}" FontSize="13" Margin="0,0,0,4" HorizontalAlignment="Right"/>
+                                    <TextBlock x:Name="txtLicenseDevicesDisplay" Text="0 / 0" Foreground="{DynamicResource OnSurfaceBrush}" FontWeight="SemiBold" FontSize="16" HorizontalAlignment="Right"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="2" HorizontalAlignment="Right" Margin="32,0,0,0">
+                                    <TextBlock Text="Status" Foreground="{DynamicResource OnSurfaceVariantBrush}" FontSize="13" Margin="0,0,0,4" HorizontalAlignment="Right"/>
+                                    <TextBlock x:Name="txtLicenseStatusDisplay" Text="Loading..." Foreground="{DynamicResource OnSurfaceBrush}" FontWeight="SemiBold" FontSize="16" HorizontalAlignment="Right"/>
+                                </StackPanel>
+                            </Grid>
+                            
+                            <Separator Background="{DynamicResource OutlineBrush}" Margin="0,20" Opacity="0.3"/>
+                            
+                            <DockPanel Margin="0,0,0,16">
+                                <TextBlock Text="Profile Information" Foreground="{DynamicResource OnSurfaceBrush}" FontWeight="SemiBold" FontSize="16"/>
+                                <Button x:Name="btnEditProfile" Content="Edit Profile" HorizontalAlignment="Right" Padding="12,4" Background="Transparent" Foreground="{DynamicResource PrimaryBrush}" BorderThickness="1" BorderBrush="{DynamicResource OutlineBrush}" Cursor="Hand" Click="EditProfile_Click"/>
+                            </DockPanel>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0">
+                                    <TextBlock Text="Company Name" Foreground="{DynamicResource OnSurfaceVariantBrush}" FontSize="13" Margin="0,0,0,4"/>
+                                    <TextBlock x:Name="txtProfileCompany" Text="-" Foreground="{DynamicResource OnSurfaceBrush}" FontSize="14" FontWeight="Medium"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="1">
+                                    <TextBlock Text="Email Address" Foreground="{DynamicResource OnSurfaceVariantBrush}" FontSize="13" Margin="0,0,0,4"/>
+                                    <TextBlock x:Name="txtProfileEmail" Text="-" Foreground="{DynamicResource OnSurfaceBrush}" FontSize="14" FontWeight="Medium"/>
+                                </StackPanel>
+                            </Grid>
+                            
+                            <Separator Background="{DynamicResource OutlineBrush}" Margin="0,20" Opacity="0.3"/>
+                            
+                            <!-- Connected local network devices with the same license key -->
+                            <StackPanel x:Name="pnlLicenseConnectedLocalDevices" Margin="0,0,0,0">
+                                <TextBlock Text="Connected Wi-Fi Workstations" Foreground="{DynamicResource OnSurfaceBrush}" FontWeight="SemiBold" FontSize="16" Margin="0,0,0,4"/>
+                                <TextBlock Text="These workstations are running this app with your subscription key on this local network. Connection and data synchronization are handled automatically in the background." Foreground="{DynamicResource OnSurfaceVariantBrush}" FontSize="13" Margin="0,0,0,16" TextWrapping="Wrap"/>
+                                <Border Background="{DynamicResource SurfaceContainerBrush}" BorderBrush="{DynamicResource OutlineBrush}" BorderThickness="1" CornerRadius="12" Padding="20">
+                                    <StackPanel>
+                                        <ItemsControl x:Name="lstLicenseDiscoveredDevices">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Border Background="{DynamicResource SurfaceContainerLowBrush}" BorderBrush="{DynamicResource OutlineBrush}" BorderThickness="1" CornerRadius="8" Padding="16,12" Margin="0,0,0,8">
+                                                        <Grid>
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="Auto"/>
+                                                                <ColumnDefinition Width="*"/>
+                                                                <ColumnDefinition Width="Auto"/>
+                                                            </Grid.ColumnDefinitions>
+                                                            <!-- Workstation Icon -->
+                                                            <TextBlock Grid.Column="0" Text="💻" FontSize="20" Margin="0,0,16,0" VerticalAlignment="Center"/>
+                                                            
+                                                            <!-- Device Info -->
+                                                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                                                <TextBlock Text="{Binding MachineName}" FontWeight="Bold" FontSize="14" Foreground="{DynamicResource OnSurfaceBrush}"/>
+                                                                <TextBlock Text="{Binding IPAddress}" FontSize="12" Foreground="{DynamicResource OnSurfaceVariantBrush}"/>
+                                                            </StackPanel>
+                                                            
+                                                            <!-- Active Status Badge -->
+                                                            <Border Grid.Column="2" Background="#d1fae5" BorderBrush="#10b981" BorderThickness="1" CornerRadius="12" Padding="12,4" VerticalAlignment="Center">
+                                                                <StackPanel Orientation="Horizontal">
+                                                                    <Ellipse Width="8" Height="8" Fill="#10b981" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                                                    <TextBlock Text="Online (LAN)" FontSize="11" FontWeight="Bold" Foreground="#065f46" VerticalAlignment="Center"/>
+                                                                </StackPanel>
+                                                            </Border>
+                                                        </Grid>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                        <TextBlock x:Name="txtLicenseNoLocalDevicesFound" Text="No other active workstations discovered on your local network under this key." Foreground="{DynamicResource OnSurfaceVariantBrush}" FontSize="13" FontStyle="Italic" HorizontalAlignment="Center" Margin="0,10"/>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+                            
+                            <Separator Background="{DynamicResource OutlineBrush}" Margin="0,20" Opacity="0.3"/>
+                            
+                            <!-- Cloud Sync Section -->
+                            <StackPanel Margin="0,0,0,0">
+                                <DockPanel Margin="0,0,0,8">
+                                    <TextBlock Text="Cloud Synchronization" Foreground="{DynamicResource OnSurfaceBrush}" FontWeight="SemiBold" FontSize="16"/>
+                                    <TextBlock x:Name="txtCloudSyncStatus" Text="Disabled" FontSize="14" FontWeight="Bold" Foreground="#ef4444" DockPanel.Dock="Right" HorizontalAlignment="Right"/>
+                                </DockPanel>
+                                
+                                <Border x:Name="borderCloudStorageInfo" Background="{DynamicResource SurfaceContainerBrush}" BorderBrush="{DynamicResource OutlineBrush}" BorderThickness="1" CornerRadius="8" Padding="16,12" Margin="0,4,0,8" Visibility="Collapsed">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                            <TextBlock Text="Cloud Storage Space" Foreground="{DynamicResource OnSurfaceVariantBrush}" FontSize="12" Margin="0,0,0,2"/>
+                                            <TextBlock x:Name="txtCloudStorageDisplay" Text="0.00 MB of 5 GB used" Foreground="{DynamicResource OnSurfaceBrush}" FontSize="14" FontWeight="SemiBold"/>
+                                        </StackPanel>
+                                        <ProgressBar x:Name="pbCloudStorage" Grid.Column="1" Width="150" Height="10" VerticalAlignment="Center" Minimum="0" Maximum="100" Value="0" Margin="16,0,0,0"/>
+                                    </Grid>
+                                </Border>
+ 
+                                <TextBlock x:Name="txtCloudSyncWarning" Text="Warning: Without Cloud Sync, all data resides locally on this device and will be permanently lost if the device is lost, damaged, or the application is reinstalled." 
+                                           Foreground="#ef4444" FontSize="12" TextWrapping="Wrap" Opacity="0.9" Margin="0,4,0,0"/>
+
+                                 <!-- Connection & Synchronization Mode Selector -->
+                                 <StackPanel Margin="0,16,0,12">
+                                     <Grid>
+                                         <Grid.ColumnDefinitions>
+                                             <ColumnDefinition Width="*"/>
+                                             <ColumnDefinition Width="Auto"/>
+                                         </Grid.ColumnDefinitions>
+                                         <StackPanel Grid.Column="0">
+                                             <TextBlock Text="Connection &amp; Synchronization Mode" Foreground="{DynamicResource OnSurfaceBrush}" FontWeight="SemiBold" FontSize="16" Margin="0,0,0,4"/>
+                                             <TextBlock Text="Choose how this device synchronizes data with other computers and the cloud." Foreground="{DynamicResource OnSurfaceVariantBrush}" FontSize="13"/>
+                                         </StackPanel>
+                                         <ComboBox x:Name="cmbSyncMode" Style="{DynamicResource PremiumComboBoxStyle}" Width="250" Grid.Column="1" VerticalAlignment="Center" SelectionChanged="cmbSyncMode_SelectionChanged">
+                                             <ComboBoxItem x:Name="cmbSyncModeHybrid" Content="Local &amp; Internet (Hybrid)" Tag="Hybrid"/>
+                                             <ComboBoxItem x:Name="cmbSyncModeCloud" Content="Internet Only (Cloud)" Tag="InternetOnly"/>
+                                             <ComboBoxItem x:Name="cmbSyncModeLan" Content="Local Only (LAN P2P)" Tag="LocalOnly"/>
+                                         </ComboBox>
+                                     </Grid>
+                                     
+                                     <!-- Red description for no cloud subscription accounts -->
+                                     <TextBlock x:Name="txtCloudSyncRequiredWarning" Text="Internet Only and Hybrid synchronization options require a plan with a cloud subscription." Foreground="#ef4444" FontSize="12" Margin="0,8,0,0" FontWeight="SemiBold" Visibility="Collapsed" TextWrapping="Wrap"/>
+                                 </StackPanel>
+
+                                 <!-- Image Upload Cloud Options (Stylized Toggle Switch) -->
+                                 <StackPanel x:Name="pnlImageUploadCloudSettings" Margin="0,16,0,0">
+                                     <DockPanel LastChildFill="False" Margin="0,0,0,12">
+                                         <StackPanel>
+                                             <TextBlock Text="Product Image Cloud Synchronization" Foreground="{DynamicResource OnSurfaceBrush}" FontWeight="SemiBold" FontSize="16" Margin="0,0,0,4"/>
+                                             <TextBlock Text="Enable this toggle to synchronize product images to your sync server." Foreground="{DynamicResource OnSurfaceVariantBrush}" FontSize="13"/>
+                                         </StackPanel>
+                                         <CheckBox x:Name="chkSettingsSyncImages" Style="{DynamicResource ToggleSwitchStyle}" DockPanel.Dock="Right" Click="chkSettingsSyncImages_Click" VerticalAlignment="Center" Cursor="Hand"/>
+                                     </DockPanel>
+                                     
+                                     <TextBlock Text="Disclaimer: If product image synchronization is enabled, your cloud storage might fill fast due to heavy images if the image size is high. If disabled, images will remain in your local device storage only and will never be uploaded to your cloud sync server." 
+                                                Foreground="{DynamicResource OnSurfaceVariantBrush}" FontSize="11" TextWrapping="Wrap" Opacity="0.75" Margin="0,0,0,0"/>
+                                 </StackPanel>
+                            </StackPanel>
+ 
+                            <Separator Background="{DynamicResource OutlineBrush}" Margin="0,20" Opacity="0.3"/>
+                            
+                            <DockPanel LastChildFill="False">
+                                <StackPanel>
+                                    <TextBlock Text="Application Version" Foreground="{DynamicResource OnSurfaceVariantBrush}" FontSize="13" Margin="0,0,0,4"/>
+                                    <TextBlock x:Name="txtAppVersionDisplay" Text="Loading..." Foreground="{DynamicResource OnSurfaceBrush}" FontSize="14" FontWeight="Medium"/>
+                                </StackPanel>
+                                <Button x:Name="btnUpgradePlan" Content="Upgrade Plan" Padding="16,8" Background="Transparent" Foreground="{DynamicResource PrimaryBrush}" BorderThickness="1" BorderBrush="{DynamicResource PrimaryBrush}" Cursor="Hand" Click="UpgradePlan_Click" FontWeight="SemiBold" DockPanel.Dock="Right">
+                                    <Button.Resources>
+                                        <Style TargetType="Border">
+                                            <Setter Property="CornerRadius" Value="6"/>
+                                        </Style>
+                                    </Button.Resources>
+                                </Button>
+                            </DockPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <TextBlock Text="APPEARANCE" Style="{DynamicResource BodyMd}" FontWeight="Bold" Foreground="{DynamicResource TertiaryBrush}" FontSize="12" Margin="0,0,0,16" Opacity="0.8"/>
+                    <Border Background="{DynamicResource SurfaceContainerLowBrush}" CornerRadius="16" Padding="32" Margin="0,0,0,32">
+                        <StackPanel>
+                            <DockPanel LastChildFill="False" Margin="0,0,0,32">
+                                <StackPanel>
+                                    <TextBlock Text="Dark Appearance" Foreground="{DynamicResource OnSurfaceBrush}" FontWeight="SemiBold" FontSize="18" Margin="0,0,0,4"/>
+                                    <TextBlock Text="Switch to a dark palette to reduce eye strain." Foreground="{DynamicResource OnSurfaceVariantBrush}" FontSize="13"/>
+                                </StackPanel>
+                                <CheckBox x:Name="chkDarkMode" Style="{DynamicResource ToggleSwitchStyle}" DockPanel.Dock="Right" Click="DarkMode_Click" VerticalAlignment="Center"/>
+                            </DockPanel>
+
+
+
+                            <TextBlock Text="Theme Preset" Foreground="{DynamicResource OnSurfaceBrush}" FontWeight="SemiBold" FontSize="16" Margin="0,0,0,16"/>
+                            <UniformGrid x:Name="LightPresetsGrid" Columns="3">
+                                <Button Click="Preset_Click" Tag="Default" Background="Transparent" BorderThickness="0" Padding="0" Margin="0,0,8,0">
+                                    <StackPanel>
+                                        <Border Height="80" CornerRadius="12" Background="#f8f9fa" BorderThickness="2" BorderBrush="#0067c0">
+                                            <Border Width="20" Height="20" Background="#0067c0" CornerRadius="4" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="8"/>
+                                        </Border>
+                                        <TextBlock Text="Pure Light" Foreground="{DynamicResource OnSurfaceBrush}" HorizontalAlignment="Center" Margin="0,8,0,0" FontSize="12"/>
+                                    </StackPanel>
+                                </Button>
+                                <Button Click="Preset_Click" Tag="Solarized" Background="Transparent" BorderThickness="0" Padding="0" Margin="4,0,4,0">
+                                    <StackPanel>
+                                        <Border Height="80" CornerRadius="12" Background="#fdf6e3" BorderThickness="1" BorderBrush="{DynamicResource OutlineBrush}">
+                                            <Border Width="20" Height="20" Background="#b58900" CornerRadius="4" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="8"/>
+                                        </Border>
+                                        <TextBlock Text="Solarized" Foreground="{DynamicResource OnSurfaceBrush}" HorizontalAlignment="Center" Margin="0,8,0,0" FontSize="12"/>
+                                    </StackPanel>
+                                </Button>
+                                <Button Click="Preset_Click" Tag="Mint" Background="Transparent" BorderThickness="0" Padding="0" Margin="8,0,0,0">
+                                    <StackPanel>
+                                        <Border Height="80" CornerRadius="12" Background="#f0fdf4" BorderThickness="1" BorderBrush="{DynamicResource OutlineBrush}">
+                                            <Border Width="20" Height="20" Background="#15803d" CornerRadius="4" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="8"/>
+                                        </Border>
+                                        <TextBlock Text="Mint Fresh" Foreground="{DynamicResource OnSurfaceBrush}" HorizontalAlignment="Center" Margin="0,8,0,0" FontSize="12"/>
+                                    </StackPanel>
+                                </Button>
+                            </UniformGrid>
+
+                            <UniformGrid x:Name="DarkPresetsGrid" Columns="3" Visibility="Collapsed">
+                                <Button Click="Preset_Click" Tag="Default" Background="Transparent" BorderThickness="0" Padding="0" Margin="0,0,8,0">
+                                    <StackPanel>
+                                        <Border Height="80" CornerRadius="12" Background="#0a0a0c" BorderThickness="2" BorderBrush="#4d7cff">
+                                            <Border Width="20" Height="20" Background="#4d7cff" CornerRadius="4" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="8"/>
+                                        </Border>
+                                        <TextBlock Text="Midnight" Foreground="{DynamicResource OnSurfaceBrush}" HorizontalAlignment="Center" Margin="0,8,0,0" FontSize="12"/>
+                                    </StackPanel>
+                                </Button>
+                                <Button Click="Preset_Click" Tag="Solarized" Background="Transparent" BorderThickness="0" Padding="0" Margin="4,0,4,0">
+                                    <StackPanel>
+                                        <Border Height="80" CornerRadius="12" Background="#002b36" BorderThickness="1" BorderBrush="{DynamicResource OutlineBrush}">
+                                            <Border Width="20" Height="20" Background="#268bd2" CornerRadius="4" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="8"/>
+                                        </Border>
+                                        <TextBlock Text="Solarized" Foreground="{DynamicResource OnSurfaceBrush}" HorizontalAlignment="Center" Margin="0,8,0,0" FontSize="12"/>
+                                    </StackPanel>
+                                </Button>
+                                <Button Click="Preset_Click" Tag="Ice" Background="Transparent" BorderThickness="0" Padding="0" Margin="8,0,0,0">
+                                    <StackPanel>
+                                        <Border Height="80" CornerRadius="12" Background="#0f172a" BorderThickness="1" BorderBrush="{DynamicResource OutlineBrush}">
+                                            <Border Width="20" Height="20" Background="#38bdf8" CornerRadius="4" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="8"/>
+                                        </Border>
+                                        <TextBlock Text="Ice Dark" Foreground="{DynamicResource OnSurfaceBrush}" HorizontalAlignment="Center" Margin="0,8,0,0" FontSize="12"/>
+                                    </StackPanel>
+                                </Button>
+                            </UniformGrid>
+
+                            <StackPanel Margin="0,32,0,0">
+                                <DockPanel LastChildFill="False" Margin="0,0,0,8">
+                                    <TextBlock Text="App Font Size" Foreground="{DynamicResource OnSurfaceBrush}" FontWeight="SemiBold" FontSize="16"/>
+                                    <TextBlock x:Name="txtFontSizeValue" Text="14px" Foreground="{DynamicResource PrimaryBrush}" FontWeight="Bold" DockPanel.Dock="Right" VerticalAlignment="Center"/>
+                                </DockPanel>
+                                <Slider x:Name="sldFontSize" Minimum="12" Maximum="20" Value="14" TickFrequency="1" IsSnapToTickEnabled="True" ValueChanged="FontSize_ValueChanged" Margin="0,8,0,0"/>
+                                <TextBlock Text="Increase font size for better readability." Foreground="{DynamicResource OnSurfaceVariantBrush}" FontSize="12" Margin="0,8,0,0"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <TextBlock Text="DATA MANAGEMENT" Style="{DynamicResource BodyMd}" FontWeight="Bold" Foreground="{DynamicResource TertiaryBrush}" FontSize="12" Margin="0,0,0,16" Opacity="0.8"/>
+                    <Border Background="{DynamicResource SurfaceContainerLowBrush}" CornerRadius="16" Padding="32" Margin="0,0,0,32">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,24,0">
+                                <TextBlock Text="Local Backup &amp; Restore" Foreground="{DynamicResource OnSurfaceBrush}" FontWeight="SemiBold" FontSize="18" Margin="0,0,0,4"/>
+                                <TextBlock Text="Export your database locally as a backup file, or restore data from a previously saved backup file." Foreground="{DynamicResource OnSurfaceVariantBrush}" FontSize="13" TextWrapping="Wrap"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                <Button Content="Local Backup" Style="{DynamicResource SecondaryButtonStyle}" Click="ExportBackup_Click" Margin="0,0,12,0" Padding="16,8"/>
+                                <Button Content="Restore Backup" Style="{DynamicResource SecondaryButtonStyle}" Click="ImportBackup_Click" Padding="16,8"/>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <TextBlock Text="LOGOUT" Style="{DynamicResource BodyMd}" FontWeight="Bold" Foreground="{DynamicResource TertiaryBrush}" FontSize="12" Margin="0,0,0,16" Opacity="0.8"/>
+                    <Border Background="{DynamicResource SurfaceContainerLowBrush}" CornerRadius="16" Padding="32" Margin="0,0,0,32">
+                        <StackPanel>
+                            <DockPanel LastChildFill="False">
+                                <StackPanel VerticalAlignment="Center">
+                                    <TextBlock Text="Logout of Device" Foreground="{DynamicResource OnSurfaceBrush}" FontWeight="SemiBold" FontSize="18" Margin="0,0,0,4"/>
+                                    <TextBlock Text="De-register this device and return to the activation screen." Foreground="{DynamicResource OnSurfaceVariantBrush}" FontSize="13"/>
+                                </StackPanel>
+                                <Button x:Name="btnLogoutLicense" Content="Logout of Device" DockPanel.Dock="Right" Style="{StaticResource DestructiveButtonStyle}" Cursor="Hand" Click="LogoutLicense_Click" VerticalAlignment="Center"/>
+                            </DockPanel>
+                        </StackPanel>
+                    </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </Grid>
+
+            <!-- Customization View -->
+            <Grid x:Name="CustomizationView" Margin="48" Visibility="Collapsed" SizeChanged="CustomizationView_SizeChanged">
+                <!-- Main Scrolling Content (Branding + Selection Grid) -->
+                <ScrollViewer x:Name="DesignerMainScroller" VerticalScrollBarVisibility="Auto" Background="Transparent">
+                    <Grid x:Name="CustomizationMainGrid">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition x:Name="CustCol0" Width="380"/>
+                            <ColumnDefinition x:Name="CustCol1" Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition x:Name="CustRow0" Height="*"/>
+                            <RowDefinition x:Name="CustRow1" Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <!-- Branding Form -->
+                        <Border x:Name="BrandingSection" Grid.Column="0" Grid.Row="0" Background="{DynamicResource SurfaceContainerLowBrush}" CornerRadius="24" Padding="32" Margin="0,0,32,0" VerticalAlignment="Top">
+                            <StackPanel>
+                                <TextBlock Style="{DynamicResource HeadlineLg}" Text="Branding" Margin="0,0,0,8" Foreground="{DynamicResource TertiaryBrush}"/>
+                                <TextBlock Text="Update your business identity." Foreground="{DynamicResource OnSurfaceVariantBrush}" Margin="0,0,0,32"/>
+
+                                <TextBlock Text="COMPANY LOGO" Style="{DynamicResource BodyMd}" FontWeight="Bold" Margin="0,0,0,8" Opacity="0.7" Foreground="{DynamicResource OnSurfaceBrush}"/>
+                                <Grid Margin="0,0,0,24">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Border Width="80" Height="80" CornerRadius="12" Background="{DynamicResource SurfaceContainerBrush}" BorderBrush="{DynamicResource OutlineBrush}" BorderThickness="1">
+                                        <Image x:Name="imgBrandingLogo" Stretch="Uniform" Margin="8"/>
+                                    </Border>
+                                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="16,0,0,0">
+                                        <Button Content="Upload Logo" Click="UploadLogo_Click" Style="{DynamicResource SecondaryButtonStyle}" HorizontalAlignment="Left" Padding="16,8"/>
+                                        <TextBlock Text="Supports PNG, JPG (Recommended 200x200)" FontSize="10" Margin="0,8,0,0" Opacity="0.6" Foreground="{DynamicResource OnSurfaceBrush}"/>
+                                    </StackPanel>
+                                </Grid>
+
+                                <TextBlock Text="COMPANY NAME" Style="{DynamicResource BodyMd}" FontWeight="Bold" Margin="0,0,0,8" Opacity="0.7" Foreground="{DynamicResource OnSurfaceBrush}"/>
+                                <TextBox x:Name="txtCompanyName" Style="{DynamicResource AccentedInputStyle}" Margin="0,0,0,20"/>
+
+                                <Grid Margin="0,0,0,20">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="16"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    
+                                    <StackPanel Grid.Column="0">
+                                        <TextBlock Text="PHONE 1" Style="{DynamicResource BodyMd}" FontWeight="Bold" Margin="0,0,0,8" Opacity="0.7" Foreground="{DynamicResource OnSurfaceBrush}"/>
+                                        <TextBox x:Name="txtCompanyPhone" Style="{DynamicResource AccentedInputStyle}"/>
+                                    </StackPanel>
+
+                                    <StackPanel Grid.Column="2">
+                                        <TextBlock Text="PHONE 2 (OPT)" Style="{DynamicResource BodyMd}" FontWeight="Bold" Margin="0,0,0,8" Opacity="0.7" Foreground="{DynamicResource OnSurfaceBrush}"/>
+                                        <TextBox x:Name="txtCompanyPhone2" Style="{DynamicResource AccentedInputStyle}"/>
+                                    </StackPanel>
+                                </Grid>
+
+                                <TextBlock Text="BUSINESS ADDRESS" Style="{DynamicResource BodyMd}" FontWeight="Bold" Margin="0,0,0,8" Opacity="0.7" Foreground="{DynamicResource OnSurfaceBrush}"/>
+                                <TextBox x:Name="txtCompanyAddress" Style="{DynamicResource AccentedInputStyle}" AcceptsReturn="True" Height="80" TextWrapping="Wrap" VerticalContentAlignment="Top" Padding="12" Margin="0,0,0,24"/>
+
+                                <TextBlock Text="JOB MEMO TERMS &amp; CONDITIONS" Style="{DynamicResource BodyMd}" FontWeight="Bold" Margin="0,0,0,8" Opacity="0.7" Foreground="{DynamicResource OnSurfaceBrush}"/>
+                                <TextBox x:Name="txtTermsAndConditions" Style="{DynamicResource AccentedInputStyle}" AcceptsReturn="True" Height="120" TextWrapping="Wrap" VerticalContentAlignment="Top" Padding="12" Margin="0,0,0,24"/>
+
+                                <Button Style="{DynamicResource PrimaryButtonStyle}" Content="Save Branding Details" Height="48" Click="SaveBranding_Click"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Template Selection Grid -->
+                        <Grid x:Name="TemplateSelectionSection" Grid.Column="1" Grid.Row="0">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/> <!-- Title -->
+                                <RowDefinition Height="Auto"/> <!-- Recently Used -->
+                                <RowDefinition Height="Auto"/> <!-- Your Templates -->
+                                <RowDefinition Height="Auto"/> <!-- Section Label -->
+                                <RowDefinition Height="*"/>    <!-- Library -->
+                            </Grid.RowDefinitions>
+
+                            <StackPanel Grid.Row="0" Margin="32,32,32,16">
+                                <TextBlock Text="Order Designer" Style="{DynamicResource HeadlineLg}" FontWeight="Black" FontSize="36">
+                                    <TextBlock.Foreground>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                            <GradientStop Color="{DynamicResource PrimaryColor}" Offset="0"/>
+                                            <GradientStop Color="{DynamicResource TertiaryColor}" Offset="1"/>
+                                        </LinearGradientBrush>
+                                    </TextBlock.Foreground>
+                                </TextBlock>
+                                <TextBlock Text="Select and preview professional layouts for your job orders." Foreground="{DynamicResource OnSurfaceVariantBrush}" FontSize="14" Margin="0,4,0,0"/>
+                            </StackPanel>
+
+                            <!-- Recently Used Section -->
+                            <StackPanel Grid.Row="1" Margin="32,0,32,24">
+                                <TextBlock Text="RECENTLY USED TEMPLATES" Style="{DynamicResource BodyMd}" FontWeight="Bold" Margin="0,0,0,16" Opacity="0.7"/>
+                                <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" PreviewMouseWheel="HorizontalScrollViewer_PreviewMouseWheel" Background="Transparent">
+                                    <StackPanel x:Name="RecentlyUsedList" Orientation="Horizontal"/>
+                                </ScrollViewer>
+                            </StackPanel>
+
+                            <!-- Your Custom Templates Section -->
+                            <StackPanel Grid.Row="2" Margin="32,0,32,32" VerticalAlignment="Top">
+                                <TextBlock Text="YOUR CUSTOM TEMPLATES" Style="{DynamicResource BodyMd}" FontWeight="Bold" Margin="0,0,0,16" Opacity="0.7" Foreground="{DynamicResource OnSurfaceBrush}"/>
+                                
+                                <Border x:Name="EmptyCustomTemplatesCard" Background="{DynamicResource SurfaceContainerBrush}" CornerRadius="20" Padding="32">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        
+                                        <StackPanel Grid.Column="0">
+                                            <TextBlock Text="Design Your Own Template" Style="{DynamicResource HeadlineSmall}" Foreground="{DynamicResource PrimaryBrush}" Margin="0,0,0,12"/>
+                                            <TextBlock TextWrapping="Wrap" Margin="0,0,24,16" Foreground="{DynamicResource OnSurfaceBrush}" LineHeight="20" FontWeight="Medium">
+                                                Design a professional memo from scratch using our built-in designer. Drag and drop elements like logos, tables, and signatures to create your perfect layout.
+                                            </TextBlock>
+                                            
+                                            <WrapPanel Margin="0,0,0,24">
+                                                <Border Style="{DynamicResource BadgeStyle}" Margin="0,0,8,8"><TextBlock Text="#customer_name" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource OnSurfaceBrush}"/></Border>
+                                                <Border Style="{DynamicResource BadgeStyle}" Margin="0,0,8,8"><TextBlock Text="#customer_address" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource OnSurfaceBrush}"/></Border>
+                                                <Border Style="{DynamicResource BadgeStyle}" Margin="0,0,8,8"><TextBlock Text="#customerphone" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource OnSurfaceBrush}"/></Border>
+                                                <Border Style="{DynamicResource BadgeStyle}" Margin="0,0,8,8"><TextBlock Text="#technician_name" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource OnSurfaceBrush}"/></Border>
+                                                <Border Style="{DynamicResource BadgeStyle}" Margin="0,0,8,8"><TextBlock Text="#product" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource OnSurfaceBrush}"/></Border>
+                                                <Border Style="{DynamicResource BadgeStyle}" Margin="0,0,8,8"><TextBlock Text="#brand" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource OnSurfaceBrush}"/></Border>
+                                                <Border Style="{DynamicResource BadgeStyle}" Margin="0,0,8,8"><TextBlock Text="#model" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource OnSurfaceBrush}"/></Border>
+                                                <Border Style="{DynamicResource BadgeStyle}" Margin="0,0,8,8"><TextBlock Text="#serial_number" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource OnSurfaceBrush}"/></Border>
+                                                <Border Style="{DynamicResource BadgeStyle}" Margin="0,0,8,8"><TextBlock Text="#accessories" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource OnSurfaceBrush}"/></Border>
+                                                <Border Style="{DynamicResource BadgeStyle}" Margin="0,0,8,8"><TextBlock Text="#problem_reported" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource OnSurfaceBrush}"/></Border>
+                                                <Border Style="{DynamicResource BadgeStyle}" Margin="0,0,8,8"><TextBlock Text="#date" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource OnSurfaceBrush}"/></Border>
+                                            </WrapPanel>
+
+                                            <TextBlock TextWrapping="Wrap" Margin="0,0,0,12" Foreground="{DynamicResource OnSurfaceBrush}" FontSize="11" Opacity="0.9">
+                                                Tip: Use these placeholders in your custom text blocks to automatically insert order details.
+                                            </TextBlock>
+                                        </StackPanel>
+
+                                        <Button Grid.Column="1" Style="{DynamicResource PrimaryButtonStyle}" Padding="24,16" Click="CustomizeTemplate_Click" VerticalAlignment="Center">
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Text="✨" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                                <TextBlock Text="Open Template Designer" VerticalAlignment="Center"/>
+                                            </StackPanel>
+                                        </Button>
+                                    </Grid>
+                                </Border>
+
+                                <WrapPanel x:Name="CustomTemplatesList" Margin="0,8,0,0" Visibility="Collapsed"/>
+                            </StackPanel>
+
+                            <!-- Import Layout Section -->
+                            <StackPanel Grid.Row="3" Margin="32,0,32,32" VerticalAlignment="Top">
+                                <TextBlock Text="IMPORT CUSTOM LAYOUT" Style="{DynamicResource BodyMd}" FontWeight="Bold" Margin="0,0,0,16" Opacity="0.7" Foreground="{DynamicResource OnSurfaceBrush}"/>
+                                
+                                <Border Background="{DynamicResource SurfaceContainerBrush}" CornerRadius="20" Padding="32">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="400"/>
+                                        </Grid.ColumnDefinitions>
+                                        
+                                        <!-- Left Column: Instructions -->
+                                        <StackPanel Grid.Column="0" Margin="0,0,32,0" VerticalAlignment="Center">
+                                            <TextBlock Text="Import External Design" Style="{DynamicResource HeadlineSmall}" Foreground="{DynamicResource PrimaryBrush}" Margin="0,0,0,12" TextWrapping="Wrap"/>
+                                            <TextBlock TextWrapping="Wrap" Foreground="{DynamicResource OnSurfaceBrush}" LineHeight="20" FontWeight="Medium">
+                                                Have a design file from another branch or device? You can import <Run FontWeight="Bold">.mbld</Run> layout files directly here to add them to your custom template library. Give the layout a unique name below and browse for your file.
+                                            </TextBlock>
+                                        </StackPanel>
+                                        
+                                        <!-- Right Column: Settings and Action Button -->
+                                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                            <Border Background="{DynamicResource SurfaceContainerLowBrush}" CornerRadius="16" Padding="20">
+                                                <StackPanel>
+                                                    <TextBlock Text="IMPORT CONFIGURATION" FontWeight="Bold" FontSize="11" Foreground="{DynamicResource OnSurfaceVariantBrush}" Margin="0,0,0,16"/>
+                                                    
+                                                    <TextBlock Text="Template Name" Style="{DynamicResource BodyMd}" FontWeight="Bold" Margin="0,0,0,8" Opacity="0.8"/>
+                                                    <TextBox x:Name="txtImportName" Style="{DynamicResource AccentedInputStyle}" Margin="0,0,0,16" Tag="Enter template name..."/>
+                                                    
+                                                    <Button Style="{DynamicResource PrimaryButtonStyle}" Height="48" Click="ImportLayout_Click">
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <TextBlock Text="📥" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                                            <TextBlock Text="Browse &amp; Import (.mbld)" VerticalAlignment="Center" FontWeight="Bold"/>
+                                                        </StackPanel>
+                                                    </Button>
+                                                </StackPanel>
+                                            </Border>
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+                            </StackPanel>
+
+                            <Grid Grid.Row="4">
+                                <StackPanel Margin="24,0,24,32">
+                                    <!-- Half A4 Section -->
+                                    <Grid Margin="8,0,8,16">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="HALF A4 (LANDSCAPE)" Style="{DynamicResource BodyMd}" FontWeight="Bold" Foreground="{DynamicResource PrimaryBrush}" VerticalAlignment="Center"/>
+                                        <Button Grid.Column="1" Content="🌐 Browse Cloud Templates" Style="{DynamicResource SecondaryButtonStyle}" Padding="16,6" Click="BrowseCloudTemplates_Click" FontSize="11" FontWeight="SemiBold"/>
+                                    </Grid>
+                                    <WrapPanel x:Name="HalfA4TemplatesList" Margin="0,0,0,32"/>
+
+                                    <!-- Full A4 Section -->
+                                    <TextBlock Text="A4/A5" Style="{DynamicResource BodyMd}" FontWeight="Bold" Margin="8,0,8,16" Foreground="{DynamicResource PrimaryBrush}"/>
+                                    <WrapPanel x:Name="FullA4TemplatesList" Margin="0,0,0,32"/>
+                                </StackPanel>
+                            </Grid>
+                        </Grid>
+                    </Grid>
+                </ScrollViewer>
+
+                <!-- Fixed Preview Mode (Overlays Content) -->
+                <Grid x:Name="TemplatePreviewMode" Visibility="Collapsed" Background="{DynamicResource SurfaceContainerLowestBrush}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="260"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Sidebar with own scrollbar -->
+                    <Border Grid.Column="0" Background="{DynamicResource SurfaceContainerLowBrush}" BorderBrush="{DynamicResource OutlineBrush}" BorderThickness="0,0,1,0" CornerRadius="24,0,0,24">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                            <TextBlock Text="All Layouts" Style="{DynamicResource HeadlineMd}" Margin="24,24,24,16" FontSize="18"/>
+                            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                                <StackPanel x:Name="TemplateSideList" Margin="12,0"/>
+                            </ScrollViewer>
+                        </Grid>
+                    </Border>
+
+                    <!-- Fixed Preview Area -->
+                    <Grid Grid.Column="1" Background="{DynamicResource SurfaceBrush}">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+
+                        <!-- Fixed Header -->
+                        <Border Background="{DynamicResource SurfaceContainerLowestBrush}" Padding="24,10" BorderBrush="{DynamicResource OutlineBrush}" BorderThickness="0,0,0,1" CornerRadius="0,24,0,0">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/> <!-- Title and Badge -->
+                                    <ColumnDefinition Width="Auto"/> <!-- Select/Status -->
+                                    <ColumnDefinition Width="16"/> <!-- Spacer -->
+                                    <ColumnDefinition Width="Auto"/> <!-- Close Button -->
+                                </Grid.ColumnDefinitions>
+
+                                <!-- Left Side: Title and Badge -->
+                                <StackPanel Orientation="Horizontal" Grid.Column="0">
+                                    <TextBlock x:Name="PreviewTitle" Text="Standard Template" 
+                                               Style="{DynamicResource HeadlineMd}" 
+                                               VerticalAlignment="Center" 
+                                               Foreground="{DynamicResource TertiaryBrush}" 
+                                               FontSize="20"
+                                               MaxWidth="400"
+                                               TextTrimming="CharacterEllipsis"/>
+                                    <Border Background="{DynamicResource SecondaryContainerBrush}" CornerRadius="6" Padding="10,4" Margin="16,0,0,0" VerticalAlignment="Center">
+                                        <TextBlock Text="LIVE PREVIEW" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource OnSecondaryContainerBrush}"/>
+                                    </Border>
+                                </StackPanel>
+                                
+                                <!-- Right Side Actions -->
+                                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                    <!-- Select Button -->
+                                    <Button x:Name="btnSelectTemplate" Style="{DynamicResource SecondaryButtonStyle}" 
+                                            Content="Select This Template" Margin="0,0,0,0" Padding="16,6"
+                                            Click="SelectTemplate_Click">
+                                        <Button.Resources>
+                                            <Style TargetType="Border">
+                                                <Setter Property="CornerRadius" Value="8"/>
+                                            </Style>
+                                        </Button.Resources>
+                                    </Button>
+
+                                    <Button x:Name="btnCustomizeTemplate" Style="{DynamicResource PrimaryButtonStyle}" 
+                                            Content="Customize Design" Margin="8,0,0,0" Padding="16,6"
+                                            Click="CustomizeTemplate_Click">
+                                        <Button.Resources>
+                                            <Style TargetType="Border">
+                                                <Setter Property="CornerRadius" Value="8"/>
+                                            </Style>
+                                        </Button.Resources>
+                                    </Button>
+
+                                    <Button x:Name="btnExportTemplatePreview" Style="{DynamicResource SecondaryButtonStyle}" 
+                                            Content="📤 Export" Margin="8,0,0,0" Padding="16,6"
+                                            Click="ExportTemplatePreview_Click" Visibility="Collapsed" ToolTip="Export Layout (.mbld)">
+                                        <Button.Resources>
+                                            <Style TargetType="Border">
+                                                <Setter Property="CornerRadius" Value="8"/>
+                                            </Style>
+                                        </Button.Resources>
+                                    </Button>
+                                    
+                                    <StackPanel x:Name="pnlSelectedStatus" Orientation="Horizontal" Visibility="Collapsed" Margin="0,0,0,0" VerticalAlignment="Center">
+                                        <TextBlock Text="✓" Foreground="#4CAF50" FontSize="18" FontWeight="Bold" VerticalAlignment="Center"/>
+                                        <TextBlock Text="CURRENTLY SELECTED" Foreground="#4CAF50" FontSize="11" FontWeight="Bold" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </StackPanel>
+                                
+                                <Button Grid.Column="3" Click="HidePreview_Click" Cursor="Hand" ToolTip="Close Preview">
+                                    <Button.Template>
+                                        <ControlTemplate TargetType="Button">
+                                            <Border x:Name="bg" Background="{DynamicResource SurfaceContainerHighBrush}" 
+                                                    CornerRadius="18" Width="36" Height="36" 
+                                                    BorderBrush="{DynamicResource OutlineBrush}" BorderThickness="1"
+                                                    RenderTransformOrigin="0.5,0.5">
+                                                <Border.RenderTransform>
+                                                    <ScaleTransform ScaleX="1" ScaleY="1"/>
+                                                </Border.RenderTransform>
+                                                <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                    <!-- Modern Close Icon (Thinner lines) -->
+                                                    <Path x:Name="icon" Data="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z" 
+                                                          Fill="{DynamicResource OnSurfaceVariantBrush}" 
+                                                          Width="14" Height="14" Stretch="Uniform"/>
+                                                </Grid>
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter TargetName="bg" Property="Background" Value="{DynamicResource ErrorContainerBrush}"/>
+                                                    <Setter TargetName="bg" Property="BorderBrush" Value="{DynamicResource ErrorBrush}"/>
+                                                    <Setter TargetName="icon" Property="Fill" Value="{DynamicResource OnErrorContainerBrush}"/>
+                                                    <Trigger.EnterActions>
+                                                        <BeginStoryboard>
+                                                            <Storyboard>
+                                                                <DoubleAnimation Storyboard.TargetName="bg" Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)" To="1.1" Duration="0:0:0.1"/>
+                                                                <DoubleAnimation Storyboard.TargetName="bg" Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)" To="1.1" Duration="0:0:0.1"/>
+                                                            </Storyboard>
+                                                        </BeginStoryboard>
+                                                    </Trigger.EnterActions>
+                                                    <Trigger.ExitActions>
+                                                        <BeginStoryboard>
+                                                            <Storyboard>
+                                                                <DoubleAnimation Storyboard.TargetName="bg" Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)" To="1.0" Duration="0:0:0.1"/>
+                                                                <DoubleAnimation Storyboard.TargetName="bg" Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)" To="1.0" Duration="0:0:0.1"/>
+                                                            </Storyboard>
+                                                        </BeginStoryboard>
+                                                    </Trigger.ExitActions>
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Button.Template>
+                                </Button>
+                            </Grid>
+                        </Border>
+
+                        <!-- Compact Scrollable Paper Preview -->
+                        <ScrollViewer Grid.Row="1" x:Name="TemplatePreviewScroller" Padding="24,12" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
+                                      ManipulationDelta="TemplateZoomContainer_ManipulationDelta" IsManipulationEnabled="True"
+                                      PreviewMouseLeftButtonDown="TemplatePreviewScroller_PreviewMouseLeftButtonDown"
+                                      PreviewMouseMove="TemplatePreviewScroller_PreviewMouseMove"
+                                      PreviewMouseLeftButtonUp="TemplatePreviewScroller_PreviewMouseLeftButtonUp">
+                            <Border Width="794" Height="1123" Background="White" HorizontalAlignment="Center" VerticalAlignment="Top">
+                                <Border.LayoutTransform>
+                                    <ScaleTransform x:Name="TemplatePreviewScale" ScaleX="0.5" ScaleY="0.5"/>
+                                </Border.LayoutTransform>
+                                <Border.Effect>
+                                    <DropShadowEffect BlurRadius="40" Opacity="0.1" ShadowDepth="10"/>
+                                </Border.Effect>
+                                <ContentControl x:Name="PreviewContentControl" VerticalAlignment="Top"/>
+                            </Border>
+                        </ScrollViewer>
+ 
+                        <!-- Floating Zoom Controls -->
+                        <Border Grid.Row="1" VerticalAlignment="Bottom" HorizontalAlignment="Center" Margin="0,0,0,32" 
+                                Background="{DynamicResource SurfaceContainerHighestBrush}" CornerRadius="20" Padding="12,6" 
+                                BorderBrush="{DynamicResource OutlineBrush}" BorderThickness="1" Opacity="0.95">
+                            <Border.Effect>
+                                <DropShadowEffect BlurRadius="15" Opacity="0.2" ShadowDepth="2"/>
+                            </Border.Effect>
+                            <StackPanel Orientation="Horizontal">
+                                <Button x:Name="btnTemplateZoomOut" Content="−" Width="36" Height="36" Click="TemplateZoomOut_Click" Style="{DynamicResource SecondaryButtonStyle}" Padding="0" Margin="4,0" Cursor="Hand" BorderThickness="0" FontSize="18" FontWeight="Bold"/>
+                                <Border Background="{DynamicResource SurfaceContainerLowBrush}" CornerRadius="10" Margin="8,0" Padding="12,4" VerticalAlignment="Center">
+                                    <TextBlock x:Name="txtTemplateZoomPercent" Text="50%" Foreground="{DynamicResource OnSurfaceBrush}" FontWeight="Bold" FontSize="12" MinWidth="40" TextAlignment="Center"/>
+                                </Border>
+                                <Button x:Name="btnTemplateZoomIn" Content="+" Width="36" Height="36" Click="TemplateZoomIn_Click" Style="{DynamicResource SecondaryButtonStyle}" Padding="0" Margin="4,0" Cursor="Hand" BorderThickness="0" FontSize="18" FontWeight="Bold"/>
+                                <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" Margin="8,4" Background="{DynamicResource OutlineBrush}" Opacity="0.3"/>
+                                <Button Content="RESET" Click="TemplateResetZoom_Click" Style="{DynamicResource SecondaryButtonStyle}" Padding="12,0" Margin="4,0" Cursor="Hand" BorderThickness="0" FontSize="10" FontWeight="Black"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Network Disconnection Fullscreen Block Overlay -->
+                        <Grid x:Name="NetworkDisconnectOverlay" Grid.Row="0" Grid.RowSpan="3" Visibility="Collapsed" Panel.ZIndex="999">
+                            <Border Background="#CC000000" CornerRadius="0">
+                                <Border.Effect>
+                                    <BlurEffect Radius="20" KernelType="Box"/>
+                                </Border.Effect>
+                            </Border>
+                            
+                            <Border Background="Transparent" VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="550" Margin="32">
+                                <Border Background="{DynamicResource SurfaceContainerBrush}" BorderBrush="{DynamicResource OutlineBrush}" BorderThickness="1.5" CornerRadius="24" Padding="40">
+                                    <Border.Effect>
+                                        <DropShadowEffect Color="#000000" BlurRadius="40" Opacity="0.3" ShadowDepth="10"/>
+                                    </Border.Effect>
+                                    <StackPanel HorizontalAlignment="Center">
+                                        <!-- Warning Icon -->
+                                        <Border Width="72" Height="72" Background="{DynamicResource DestructiveRedBrush}" CornerRadius="36" Margin="0,0,0,24" HorizontalAlignment="Center">
+                                            <TextBlock Text="⚠️" FontSize="36" Foreground="{DynamicResource OnDestructiveRedBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        </Border>
+                                        
+                                        <TextBlock Text="Network Connection Lost" FontSize="24" FontWeight="Bold" Foreground="{DynamicResource OnSurfaceBrush}" HorizontalAlignment="Center" Margin="0,0,0,12" TextAlignment="Center"/>
+                                        
+                                        <TextBlock Text="This workstation has been disconnected from the local area network. For data integrity and clash prevention, database write operations have been temporarily suspended on this PC." 
+                                                   FontSize="14" Foreground="{DynamicResource OnSurfaceVariantBrush}" HorizontalAlignment="Center" Margin="0,0,0,20" TextAlignment="Center" TextWrapping="Wrap" LineHeight="22"/>
+                                        
+                                        <Border Background="{DynamicResource SurfaceContainerHighestBrush}" CornerRadius="12" Padding="20,16" Margin="0,0,0,24">
+                                            <StackPanel>
+                                                <TextBlock Text="Why is this blocked?" FontSize="12" FontWeight="Bold" Foreground="{DynamicResource PrimaryBrush}" Margin="0,0,0,4"/>
+                                                <TextBlock Text="• Multi-user local database sync requires an active LAN connection.&#x0a;• This prevents Order ID overlaps and data clashing between workstations.&#x0a;• Other connected computers in your network can still remain operational." 
+                                                           FontSize="12" Foreground="{DynamicResource OnSurfaceVariantBrush}" LineHeight="18" TextWrapping="Wrap"/>
+                                            </StackPanel>
+                                        </Border>
+                                        
+                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                            <Ellipse Width="10" Height="10" Fill="{DynamicResource PrimaryBrush}" Margin="0,0,8,0" VerticalAlignment="Center">
+                                                <Ellipse.Triggers>
+                                                    <EventTrigger RoutedEvent="Loaded">
+                                                        <BeginStoryboard>
+                                                            <Storyboard>
+                                                                <DoubleAnimation Storyboard.TargetProperty="Opacity" From="0.2" To="1" Duration="0:0:0.8" AutoReverse="True" RepeatBehavior="Forever"/>
+                                                            </Storyboard>
+                                                        </BeginStoryboard>
+                                                    </EventTrigger>
+                                                </Ellipse.Triggers>
+                                            </Ellipse>
+                                            <TextBlock Text="Waiting for network connection to restore..." FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource OnSurfaceVariantBrush}" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+                            </Border>
+                        </Grid>
+                    </Grid>
+                </Grid>
+            </Grid>
+        </Grid>
+        <!-- ═══════════════════════════════════════════════════════════════════
+             STARTUP LAN SYNC OVERLAY
+             Covers full window until initial peer sync completes.
+             ═══════════════════════════════════════════════════════════════════ -->
+        <Grid x:Name="panelStartupSync" Grid.ColumnSpan="2" Panel.ZIndex="999" Visibility="Collapsed">
+            <!-- Dark frosted backdrop -->
+            <Rectangle Fill="#D9060614" RadiusX="0" RadiusY="0"/>
+
+            <!-- Centered glass card -->
+            <Border HorizontalAlignment="Center" VerticalAlignment="Center"
+                    Width="420" MinHeight="220"
+                    Background="{DynamicResource SurfaceContainerLowestBrush}"
+                    BorderBrush="{DynamicResource OutlineBrush}" BorderThickness="1"
+                    CornerRadius="24" Padding="40,36">
+                <Border.Effect>
+                    <DropShadowEffect Color="#000000" BlurRadius="60" Opacity="0.35" ShadowDepth="8" Direction="270"/>
+                </Border.Effect>
+
+                <StackPanel HorizontalAlignment="Center">
+
+                    <!-- Spinner + icon row -->
+                    <Grid Width="64" Height="64" HorizontalAlignment="Center" Margin="0,0,0,24">
+                        <!-- Outer spinning ring -->
+                        <Ellipse Width="64" Height="64"
+                                 Stroke="{DynamicResource PrimaryBrush}" StrokeThickness="3"
+                                 StrokeDashArray="12 5" Opacity="0.25"/>
+                        <Ellipse x:Name="startupSpinner" Width="64" Height="64"
+                                 Stroke="{DynamicResource PrimaryBrush}" StrokeThickness="3"
+                                 StrokeDashArray="6 18">
+                            <Ellipse.RenderTransform>
+                                <RotateTransform x:Name="startupSpinnerTransform" Angle="0" CenterX="32" CenterY="32"/>
+                            </Ellipse.RenderTransform>
+                            <Ellipse.Triggers>
+                                <EventTrigger RoutedEvent="Loaded">
+                                    <BeginStoryboard>
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="startupSpinnerTransform"
+                                                             Storyboard.TargetProperty="Angle"
+                                                             From="0" To="360" Duration="0:0:1.1"
+                                                             RepeatBehavior="Forever"/>
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </EventTrigger>
+                            </Ellipse.Triggers>
+                        </Ellipse>
+                        <!-- Network icon inside -->
+                        <TextBlock Text="⇄" FontSize="26" HorizontalAlignment="Center"
+                                   VerticalAlignment="Center" Foreground="{DynamicResource PrimaryBrush}"
+                                   FontWeight="Bold"/>
+                    </Grid>
+
+                    <!-- Title -->
+                    <TextBlock Text="Syncing Workstation Data"
+                               FontSize="18" FontWeight="Bold"
+                               Foreground="{DynamicResource OnSurfaceBrush}"
+                               HorizontalAlignment="Center" Margin="0,0,0,8"/>
+
+                    <!-- Subtitle -->
+                    <TextBlock Text="Please wait while records from your other devices are synced before you begin."
+                               FontSize="12" Foreground="{DynamicResource OnSurfaceVariantBrush}"
+                               HorizontalAlignment="Center" TextAlignment="Center"
+                               TextWrapping="Wrap" Opacity="0.75" Margin="0,0,0,20"/>
+
+                    <!-- Live progress row -->
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,24">
+                        <!-- Pulsing dot -->
+                        <Ellipse x:Name="startupPulseDot" Width="8" Height="8"
+                                 Fill="{DynamicResource PrimaryBrush}"
+                                 VerticalAlignment="Center" Margin="0,0,10,0">
+                            <Ellipse.Triggers>
+                                <EventTrigger RoutedEvent="Loaded">
+                                    <BeginStoryboard>
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="startupPulseDot"
+                                                             Storyboard.TargetProperty="Opacity"
+                                                             From="1" To="0.2" Duration="0:0:0.7"
+                                                             AutoReverse="True" RepeatBehavior="Forever"/>
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </EventTrigger>
+                            </Ellipse.Triggers>
+                        </Ellipse>
+                        <TextBlock x:Name="txtStartupSyncProgress"
+                                   Text="Initializing…"
+                                   FontSize="12" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource PrimaryBrush}"
+                                   VerticalAlignment="Center" MaxWidth="300"
+                                   TextWrapping="Wrap" TextAlignment="Center"/>
+                    </StackPanel>
+
+                    <!-- Skip button -->
+                    <Button x:Name="btnSkipStartupSync"
+                            Content="Skip — Start Working Now"
+                            Click="SkipStartupSync_Click"
+                            HorizontalAlignment="Center"
+                            Padding="20,10" FontSize="12"
+                            Style="{DynamicResource SecondaryButtonStyle}"
+                            Opacity="0.85"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+    </Grid>
+</Window>
