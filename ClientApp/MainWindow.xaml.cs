@@ -1936,6 +1936,18 @@ namespace ClientApp
 
                 var memos = query.OrderByDescending(m => m.CreatedAt).ToList();
 
+                bool needsSave = false;
+                foreach (var memo in memos)
+                {
+                    if (!string.IsNullOrEmpty(memo.Status) && memo.Status.StartsWith("System.Windows.Controls.ComboBoxItem: "))
+                    {
+                        memo.Status = memo.Status.Replace("System.Windows.Controls.ComboBoxItem: ", "");
+                        db.ServiceMemos.Update(memo);
+                        needsSave = true;
+                    }
+                }
+                if (needsSave) db.SaveChanges();
+
                 var view = new System.Windows.Data.ListCollectionView(memos);
                 view.GroupDescriptions.Add(new System.Windows.Data.PropertyGroupDescription("CreatedAt", new DateGroupConverter()));
                 MemosDataGrid.ItemsSource = view;

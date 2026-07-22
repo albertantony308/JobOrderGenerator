@@ -850,7 +850,7 @@ namespace ClientApp.Services
                     {
                         var cleanId = memoNumber.Trim();
                         var memo = db.ServiceMemos.FirstOrDefault(m => 
-                            string.Equals(m.MemoNumber, cleanId, StringComparison.OrdinalIgnoreCase));
+                            string.Equals(m.MemoNumber, cleanId, StringComparison.OrdinalIgnoreCase) && m.Status != "Deleted");
                         if (memo != null)
                         {
                             var dto = ServiceMemoDto.FromModel(memo);
@@ -879,7 +879,7 @@ namespace ClientApp.Services
                         {
                             var cleanId = updateReq.MemoNumber.Trim();
                             var memo = db.ServiceMemos.FirstOrDefault(m => 
-                                string.Equals(m.MemoNumber, cleanId, StringComparison.OrdinalIgnoreCase));
+                                string.Equals(m.MemoNumber, cleanId, StringComparison.OrdinalIgnoreCase) && m.Status != "Deleted");
                             if (memo != null)
                             {
                                 memo.Status = updateReq.Status;
@@ -888,7 +888,7 @@ namespace ClientApp.Services
                                 {
                                     memo.OrderUpdates = updateReq.OrderUpdates;
                                 }
-                                memo.UpdatedAt = DateTime.Now;
+                                memo.UpdatedAt = DateTime.Now > memo.UpdatedAt ? DateTime.Now : memo.UpdatedAt.AddSeconds(1);
 
                                 db.ServiceMemos.Update(memo);
                                 db.SaveChanges();
@@ -908,6 +908,15 @@ namespace ClientApp.Services
                                     if (System.Windows.Application.Current.MainWindow is MainWindow mainWin)
                                     {
                                         mainWin.LoadData(); // Triggers reloading from SQLite db
+                                        
+                                        if (updateReq.Status == "Completed")
+                                        {
+                                            System.Windows.MessageBox.Show(
+                                                $"Service Memo {memo.MemoNumber} ({memo.DeviceName} - {memo.DeviceModel}) has been marked as Completed by Staff Member: {memo.TechnicianName}.",
+                                                "Order Completed via Staff Portal",
+                                                System.Windows.MessageBoxButton.OK,
+                                                System.Windows.MessageBoxImage.Information);
+                                        }
                                     }
                                 }));
 

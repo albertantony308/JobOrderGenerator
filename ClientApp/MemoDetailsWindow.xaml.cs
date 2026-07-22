@@ -126,6 +126,13 @@ namespace ClientApp
                 // Return date
                 SetReturnDateDisplay(_memo.ReturnDate);
 
+                // Clean up corrupted status
+                if (!string.IsNullOrEmpty(_memo.Status) && _memo.Status.StartsWith("System.Windows.Controls.ComboBoxItem: "))
+                {
+                    _memo.Status = _memo.Status.Replace("System.Windows.Controls.ComboBoxItem: ", "");
+                    db.SaveChanges();
+                }
+
                 // Set Status (Handling strings instead of ComboBoxItems)
                 if (!cmbStatus.IsFocused && !cmbStatus.IsDropDownOpen)
                 {
@@ -189,10 +196,10 @@ namespace ClientApp
                     if (m != null)
                     {
                         m.ReturnDate = date;
-                        m.UpdatedAt = DateTime.Now;
+                        m.UpdatedAt = DateTime.Now > m.UpdatedAt ? DateTime.Now : m.UpdatedAt.AddSeconds(1);
                         db.SaveChanges();
                         _memo.ReturnDate = date;
-                        _memo.UpdatedAt = DateTime.Now;
+                        _memo.UpdatedAt = m.UpdatedAt;
                         NeedsRefresh = true;
                     }
                 }
@@ -294,6 +301,7 @@ namespace ClientApp
         private void Status_Changed(object sender, SelectionChangedEventArgs e)
         {
             if (_memo == null || cmbStatus.SelectedItem == null) return;
+            
             string newStatus = cmbStatus.SelectedItem.ToString() ?? "Pending";
             
             if (_memo.Status != newStatus)
@@ -304,8 +312,10 @@ namespace ClientApp
                     if (m != null)
                     {
                         m.Status = newStatus;
+                        m.UpdatedAt = DateTime.Now > m.UpdatedAt ? DateTime.Now : m.UpdatedAt.AddSeconds(1);
                         db.SaveChanges();
                         _memo.Status = newStatus;
+                        _memo.UpdatedAt = m.UpdatedAt;
                         NeedsRefresh = true;
                     }
                 }
@@ -481,14 +491,14 @@ namespace ClientApp
                         m.OrderUpdates = updatesText;
                         m.ItemizedCosts = costJson;
                         m.EstimatedCost = totalCost;
-                        m.UpdatedAt = DateTime.Now;
+                        m.UpdatedAt = DateTime.Now > m.UpdatedAt ? DateTime.Now : m.UpdatedAt.AddSeconds(1);
                         db.SaveChanges();
                         _isCostItemsDirty = false;
                         
                         _memo.OrderUpdates = updatesText;
                         _memo.ItemizedCosts = costJson;
                         _memo.EstimatedCost = totalCost;
-                        _memo.UpdatedAt = DateTime.Now;
+                        _memo.UpdatedAt = m.UpdatedAt;
                         NeedsRefresh = true;
                         
                         MessageBox.Show("Order updates and costs saved successfully.", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
@@ -523,7 +533,7 @@ namespace ClientApp
                         if (memo != null)
                         {
                             memo.Status = "Deleted";
-                            memo.UpdatedAt = DateTime.Now;
+                            memo.UpdatedAt = DateTime.Now > memo.UpdatedAt ? DateTime.Now : memo.UpdatedAt.AddSeconds(1);
                             db.ServiceMemos.Update(memo);
                             db.SaveChanges();
                         }

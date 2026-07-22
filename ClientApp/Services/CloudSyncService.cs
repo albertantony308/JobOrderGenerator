@@ -247,6 +247,18 @@ namespace ClientApp.Services
                         // 2. PUSH TO CLOUD
                         foreach (var lMemo in localMemos)
                         {
+                            // Process hard deletions
+                            if (lMemo.Status == "Deleted")
+                            {
+                                var deleteRequest = new HttpRequestMessage(HttpMethod.Delete, $"/rest/v1/service_memos?memo_number=eq.{lMemo.MemoNumber}");
+                                var delResponse = await _http.SendAsync(deleteRequest);
+                                if (delResponse.IsSuccessStatusCode || delResponse.StatusCode == System.Net.HttpStatusCode.NotFound)
+                                {
+                                    db.ServiceMemos.Remove(lMemo);
+                                }
+                                continue;
+                            }
+
                             // Find corresponding cloud record to compare timestamp
                             bool needsUpload = true;
                             if (cloudMemosJson != null)
