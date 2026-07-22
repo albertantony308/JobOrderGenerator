@@ -1716,8 +1716,8 @@
         }
       }
 
-      // 2. Local Wi-Fi Sync (Always fire if on LAN to instantly notify desktop app)
-      if (appState.workstationIp) {
+      // 2. Local Wi-Fi Sync (Fallback only if Cloud fails)
+      if (!cloudSynced && appState.workstationIp) {
         try {
           const res = await fetch(`http://${appState.workstationIp}:14010/api/memo/status`, {
             method: 'POST',
@@ -1736,7 +1736,7 @@
           if (res.ok) {
             wifiSynced = true;
             renderOrderResult(memo);
-            showPremiumToast('Job status successfully updated!', 'wifi-sync', 'Submitted Successfully');
+            showPremiumToast('Job status updated on Wi-Fi (Cloud unavailable).', 'wifi-sync', 'Synced on Wi-Fi');
           }
         } catch (err) {
           console.warn("Real-time LAN Wi-Fi sync failed/unreachable:", err);
