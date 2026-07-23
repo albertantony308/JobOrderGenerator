@@ -338,6 +338,8 @@ namespace ClientApp.Services
 
 
 
+        private static readonly object _syncLock = new object();
+
         private static bool MergePushedMemo(ServiceMemoDto remote)
         {
             var currentTrustedUtc = NetworkTimeService.GetUtcNow();
@@ -346,95 +348,111 @@ namespace ClientApp.Services
                 remote.UpdatedAt = currentTrustedUtc.AddSeconds(-5);
             }
 
-            using (var db = new LocalDbContext())
+            lock (_syncLock)
             {
-                db.Migrate();
-                var local = db.ServiceMemos.FirstOrDefault(m => m.MemoNumber == remote.MemoNumber);
-                if (local == null)
+                using (var db = new LocalDbContext())
                 {
-                    var remoteModel = new ServiceMemo
-                    {
-                        Id = 0, // SQLite autoincrement
-                        MemoNumber = remote.MemoNumber,
-                        CustomerName = remote.CustomerName,
-                        PhoneNumber = remote.PhoneNumber,
-                        DeviceName = remote.DeviceName,
-                        DeviceModel = remote.DeviceModel,
-                        IssueDescription = remote.IssueDescription,
-                        Status = remote.Status,
-                        CreatedAt = remote.CreatedAt,
-                        EstimatedCost = remote.EstimatedCost,
-                        CustomerAddress = remote.CustomerAddress,
-                        Phone1 = remote.Phone1,
-                        Phone2 = remote.Phone2,
-                        TechnicianName = remote.TechnicianName,
-                        Brand = remote.Brand,
-                        SerialNumber = remote.SerialNumber,
-                        Accessories = remote.Accessories,
-                        Diagnostics = remote.Diagnostics,
-                        OrderUpdates = remote.OrderUpdates,
-                        ItemizedCosts = remote.ItemizedCosts,
-                        ReturnDate = remote.ReturnDate,
-                        IsRepeatedDevice = remote.IsRepeatedDevice,
-                        UpdatedAt = remote.UpdatedAt,
-                        ImagePath = SettingsManager.Default.SyncImagesEnabled ? remote.ImagePath : string.Empty
-                    };
-                    db.ServiceMemos.Add(remoteModel);
-                    db.SaveChanges();
-                    System.Diagnostics.Debug.WriteLine($"[LAN SYNC] Integrated new LAN order: {remote.MemoNumber}");
-                    return true;
-                }
-                else
-                {
-                    // Use a 2-second grace window: the remote must be clearly newer before we overwrite.
-                    // This prevents a peer with a slightly-stale copy from overwriting a record
-                    // that was just saved on THIS device milliseconds ago.
-                    bool remoteIsNewer = remote.UpdatedAt > local.UpdatedAt.AddSeconds(2);
-                    if (remoteIsNewer)
-                    {
-                        local.CustomerName = remote.CustomerName;
-                        local.PhoneNumber = remote.PhoneNumber;
-                        local.DeviceName = remote.DeviceName;
-                        local.DeviceModel = remote.DeviceModel;
-                        local.IssueDescription = remote.IssueDescription;
-                        local.Status = remote.Status;
-                        local.EstimatedCost = remote.EstimatedCost;
-                        local.CustomerAddress = remote.CustomerAddress;
-                        local.Phone1 = remote.Phone1;
-                        local.Phone2 = remote.Phone2;
-                        local.TechnicianName = remote.TechnicianName;
-                        local.Brand = remote.Brand;
-                        local.SerialNumber = remote.SerialNumber;
-                        local.Accessories = remote.Accessories;
-                        local.Diagnostics = remote.Diagnostics;
-                        local.OrderUpdates = remote.OrderUpdates;
-                        local.ItemizedCosts = remote.ItemizedCosts;
-                        local.ReturnDate = remote.ReturnDate;
-                        local.IsRepeatedDevice = remote.IsRepeatedDevice;
-                        local.UpdatedAt = remote.UpdatedAt;
+                    db.Migrate();
 
-                        // Only overwrite image if settings allow
-                        if (SettingsManager.Default.SyncImagesEnabled)
-                        {
-                            local.ImagePath = remote.ImagePath;
-                        }
-
-                        db.Entry(local).State = Microsoft.EntityFrameworkCore.EntityState.Modified;
-                        db.ServiceMemos.Update(local);
+                    var matches = db.ServiceMemos.Where(m => m.MemoNumber == remote.MemoNumber).ToList();
+                    if (matches.Count > 1)
+                    {
+                        var keep = matches.OrderByDescending(m => m.Id).First();
+                        var dupes = matches.Where(m => m.Id != keep.Id).ToList();
+                        db.ServiceMemos.RemoveRange(dupes);
                         db.SaveChanges();
-                        System.Diagnostics.Debug.WriteLine($"[LAN SYNC] Updated existing local order from LAN: {remote.MemoNumber}");
+                        matches = new List<ServiceMemo> { keep };
+                    }
+
+                    var local = matches.FirstOrDefault();
+                    if (local == null)
+                    {
+                        var remoteModel = new ServiceMemo
+                        {
+                            Id = 0, // SQLite autoincrement
+                            MemoNumber = remote.MemoNumber,
+                            CustomerName = remote.CustomerName,
+                            PhoneNumber = remote.PhoneNumber,
+                            DeviceName = remote.DeviceName,
+                            DeviceModel = remote.DeviceModel,
+                            IssueDescription = remote.IssueDescription,
+                            Status = remote.Status,
+                            CreatedAt = remote.CreatedAt,
+                            EstimatedCost = remote.EstimatedCost,
+                            CustomerAddress = remote.CustomerAddress,
+                            Phone1 = remote.Phone1,
+                            Phone2 = remote.Phone2,
+                            TechnicianName = remote.TechnicianName,
+                            Brand = remote.Brand,
+                            SerialNumber = remote.SerialNumber,
+                            Accessories = remote.Accessories,
+                            Diagnostics = remote.Diagnostics,
+                            OrderUpdates = remote.OrderUpdates,
+                            ItemizedCosts = remote.ItemizedCosts,
+                            ReturnDate = remote.ReturnDate,
+                            IsRepeatedDevice = remote.IsRepeatedDevice,
+                            UpdatedAt = remote.UpdatedAt,
+                            ImagePath = SettingsManager.Default.SyncImagesEnabled ? remote.ImagePath : string.Empty
+                        };
+                        db.ServiceMemos.Add(remoteModel);
+                        db.SaveChanges();
+                        System.Diagnostics.Debug.WriteLine($"[LAN SYNC] Integrated new LAN order: {remote.MemoNumber}");
                         return true;
                     }
-                    // else: local is same age or newer — keep local, peer will get updated on next push
-                    return false;
+                    else
+                    {
+                        // Use a 2-second grace window: the remote must be clearly newer before we overwrite.
+                        bool remoteIsNewer = remote.UpdatedAt > local.UpdatedAt.AddSeconds(2);
+                        if (remoteIsNewer)
+                        {
+                            local.CustomerName = remote.CustomerName;
+                            local.PhoneNumber = remote.PhoneNumber;
+                            local.DeviceName = remote.DeviceName;
+                            local.DeviceModel = remote.DeviceModel;
+                            local.IssueDescription = remote.IssueDescription;
+                            local.Status = remote.Status;
+                            local.EstimatedCost = remote.EstimatedCost;
+                            local.CustomerAddress = remote.CustomerAddress;
+                            local.Phone1 = remote.Phone1;
+                            local.Phone2 = remote.Phone2;
+                            local.TechnicianName = remote.TechnicianName;
+                            local.Brand = remote.Brand;
+                            local.SerialNumber = remote.SerialNumber;
+                            local.Accessories = remote.Accessories;
+                            local.Diagnostics = remote.Diagnostics;
+                            local.OrderUpdates = remote.OrderUpdates;
+                            local.ItemizedCosts = remote.ItemizedCosts;
+                            local.ReturnDate = remote.ReturnDate;
+                            local.IsRepeatedDevice = remote.IsRepeatedDevice;
+                            local.UpdatedAt = remote.UpdatedAt;
+
+                            // Only overwrite image if settings allow
+                            if (SettingsManager.Default.SyncImagesEnabled)
+                            {
+                                local.ImagePath = remote.ImagePath;
+                            }
+
+                            db.Entry(local).State = Microsoft.EntityFrameworkCore.EntityState.Modified;
+                            db.ServiceMemos.Update(local);
+                            db.SaveChanges();
+                            System.Diagnostics.Debug.WriteLine($"[LAN SYNC] Updated existing local order from LAN: {remote.MemoNumber}");
+                            return true;
+                        }
+                        return false;
+                    }
                 }
             }
         }
 
-
-
         public static async Task BroadcastMemoSavedAsync(ServiceMemo memo)
         {
+            // Fallback Architecture: If Cloud Sync is enabled & online, Cloud is primary sync engine.
+            // LAN Wi-Fi broadcast steps aside to prevent dual-channel race conditions and duplicates.
+            if (SettingsManager.Default.SyncMode != "LocalOnly" && !CloudSyncService.IsCloudOffline)
+            {
+                return;
+            }
+
             var peers = DiscoveredPeers.Values.ToList();
             if (peers.Count == 0) return;
 
@@ -476,6 +494,13 @@ namespace ClientApp.Services
                 await Task.Delay(10000, token);
 
                 if (_isSyncing || DiscoveredPeers.Count == 0) continue;
+
+                // Fallback Architecture: If Cloud Sync is enabled & online, Cloud handles sync.
+                // LAN background daemon skips active peer polling when Cloud is online.
+                if (SettingsManager.Default.SyncMode != "LocalOnly" && !CloudSyncService.IsCloudOffline)
+                {
+                    continue;
+                }
 
                 try
                 {

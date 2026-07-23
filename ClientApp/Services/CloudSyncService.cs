@@ -103,16 +103,43 @@ namespace ClientApp.Services
                 }
 
                 var devices = await deviceResponse.Content.ReadFromJsonAsync<JsonElement[]>();
-                if (devices == null || devices.Length == 0)
+                string? deviceId = null;
+                if (devices != null && devices.Length > 0)
                 {
-                    LogSyncStatus($"No device seat registered in DB for hardware_id: {deviceIdHardware} under key_id: {ownerKeyId}");
+                    deviceId = devices[0].GetProperty("id").GetString();
+                }
+
+                if (string.IsNullOrEmpty(deviceId))
+                {
+                    LogSyncStatus($"No device seat registered in DB for hardware_id: {deviceIdHardware} under key_id: {ownerKeyId}. Attempting auto-registration...");
+                    try
+                    {
+                        var regData = new { hardware_id = deviceIdHardware, device_name = Environment.MachineName, activation_key_id = ownerKeyId };
+                        var regRes = await _http.PostAsJsonAsync("/rest/v1/devices", regData);
+                        if (regRes.IsSuccessStatusCode)
+                        {
+                            var newDev = await regRes.Content.ReadFromJsonAsync<JsonElement[]>();
+                            if (newDev != null && newDev.Length > 0)
+                            {
+                                deviceId = newDev[0].GetProperty("id").GetString();
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        LogSyncStatus($"Auto device registration failed: {ex.Message}");
+                    }
+                }
+
+                if (string.IsNullOrEmpty(deviceId))
+                {
+                    LogSyncStatus("Could not resolve active deviceId.");
                     MarkCloudUnavailable();
                     return;
                 }
-                var deviceId = devices[0].GetProperty("id").GetString();
                 LogSyncStatus($"Active deviceId in cloud devices table: {deviceId}");
 
-                // 1. PULL FROM CLOUD (Fetch memos for devices linked to either key ID)
+                // 1. PULL FROM CLOUD (Fetch memos for devices linked to any key ID in workspace)
                 var inKeysQuery = string.Join(",", allKeyIds);
                 var allDevicesResponse = await _http.GetAsync($"/rest/v1/devices?activation_key_id=in.({inKeysQuery})&select=id");
                 if (!allDevicesResponse.IsSuccessStatusCode)
@@ -161,8 +188,6 @@ namespace ClientApp.Services
                     
                     using (var db = new LocalDbContext())
                     {
-                        var localMemos = db.ServiceMemos.ToList();
-
                         if (cloudMemosJson != null)
                         {
                             foreach (var record in cloudMemosJson)
@@ -184,12 +209,22 @@ namespace ClientApp.Services
                                 if (cloudMemoDto == null) continue;
 
                                 // Prevent mixing records: skip if the memo belongs to a different activation key/workspace
-                                // (We allow empty CloudOwnerKey to enable backfilling for existing records)
                                 if (!string.IsNullOrEmpty(cloudMemoDto.CloudOwnerKey) && cloudMemoDto.CloudOwnerKey != ownerKey) continue;
 
-                                var localMemo = localMemos.FirstOrDefault(m => m.MemoNumber == memoNum);
+                                // Dynamically query DB to handle concurrent updates and purge any pre-existing duplicates
+                                var matches = db.ServiceMemos.Where(m => m.MemoNumber == memoNum).ToList();
+                                if (matches.Count > 1)
+                                {
+                                    var keep = matches.OrderByDescending(m => m.Id).First();
+                                    var dupes = matches.Where(m => m.Id != keep.Id).ToList();
+                                    db.ServiceMemos.RemoveRange(dupes);
+                                    db.SaveChanges();
+                                    matches = new List<ServiceMemo> { keep };
+                                }
 
-                                 if (localMemo == null)
+                                var localMemo = matches.FirstOrDefault();
+
+                                if (localMemo == null)
                                 {
                                     // New from cloud
                                     var newMemo = new ServiceMemo
@@ -217,9 +252,12 @@ namespace ClientApp.Services
                                         Accessories = cloudMemoDto.Accessories,
                                         Diagnostics = cloudMemoDto.Diagnostics,
                                         OrderUpdates = cloudMemoDto.OrderUpdates,
-                                        ReturnDate = cloudMemoDto.ReturnDate
+                                        ItemizedCosts = cloudMemoDto.ItemizedCosts,
+                                        ReturnDate = cloudMemoDto.ReturnDate,
+                                        IsRepeatedDevice = cloudMemoDto.IsRepeatedDevice
                                     };
                                     db.ServiceMemos.Add(newMemo);
+                                    db.SaveChanges();
                                 }
                                 else if (localMemo.Status == "Deleted" || localMemo.Status == "Deleted_Synced")
                                 {
@@ -291,6 +329,7 @@ namespace ClientApp.Services
                         }
 
                         // 2. PUSH TO CLOUD
+                        var localMemos = db.ServiceMemos.ToList();
                         foreach (var lMemo in localMemos)
                         {
                             // Process soft deletion tombstones

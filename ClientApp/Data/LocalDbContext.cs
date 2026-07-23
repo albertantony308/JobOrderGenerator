@@ -104,6 +104,14 @@ namespace ClientApp.Data
                     }
                     catch { }
                 }
+
+                // Automatic Deduplication Cleanup: Delete duplicate records with the same MemoNumber (keep row with MAX id/rowid)
+                try
+                {
+                    Database.ExecuteSqlRaw(string.Format(
+                        "DELETE FROM {0} WHERE Id NOT IN (SELECT MAX(Id) FROM {0} WHERE MemoNumber IS NOT NULL AND MemoNumber != '' GROUP BY MemoNumber);", table));
+                }
+                catch { }
             }
         }
 
