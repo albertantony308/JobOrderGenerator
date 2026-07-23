@@ -2340,15 +2340,30 @@ namespace ClientApp
             {
                 if (SettingsManager.Default.SkipUpdateVersion == update.Version) return;
                 _liveDetectedUpdate = update;
-                txtLiveUpdateTitle.Text = update.IsCompulsory ? "Compulsory Update Available" : "New Software Update Available";
-                txtLiveUpdateDesc.Text = $"A new update (v{update.Version}) is available. Restart app to update.";
+
+                if (update.IsCompulsory)
+                {
+                    txtLiveUpdateTitle.Text = "Mandatory System Update Available";
+                    txtLiveUpdateDesc.Text = $"Version {update.Version} is a compulsory update and will be applied when you restart the application.";
+                    btnLiveUpdateNow.Visibility = Visibility.Collapsed;
+                    btnLiveUpdateLater.Content = "Got It";
+                }
+                else
+                {
+                    txtLiveUpdateTitle.Text = "Software Update Available";
+                    txtLiveUpdateDesc.Text = $"A new update (v{update.Version}) is available. Restart app to update.";
+                    btnLiveUpdateNow.Visibility = Visibility.Visible;
+                    btnLiveUpdateNow.Content = "Update Now";
+                    btnLiveUpdateLater.Content = "Update Later";
+                }
+
                 borderLiveUpdateBanner.Visibility = Visibility.Visible;
             });
         }
 
         private void LiveUpdateLater_Click(object sender, RoutedEventArgs e)
         {
-            if (_liveDetectedUpdate != null)
+            if (_liveDetectedUpdate != null && !_liveDetectedUpdate.IsCompulsory)
             {
                 SettingsManager.Default.SkipUpdateVersion = _liveDetectedUpdate.Version;
                 SettingsManager.Save();
