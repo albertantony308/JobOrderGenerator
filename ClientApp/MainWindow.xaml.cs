@@ -1743,16 +1743,9 @@ namespace ClientApp
 
         private void RefreshCloudOfflineToast()
         {
-            bool isNetAvailable = System.Net.NetworkInformation.NetworkInterface.GetIsNetworkAvailable();
-            bool isCloudOffline = CloudSyncService.IsCloudOffline || !isNetAvailable;
-            bool isLocalOnly = SettingsManager.Default.SyncMode == "LocalOnly";
-            bool isCloudEnabled = SettingsManager.Default.IsCloudSyncEnabled;
-
-            bool showOfflineToast = isCloudEnabled && !isLocalOnly && isCloudOffline;
-
             if (borderCloudOfflineToast != null)
             {
-                borderCloudOfflineToast.Visibility = showOfflineToast ? Visibility.Visible : Visibility.Collapsed;
+                borderCloudOfflineToast.Visibility = Visibility.Collapsed;
             }
         }
 
