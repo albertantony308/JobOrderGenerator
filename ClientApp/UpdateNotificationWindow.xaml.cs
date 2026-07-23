@@ -121,82 +121,14 @@ namespace ClientApp
                 borderPayment.Visibility = Visibility.Collapsed;
             }
 
-            // Start downloading with live percentage progress bar
-            gridChangelogView.Visibility = Visibility.Collapsed;
-            gridDownloadView.Visibility = Visibility.Visible;
-            btnLater.Visibility = Visibility.Collapsed;
-            btnAction.IsEnabled = false;
-            btnAction.Content = "Downloading...";
+            // Start downloading asynchronously in the background so the user can continue working!
+            _ = UpdateManager.Instance.StartDownloadAsync(_updateInfo);
 
-            UpdateManager.Instance.DownloadProgressDetailsChanged += OnDownloadProgressDetailsChanged;
-            UpdateManager.Instance.DownloadCompleted += OnDownloadCompleted;
-            UpdateManager.Instance.DownloadFailed += OnDownloadFailed;
-
-            await UpdateManager.Instance.StartDownloadAsync(_updateInfo);
+            this.DialogResult = true;
+            this.Close();
         }
 
-        private void OnDownloadProgressDetailsChanged(double percent, long bytesRead, long totalBytes)
-        {
-            Dispatcher.Invoke(() =>
-            {
-                pbDownload.Value = percent;
-                txtPercent.Text = $"{percent:F1}%";
-
-                if (totalBytes > 0)
-                {
-                    double readMb = bytesRead / (1024.0 * 1024.0);
-                    double totalMb = totalBytes / (1024.0 * 1024.0);
-                    txtDownloadDetails.Text = $"Downloaded {readMb:F1} MB of {totalMb:F1} MB ({percent:F1}%)";
-                }
-                else
-                {
-                    double readMb = bytesRead / (1024.0 * 1024.0);
-                    txtDownloadDetails.Text = $"Downloaded {readMb:F1} MB ({percent:F1}%)";
-                }
-            });
-        }
-
-        private void OnDownloadCompleted(string version)
-        {
-            Dispatcher.Invoke(() =>
-            {
-                UpdateManager.Instance.DownloadProgressDetailsChanged -= OnDownloadProgressDetailsChanged;
-                UpdateManager.Instance.DownloadCompleted -= OnDownloadCompleted;
-                UpdateManager.Instance.DownloadFailed -= OnDownloadFailed;
-
-                pbDownload.Value = 100;
-                txtPercent.Text = "100%";
-                txtDownloadDetails.Text = "Download Complete! Launching Installer...";
-
-                Task.Delay(800).ContinueWith(_ =>
-                {
-                    Dispatcher.Invoke(() =>
-                    {
-                        InstallAndRestart();
-                    });
-                });
-            });
-        }
-
-        private void OnDownloadFailed(string errorMessage)
-        {
-            Dispatcher.Invoke(() =>
-            {
-                UpdateManager.Instance.DownloadProgressDetailsChanged -= OnDownloadProgressDetailsChanged;
-                UpdateManager.Instance.DownloadCompleted -= OnDownloadCompleted;
-                UpdateManager.Instance.DownloadFailed -= OnDownloadFailed;
-
-                gridDownloadView.Visibility = Visibility.Collapsed;
-                gridChangelogView.Visibility = Visibility.Visible;
-                if (!_updateInfo.IsCompulsory) btnLater.Visibility = Visibility.Visible;
-                btnAction.IsEnabled = true;
-                btnAction.Content = "Retry Download";
-
-                MessageBox.Show($"Download failed: {errorMessage}\n\nPlease check your internet connection and try again.", "Download Error", MessageBoxButton.OK, MessageBoxImage.Error);
-            });
-        }
-
-        private void InstallAndRestart()
+        public static void InstallAndRestart(UpdateInfo _updateInfo)
         {
             var fileUrl = _updateInfo.FileUrl ?? SettingsManager.Default.UpdateReadyFileUrl ?? "";
             bool isSetupInstaller = fileUrl.Contains("_setup_", StringComparison.OrdinalIgnoreCase);

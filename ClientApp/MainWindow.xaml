@@ -1176,7 +1176,7 @@
         <!-- Floating Live In-App Update Banner (App currently in use when Admin publishes new update) -->
         <Border x:Name="borderLiveUpdateBanner" Grid.ColumnSpan="2"
                 HorizontalAlignment="Right" VerticalAlignment="Bottom"
-                Margin="0,0,24,24" CornerRadius="16"
+                Margin="0,0,24,24" CornerRadius="16" Width="460"
                 Background="{DynamicResource SurfaceContainerLowestBrush}"
                 BorderBrush="{DynamicResource PrimaryBrush}" BorderThickness="1.5"
                 Padding="20,16" Visibility="Collapsed">
@@ -1190,16 +1190,19 @@
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
                 
-                <TextBlock Text="🚀" FontSize="26" VerticalAlignment="Center" Margin="0,0,14,0"/>
+                <TextBlock x:Name="txtLiveUpdateIcon" Text="🚀" FontSize="26" VerticalAlignment="Center" Margin="0,0,14,0"/>
                 
-                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,20,0">
+                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,16,0">
                     <TextBlock x:Name="txtLiveUpdateTitle" Text="New Software Update Available" FontWeight="Bold" FontSize="13" Foreground="{DynamicResource PrimaryBrush}"/>
-                    <TextBlock x:Name="txtLiveUpdateDesc" Text="A new update (v1.2.3) is available. Restart app to update." FontSize="11" Foreground="{DynamicResource OnSurfaceVariantBrush}" Margin="0,2,0,0"/>
+                    <TextBlock x:Name="txtLiveUpdateDesc" Text="A new update is available. You can continue working while it downloads." FontSize="11" Foreground="{DynamicResource OnSurfaceVariantBrush}" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                    
+                    <!-- Background Download Progress Bar -->
+                    <ProgressBar x:Name="pbLiveUpdate" Height="6" Minimum="0" Maximum="100" Value="0" Foreground="{DynamicResource PrimaryBrush}" Background="{DynamicResource SurfaceContainerBrush}" BorderThickness="0" Margin="0,8,0,0" Visibility="Collapsed"/>
                 </StackPanel>
                 
                 <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
                     <Button x:Name="btnLiveUpdateLater" Content="Update Later" Click="LiveUpdateLater_Click" Style="{DynamicResource SecondaryButtonStyle}" Margin="0,0,8,0" Padding="12,6" FontSize="11"/>
-                    <Button x:Name="btnLiveUpdateNow" Content="Update Now" Click="LiveUpdateNow_Click" Style="{DynamicResource PrimaryButtonStyle}" Padding="14,6" FontSize="11"/>
+                    <Button x:Name="btnLiveUpdateNow" Content="Download &amp; Continue" Click="LiveUpdateNow_Click" Style="{DynamicResource PrimaryButtonStyle}" Padding="14,6" FontSize="11"/>
                 </StackPanel>
             </Grid>
         </Border>

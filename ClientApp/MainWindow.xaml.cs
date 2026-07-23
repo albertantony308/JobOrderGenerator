@@ -100,6 +100,9 @@ namespace ClientApp
             LanSyncService.SyncStateChanged += LanSyncService_SyncStateChanged;
             CloudSyncService.CloudOrderCompleted += CloudSyncService_CloudOrderCompleted;
             UpdateManager.Instance.LiveUpdateDetected += UpdateManager_LiveUpdateDetected;
+            UpdateManager.Instance.DownloadProgressDetailsChanged += UpdateManager_DownloadProgressDetailsChanged;
+            UpdateManager.Instance.DownloadCompleted += UpdateManager_DownloadCompleted;
+            UpdateManager.Instance.DownloadFailed += UpdateManager_DownloadFailed;
             LanSyncService.Start();
             InitializeNetworkMonitoring();
             LanSyncService_PeersChanged();
@@ -2333,6 +2336,7 @@ namespace ClientApp
         }
 
         private UpdateInfo? _liveDetectedUpdate;
+        private bool _isUpdateDownloaded = false;
 
         private void UpdateManager_LiveUpdateDetected(UpdateInfo update)
         {
@@ -2341,19 +2345,31 @@ namespace ClientApp
                 if (SettingsManager.Default.SkipUpdateVersion == update.Version) return;
                 _liveDetectedUpdate = update;
 
-                if (update.IsCompulsory)
+                if (_isUpdateDownloaded)
                 {
+                    txtLiveUpdateIcon.Text = "🎉";
+                    txtLiveUpdateTitle.Text = $"Update v{update.Version} Downloaded & Ready!";
+                    txtLiveUpdateDesc.Text = "The update is ready. Click Restart to install now, or it will install automatically on exit.";
+                    btnLiveUpdateNow.Content = "Restart & Apply Now";
+                    btnLiveUpdateNow.Visibility = Visibility.Visible;
+                    btnLiveUpdateLater.Content = "Later";
+                }
+                else if (update.IsCompulsory)
+                {
+                    txtLiveUpdateIcon.Text = "🚨";
                     txtLiveUpdateTitle.Text = "Mandatory System Update Available";
-                    txtLiveUpdateDesc.Text = $"Version {update.Version} is a compulsory update and will be applied when you restart the application.";
-                    btnLiveUpdateNow.Visibility = Visibility.Collapsed;
-                    btnLiveUpdateLater.Content = "Got It";
+                    txtLiveUpdateDesc.Text = $"Version {update.Version} is a compulsory update. Downloading in background so you can keep working.";
+                    btnLiveUpdateNow.Content = "Download & Continue";
+                    btnLiveUpdateNow.Visibility = Visibility.Visible;
+                    btnLiveUpdateLater.Content = "Hide";
                 }
                 else
                 {
+                    txtLiveUpdateIcon.Text = "✨";
                     txtLiveUpdateTitle.Text = "Software Update Available";
-                    txtLiveUpdateDesc.Text = $"A new update (v{update.Version}) is available. Restart app to update.";
+                    txtLiveUpdateDesc.Text = $"Version {update.Version} is available. Click below to download in background while you work.";
+                    btnLiveUpdateNow.Content = "Download & Continue";
                     btnLiveUpdateNow.Visibility = Visibility.Visible;
-                    btnLiveUpdateNow.Content = "Update Now";
                     btnLiveUpdateLater.Content = "Update Later";
                 }
 
@@ -2361,9 +2377,71 @@ namespace ClientApp
             });
         }
 
+        private void UpdateManager_DownloadProgressDetailsChanged(double percent, long bytesRead, long totalBytes)
+        {
+            Dispatcher.Invoke(() =>
+            {
+                if (_liveDetectedUpdate == null) return;
+                borderLiveUpdateBanner.Visibility = Visibility.Visible;
+                pbLiveUpdate.Visibility = Visibility.Visible;
+                pbLiveUpdate.Value = percent;
+
+                txtLiveUpdateIcon.Text = "⏬";
+                txtLiveUpdateTitle.Text = $"Downloading Update (v{_liveDetectedUpdate.Version})";
+
+                if (totalBytes > 0)
+                {
+                    double readMb = bytesRead / (1024.0 * 1024.0);
+                    double totalMb = totalBytes / (1024.0 * 1024.0);
+                    txtLiveUpdateDesc.Text = $"Downloaded {readMb:F1} MB / {totalMb:F1} MB ({percent:F1}%) • You can continue working.";
+                }
+                else
+                {
+                    double readMb = bytesRead / (1024.0 * 1024.0);
+                    txtLiveUpdateDesc.Text = $"Downloaded {readMb:F1} MB ({percent:F1}%) • You can continue working.";
+                }
+
+                btnLiveUpdateNow.Visibility = Visibility.Collapsed;
+                btnLiveUpdateLater.Content = "Hide";
+            });
+        }
+
+        private void UpdateManager_DownloadCompleted(string version)
+        {
+            Dispatcher.Invoke(() =>
+            {
+                _isUpdateDownloaded = true;
+                borderLiveUpdateBanner.Visibility = Visibility.Visible;
+                pbLiveUpdate.Visibility = Visibility.Collapsed;
+
+                txtLiveUpdateIcon.Text = "🎉";
+                txtLiveUpdateTitle.Text = $"Update v{version} Downloaded & Ready!";
+                txtLiveUpdateDesc.Text = "The update is ready. Click Restart to install now, or it will install automatically when you close the app.";
+
+                btnLiveUpdateNow.Content = "Restart & Apply Now";
+                btnLiveUpdateNow.Visibility = Visibility.Visible;
+                btnLiveUpdateLater.Content = "Later";
+            });
+        }
+
+        private void UpdateManager_DownloadFailed(string errorMessage)
+        {
+            Dispatcher.Invoke(() =>
+            {
+                pbLiveUpdate.Visibility = Visibility.Collapsed;
+                txtLiveUpdateIcon.Text = "⚠️";
+                txtLiveUpdateTitle.Text = "Update Download Failed";
+                txtLiveUpdateDesc.Text = $"Could not complete background download: {errorMessage}";
+
+                btnLiveUpdateNow.Content = "Retry Download";
+                btnLiveUpdateNow.Visibility = Visibility.Visible;
+                btnLiveUpdateLater.Content = "Dismiss";
+            });
+        }
+
         private void LiveUpdateLater_Click(object sender, RoutedEventArgs e)
         {
-            if (_liveDetectedUpdate != null && !_liveDetectedUpdate.IsCompulsory)
+            if (_liveDetectedUpdate != null && !_liveDetectedUpdate.IsCompulsory && !_isUpdateDownloaded && !UpdateManager.Instance.IsDownloading)
             {
                 SettingsManager.Default.SkipUpdateVersion = _liveDetectedUpdate.Version;
                 SettingsManager.Save();
@@ -2373,12 +2451,25 @@ namespace ClientApp
 
         private void LiveUpdateNow_Click(object sender, RoutedEventArgs e)
         {
-            borderLiveUpdateBanner.Visibility = Visibility.Collapsed;
-            if (_liveDetectedUpdate != null)
+            if (_liveDetectedUpdate == null) return;
+
+            if (_isUpdateDownloaded)
             {
-                var win = new UpdateNotificationWindow(_liveDetectedUpdate);
-                win.Owner = this;
-                win.ShowDialog();
+                UpdateNotificationWindow.InstallAndRestart(_liveDetectedUpdate);
+                return;
+            }
+
+            if (!UpdateManager.Instance.IsDownloading)
+            {
+                pbLiveUpdate.Visibility = Visibility.Visible;
+                pbLiveUpdate.Value = 0;
+                btnLiveUpdateNow.Visibility = Visibility.Collapsed;
+                btnLiveUpdateLater.Content = "Hide";
+                _ = UpdateManager.Instance.StartDownloadAsync(_liveDetectedUpdate);
+            }
+            else
+            {
+                borderLiveUpdateBanner.Visibility = Visibility.Collapsed;
             }
         }
 
