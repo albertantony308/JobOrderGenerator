@@ -2381,5 +2381,43 @@ namespace ClientApp
                 win.ShowDialog();
             }
         }
+
+        private void TitleBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            if (e.ClickCount == 2)
+            {
+                MaximizeWindow_Click(sender, e);
+            }
+            else if (e.ChangedButton == MouseButton.Left)
+            {
+                this.DragMove();
+            }
+        }
+
+        private void MinimizeWindow_Click(object sender, RoutedEventArgs e)
+        {
+            this.WindowState = WindowState.Minimized;
+        }
+
+        private void MaximizeWindow_Click(object sender, RoutedEventArgs e)
+        {
+            if (this.WindowState == WindowState.Maximized)
+            {
+                this.WindowState = WindowState.Normal;
+                if (txtMaximizeIcon != null) txtMaximizeIcon.Text = "🗖";
+                if (RootWindowBorder != null) RootWindowBorder.CornerRadius = new CornerRadius(12);
+            }
+            else
+            {
+                this.WindowState = WindowState.Maximized;
+                if (txtMaximizeIcon != null) txtMaximizeIcon.Text = "🗗";
+                if (RootWindowBorder != null) RootWindowBorder.CornerRadius = new CornerRadius(0);
+            }
+        }
+
+        private void CloseWindow_Click(object sender, RoutedEventArgs e)
+        {
+            this.Close();
+        }
     }
 }
