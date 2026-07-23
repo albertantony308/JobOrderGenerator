@@ -2305,7 +2305,7 @@ namespace ClientApp
                 {
                     try
                     {
-                        await System.Threading.Tasks.Task.Delay(30000, token); // every 30 seconds — gives push time to land before next pull
+                        await System.Threading.Tasks.Task.Delay(3000, token); // Poll cloud every 3 seconds for fast multi-device sync
                         if (token.IsCancellationRequested) break;
 
                         if (SettingsManager.Default.SyncMode != "LocalOnly" && !string.IsNullOrEmpty(SettingsManager.Default.SubscriptionKey))
