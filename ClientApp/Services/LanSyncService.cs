@@ -911,11 +911,7 @@ namespace ClientApp.Services
                                         
                                         if (updateReq.Status == "Completed")
                                         {
-                                            System.Windows.MessageBox.Show(
-                                                $"Service Memo {memo.MemoNumber} ({memo.DeviceName} - {memo.DeviceModel}) has been marked as Completed by Staff Member: {memo.TechnicianName}.",
-                                                "Order Completed via Staff Portal",
-                                                System.Windows.MessageBoxButton.OK,
-                                                System.Windows.MessageBoxImage.Information);
+                                            MainWindow.ShowOrderCompletedNotification(memo.MemoNumber, memo.DeviceName, memo.DeviceModel, memo.TechnicianName);
                                         }
                                     }
                                 }));

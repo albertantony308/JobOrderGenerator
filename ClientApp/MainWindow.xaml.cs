@@ -38,6 +38,7 @@ namespace ClientApp
 
             ThemeManager.Initialize();
             InitializeComponent();
+            WindowDwmFixer.ApplyFix(this);
             this.Closing += MainWindow_Closing;
             
             var version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
@@ -1889,16 +1890,53 @@ namespace ClientApp
             });
         }
 
+        public static void ShowOrderCompletedNotification(string memoNumber, string deviceName, string deviceModel, string technicianName)
+        {
+            string title = "Order Completed via Staff Portal";
+            string message = $"Service Memo {memoNumber} ({deviceName} - {deviceModel}) has been marked as Completed by Staff Member: {technicianName}.";
+
+            Application.Current?.Dispatcher.BeginInvoke(new Action(() =>
+            {
+                // 1. Native Windows Toast / Balloon Notification (bottom-right of Windows desktop)
+                try
+                {
+                    var notifyIcon = new System.Windows.Forms.NotifyIcon
+                    {
+                        Icon = System.Drawing.SystemIcons.Information,
+                        Visible = true,
+                        Text = "Job Order Generator"
+                    };
+
+                    notifyIcon.ShowBalloonTip(6000, title, message, System.Windows.Forms.ToolTipIcon.Info);
+
+                    Task.Delay(7000).ContinueWith(_ =>
+                    {
+                        try
+                        {
+                            notifyIcon.Visible = false;
+                            notifyIcon.Dispose();
+                        }
+                        catch { }
+                    });
+                }
+                catch { }
+
+                // 2. WPF Message Box Dialog
+                try
+                {
+                    MessageBox.Show(
+                        message,
+                        title,
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Information);
+                }
+                catch { }
+            }));
+        }
+
         private void CloudSyncService_CloudOrderCompleted(ServiceMemoDto memo)
         {
-            Application.Current.Dispatcher.BeginInvoke(new Action(() =>
-            {
-                System.Windows.MessageBox.Show(
-                    $"Service Memo {memo.MemoNumber} ({memo.DeviceName} - {memo.DeviceModel}) has been marked as Completed by Staff Member: {memo.TechnicianName}.",
-                    "Order Completed via Staff Portal",
-                    System.Windows.MessageBoxButton.OK,
-                    System.Windows.MessageBoxImage.Information);
-            }));
+            ShowOrderCompletedNotification(memo.MemoNumber, memo.DeviceName, memo.DeviceModel, memo.TechnicianName);
         }
 
         private void LanSyncService_SyncStateChanged(bool active)

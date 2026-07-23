@@ -111,6 +111,7 @@ namespace ClientApp
         public NewRequestWindow()
         {
             InitializeComponent();
+            WindowDwmFixer.ApplyFix(this);
             txtMemoNumber.Text = "Order ID: Calculating...";
 
             this.Loaded += (s, e) =>

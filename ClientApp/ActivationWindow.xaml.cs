@@ -10,6 +10,7 @@ public partial class ActivationWindow : Window
     public ActivationWindow()
     {
         InitializeComponent();
+        WindowDwmFixer.ApplyFix(this);
         _licenseManager = new LicenseManager();
     }
 

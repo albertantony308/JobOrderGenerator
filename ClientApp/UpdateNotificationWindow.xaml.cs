@@ -19,6 +19,7 @@ namespace ClientApp
         public UpdateNotificationWindow(string version, string updateType, string changelog, double paymentAmount, bool isCompulsory)
         {
             InitializeComponent();
+            WindowDwmFixer.ApplyFix(this);
             
             _version = version;
             _updateType = updateType;

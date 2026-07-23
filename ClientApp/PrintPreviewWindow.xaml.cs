@@ -26,6 +26,7 @@ namespace ClientApp
         public PrintPreviewWindow(ServiceMemo memo)
         {
             InitializeComponent();
+            WindowDwmFixer.ApplyFix(this);
             _memo = memo;
             LoadData();
 

@@ -119,6 +119,7 @@ namespace ClientApp
         public CustomTemplateDesignerWindow(string? initialJsonOrId = null, string? templateName = null)
         {
             InitializeComponent();
+            WindowDwmFixer.ApplyFix(this);
             LoadPlaceholders();
             
             _currentTemplateName = templateName;

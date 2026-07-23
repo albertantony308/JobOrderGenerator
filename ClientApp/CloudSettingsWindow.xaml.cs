@@ -8,6 +8,7 @@ namespace ClientApp
         public CloudSettingsWindow()
         {
             InitializeComponent();
+            WindowDwmFixer.ApplyFix(this);
             _ = LoadSettingsAsync();
         }
 

@@ -9,6 +9,7 @@ namespace ClientApp
         public GeneralSettingsWindow()
         {
             InitializeComponent();
+            WindowDwmFixer.ApplyFix(this);
             chkDarkMode.IsChecked = SettingsManager.Default.IsDarkMode;
             chkAutoBackup.IsChecked = SettingsManager.Default.IsAutoBackupEnabled;
 

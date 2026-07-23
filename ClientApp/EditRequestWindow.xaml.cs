@@ -105,6 +105,7 @@ namespace ClientApp
         public EditRequestWindow(int memoId)
         {
             InitializeComponent();
+            WindowDwmFixer.ApplyFix(this);
             _memoId = memoId;
 
             // Populate country code dropdowns

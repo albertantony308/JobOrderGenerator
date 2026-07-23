@@ -12,6 +12,7 @@ namespace ClientApp
         public ConfirmSwitchWindow()
         {
             InitializeComponent();
+            WindowDwmFixer.ApplyFix(this);
             LoadBackupStatus();
             LoadCloudStatus();
         }

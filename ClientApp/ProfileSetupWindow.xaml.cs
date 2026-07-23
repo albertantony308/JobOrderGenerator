@@ -14,6 +14,7 @@ public partial class ProfileSetupWindow : Window
     public ProfileSetupWindow(string keyId)
     {
         InitializeComponent();
+        WindowDwmFixer.ApplyFix(this);
         _licenseManager = new LicenseManager();
         _keyId = keyId;
 

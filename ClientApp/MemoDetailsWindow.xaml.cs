@@ -28,6 +28,7 @@ namespace ClientApp
         public MemoDetailsWindow(int memoId)
         {
             InitializeComponent();
+            WindowDwmFixer.ApplyFix(this);
             _memoId = memoId;
             
             dgCostItems.ItemsSource = _costItems;

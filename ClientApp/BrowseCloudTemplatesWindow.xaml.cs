@@ -45,6 +45,7 @@ namespace ClientApp
         public BrowseCloudTemplatesWindow()
         {
             InitializeComponent();
+            WindowDwmFixer.ApplyFix(this);
             LoadCloudTemplates();
         }
 
