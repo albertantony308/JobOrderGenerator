@@ -21,31 +21,36 @@ Write-Host "Version: $Version" -ForegroundColor Yellow
 Write-Host "Port: $Port" -ForegroundColor Yellow
 
 # Step 1: Compile WPF App & Inno Setup Installer
-Write-Host "`n[1/3] Compiling WPF Client Executable..." -ForegroundColor Cyan
 $PublishDir = "$PSScriptRoot\ClientApp\bin\Release\net10.0-windows\win-x64\publish"
-if (Test-Path $PublishDir) { Remove-Item -Path "$PublishDir\*" -Recurse -Force }
-
-$publishArgs = "publish `"$CsprojPath`" -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true"
-Invoke-Expression "dotnet $publishArgs" | Out-Null
-
-$ISCC_System = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
-$ISCC_User = "$env:LOCALAPPDATA\Programs\Inno Setup 6\ISCC.exe"
-$ISCC = if (Test-Path $ISCC_System) { $ISCC_System } else { $ISCC_User }
-
-Write-Host "[2/3] Compiling Inno Setup Installer..." -ForegroundColor Cyan
-$IssPath = "$PSScriptRoot\JobOrderGenerator.iss"
-& $ISCC "/DMyAppVersion=$Version" $IssPath | Out-Null
-
 $SetupExe = "$PublishDir\JobOrderGenerator_Setup_v$Version.exe"
+
+if (-not (Test-Path $SetupExe)) {
+    Write-Host "`n[1/3] Compiling WPF Client Executable..." -ForegroundColor Cyan
+    if (Test-Path $PublishDir) { Remove-Item -Path "$PublishDir\*" -Recurse -Force }
+
+    $publishArgs = "publish `"$CsprojPath`" -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true"
+    Invoke-Expression "dotnet $publishArgs" | Out-Null
+
+    $ISCC_System = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+    $ISCC_User = "$env:LOCALAPPDATA\Programs\Inno Setup 6\ISCC.exe"
+    $ISCC = if (Test-Path $ISCC_System) { $ISCC_System } else { $ISCC_User }
+
+    Write-Host "[2/3] Compiling Inno Setup Installer..." -ForegroundColor Cyan
+    $IssPath = "$PSScriptRoot\JobOrderGenerator.iss"
+    & $ISCC "/DMyAppVersion=$Version" $IssPath | Out-Null
+} else {
+    Write-Host "`n[1/2] Using existing compiled setup executable at $SetupExe" -ForegroundColor Green
+}
+
 if (-not (Test-Path $SetupExe)) {
     Write-Host "Error: Setup file not found at $SetupExe" -ForegroundColor Red
     exit
 }
 
 # Step 2: Get Local IP Address
-$localIp = (Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.IPAddress -notlike "127.*" -and $_.IPAddress -notlike "169.254.*" -and $_.InterfaceAlias -notlike "*vEthernet*" -and $_.InterfaceAlias -notlike "*Loopback*" } | Select-Object -First 1).IPAddress
+$localIp = (Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.IPAddress -like "192.168.*" -or $_.IPAddress -like "10.*" -or $_.IPAddress -like "172.16.*" } | Select-Object -First 1).IPAddress
 if ([string]::IsNullOrWhiteSpace($localIp)) {
-    $localIp = "127.0.0.1"
+    $localIp = "192.168.1.56"
 }
 
 $localUrl = "http://${localIp}:${Port}/JobOrderGenerator_Setup_v${Version}.exe"

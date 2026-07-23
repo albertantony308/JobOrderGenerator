@@ -52,25 +52,32 @@ namespace ClientApp.Services
                 var ownerKeyId = keys[0].GetProperty("id").GetString();
                 var ownerEmail = keys[0].GetProperty("email").GetString();
                 var allKeyIds = new System.Collections.Generic.List<string>();
+                var allAllowedKeyCodes = new System.Collections.Generic.HashSet<string>(StringComparer.OrdinalIgnoreCase) { ownerKey };
+
                 if (!string.IsNullOrEmpty(ownerKeyId)) allKeyIds.Add(ownerKeyId);
 
-                // Step 2: Find any staff keys (ST-*) linked to the same email
+                // Step 2: Resolve ALL activation keys (Owner & Staff) sharing the same account email
                 if (!string.IsNullOrEmpty(ownerEmail))
                 {
                     try
                     {
-                        var staffKeyResponse = await _http.GetAsync($"/rest/v1/activation_keys?email=eq.{Uri.EscapeDataString(ownerEmail)}&key_code=like.ST-%25&select=id");
-                        if (staffKeyResponse.IsSuccessStatusCode)
+                        var orgKeysResponse = await _http.GetAsync($"/rest/v1/activation_keys?email=eq.{Uri.EscapeDataString(ownerEmail)}&select=id,key_code");
+                        if (orgKeysResponse.IsSuccessStatusCode)
                         {
-                            var staffKeys = await staffKeyResponse.Content.ReadFromJsonAsync<JsonElement[]>();
-                            if (staffKeys != null)
+                            var orgKeys = await orgKeysResponse.Content.ReadFromJsonAsync<JsonElement[]>();
+                            if (orgKeys != null)
                             {
-                                foreach (var sk in staffKeys)
+                                foreach (var ok in orgKeys)
                                 {
-                                    var skId = sk.GetProperty("id").GetString();
-                                    if (!string.IsNullOrEmpty(skId) && !allKeyIds.Contains(skId))
+                                    var kId = ok.GetProperty("id").GetString();
+                                    var kCode = ok.GetProperty("key_code").GetString();
+                                    if (!string.IsNullOrEmpty(kId) && !allKeyIds.Contains(kId))
                                     {
-                                        allKeyIds.Add(skId);
+                                        allKeyIds.Add(kId);
+                                    }
+                                    if (!string.IsNullOrEmpty(kCode))
+                                    {
+                                        allAllowedKeyCodes.Add(kCode);
                                     }
                                 }
                             }
@@ -78,7 +85,7 @@ namespace ClientApp.Services
                     }
                     catch (Exception ex)
                     {
-                        LogSyncStatus($"Staff key lookup failed (non-fatal): {ex.Message}");
+                        LogSyncStatus($"Organization keys lookup failed (non-fatal): {ex.Message}");
                     }
                 }
 
@@ -88,7 +95,7 @@ namespace ClientApp.Services
                     MarkCloudUnavailable();
                     return;
                 }
-                LogSyncStatus($"Found owner keyId: {ownerKeyId}, total key IDs (incl. staff): {allKeyIds.Count}");
+                LogSyncStatus($"Found owner keyId: {ownerKeyId}, total key IDs (incl. staff/owner): {allKeyIds.Count}");
 
                 // Get the current Device ID
                 var deviceIdHardware = LicenseManager.GetDeviceId();
@@ -142,18 +149,29 @@ namespace ClientApp.Services
                 // 1. PULL FROM CLOUD (Fetch memos for devices linked to any key ID in workspace)
                 var inKeysQuery = string.Join(",", allKeyIds);
                 var allDevicesResponse = await _http.GetAsync($"/rest/v1/devices?activation_key_id=in.({inKeysQuery})&select=id");
-                if (!allDevicesResponse.IsSuccessStatusCode)
+                
+                // Primary query by devices; fallback to fetching all service memos if devices list is pending
+                HttpResponseMessage memosResponse;
+                if (allDevicesResponse.IsSuccessStatusCode)
                 {
-                    MarkCloudUnavailable();
-                    return;
+                    var allDevices = await allDevicesResponse.Content.ReadFromJsonAsync<JsonElement[]>();
+                    var deviceIds = allDevices?.Select(d => d.GetProperty("id").GetString()).Where(id => !string.IsNullOrEmpty(id)).ToList();
+
+                    if (deviceIds != null && deviceIds.Count > 0)
+                    {
+                        var inQuery = string.Join(",", deviceIds);
+                        memosResponse = await _http.GetAsync($"/rest/v1/service_memos?device_id=in.({inQuery})&select=memo_number,json_data,updated_at");
+                    }
+                    else
+                    {
+                        memosResponse = await _http.GetAsync("/rest/v1/service_memos?select=memo_number,json_data,updated_at&order=updated_at.desc&limit=1000");
+                    }
                 }
-                var allDevices = await allDevicesResponse.Content.ReadFromJsonAsync<JsonElement[]>();
-                var deviceIds = allDevices?.Select(d => d.GetProperty("id").GetString()).ToList();
+                else
+                {
+                    memosResponse = await _http.GetAsync("/rest/v1/service_memos?select=memo_number,json_data,updated_at&order=updated_at.desc&limit=1000");
+                }
 
-                if (deviceIds == null || deviceIds.Count == 0) return;
-                var inQuery = string.Join(",", deviceIds);
-
-                var memosResponse = await _http.GetAsync($"/rest/v1/service_memos?device_id=in.({inQuery})&select=memo_number,json_data,updated_at");
                 if (memosResponse.IsSuccessStatusCode)
                 {
                     var cloudMemosJson = await memosResponse.Content.ReadFromJsonAsync<JsonElement[]>();
@@ -208,8 +226,11 @@ namespace ClientApp.Services
                                 var cloudMemoDto = JsonSerializer.Deserialize<ServiceMemoDto>(jsonData);
                                 if (cloudMemoDto == null) continue;
 
-                                // Prevent mixing records: skip if the memo belongs to a different activation key/workspace
-                                if (!string.IsNullOrEmpty(cloudMemoDto.CloudOwnerKey) && cloudMemoDto.CloudOwnerKey != ownerKey) continue;
+                                // Allow memos belonging to any activation key in the organization workspace
+                                if (!string.IsNullOrEmpty(cloudMemoDto.CloudOwnerKey) && !allAllowedKeyCodes.Contains(cloudMemoDto.CloudOwnerKey))
+                                {
+                                    continue;
+                                }
 
                                 // Dynamically query DB to handle concurrent updates and purge any pre-existing duplicates
                                 var matches = db.ServiceMemos.Where(m => m.MemoNumber == memoNum).ToList();
@@ -326,6 +347,7 @@ namespace ClientApp.Services
                                     // else: local is same age or newer — local wins, push will handle upload
                                 }
                             }
+                            db.SaveChanges();
                         }
 
                         // 2. PUSH TO CLOUD
