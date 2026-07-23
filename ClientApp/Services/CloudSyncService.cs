@@ -14,6 +14,7 @@ namespace ClientApp.Services
     {
         public static double RealTimeCloudStorageUsedMb { get; private set; } = 0.0;
         public static int RealTimeCloudRowsCount { get; private set; } = 0;
+        public static event Action<ServiceMemoDto>? CloudOrderCompleted;
 
         public static async Task SyncWithCloudAsync()
         {
@@ -213,33 +214,57 @@ namespace ClientApp.Services
                                     };
                                     db.ServiceMemos.Add(newMemo);
                                 }
+                                else if (localMemo.Status == "Deleted" || localMemo.Status == "Deleted_Synced")
+                                {
+                                    // Protect locally deleted records; if cloud also has tombstone with newer timestamp, align to Deleted_Synced
+                                    if ((cloudMemoDto.Status == "Deleted" || cloudMemoDto.Status == "Deleted_Synced") && ToUtc(updatedAt) > ToUtc(localMemo.UpdatedAt))
+                                    {
+                                        localMemo.Status = "Deleted_Synced";
+                                        localMemo.UpdatedAt = updatedAt.ToLocalTime();
+                                        db.ServiceMemos.Update(localMemo);
+                                    }
+                                }
                                 else if (ToUtc(updatedAt) > ToUtc(localMemo.UpdatedAt))
                                 {
                                     // Cloud version is newer
-                                    localMemo.CustomerName = cloudMemoDto.CustomerName;
-                                    localMemo.PhoneNumber = cloudMemoDto.PhoneNumber;
-                                    localMemo.DeviceName = cloudMemoDto.DeviceName;
-                                    localMemo.DeviceModel = cloudMemoDto.DeviceModel;
-                                    localMemo.IssueDescription = cloudMemoDto.IssueDescription;
-                                    localMemo.Status = cloudMemoDto.Status;
-                                    localMemo.EstimatedCost = cloudMemoDto.EstimatedCost;
-                                    localMemo.CustomerAddress = cloudMemoDto.CustomerAddress;
-                                    localMemo.Phone1 = cloudMemoDto.Phone1;
-                                    localMemo.Phone2 = cloudMemoDto.Phone2;
-                                    localMemo.TechnicianName = cloudMemoDto.TechnicianName;
-                                    localMemo.Brand = cloudMemoDto.Brand;
-                                    localMemo.SerialNumber = cloudMemoDto.SerialNumber;
-                                    localMemo.Accessories = cloudMemoDto.Accessories;
-                                    localMemo.Diagnostics = cloudMemoDto.Diagnostics;
-                                    if (SettingsManager.Default.SyncImagesEnabled)
+                                    if (cloudMemoDto.Status == "Deleted" || cloudMemoDto.Status == "Deleted_Synced")
                                     {
-                                        localMemo.ImagePath = cloudMemoDto.ImagePath;
+                                        localMemo.Status = "Deleted_Synced";
+                                        localMemo.UpdatedAt = updatedAt.ToLocalTime();
+                                        db.ServiceMemos.Update(localMemo);
                                     }
-                                    localMemo.OrderUpdates = cloudMemoDto.OrderUpdates;
-                                    localMemo.ReturnDate = cloudMemoDto.ReturnDate;
-                                    localMemo.UpdatedAt = updatedAt.ToLocalTime();
-                                    
-                                    db.ServiceMemos.Update(localMemo);
+                                    else
+                                    {
+                                        if (localMemo.Status != "Completed" && cloudMemoDto.Status == "Completed")
+                                        {
+                                            CloudOrderCompleted?.Invoke(cloudMemoDto);
+                                        }
+
+                                        localMemo.CustomerName = cloudMemoDto.CustomerName;
+                                        localMemo.PhoneNumber = cloudMemoDto.PhoneNumber;
+                                        localMemo.DeviceName = cloudMemoDto.DeviceName;
+                                        localMemo.DeviceModel = cloudMemoDto.DeviceModel;
+                                        localMemo.IssueDescription = cloudMemoDto.IssueDescription;
+                                        localMemo.Status = cloudMemoDto.Status;
+                                        localMemo.EstimatedCost = cloudMemoDto.EstimatedCost;
+                                        localMemo.CustomerAddress = cloudMemoDto.CustomerAddress;
+                                        localMemo.Phone1 = cloudMemoDto.Phone1;
+                                        localMemo.Phone2 = cloudMemoDto.Phone2;
+                                        localMemo.TechnicianName = cloudMemoDto.TechnicianName;
+                                        localMemo.Brand = cloudMemoDto.Brand;
+                                        localMemo.SerialNumber = cloudMemoDto.SerialNumber;
+                                        localMemo.Accessories = cloudMemoDto.Accessories;
+                                        localMemo.Diagnostics = cloudMemoDto.Diagnostics;
+                                        if (SettingsManager.Default.SyncImagesEnabled)
+                                        {
+                                            localMemo.ImagePath = cloudMemoDto.ImagePath;
+                                        }
+                                        localMemo.OrderUpdates = cloudMemoDto.OrderUpdates;
+                                        localMemo.ReturnDate = cloudMemoDto.ReturnDate;
+                                        localMemo.UpdatedAt = updatedAt.ToLocalTime();
+                                        
+                                        db.ServiceMemos.Update(localMemo);
+                                    }
                                 }
                             }
                         }
@@ -247,15 +272,34 @@ namespace ClientApp.Services
                         // 2. PUSH TO CLOUD
                         foreach (var lMemo in localMemos)
                         {
-                            // Process hard deletions
+                            // Process soft deletion tombstones
                             if (lMemo.Status == "Deleted")
                             {
-                                var deleteRequest = new HttpRequestMessage(HttpMethod.Delete, $"/rest/v1/service_memos?memo_number=eq.{lMemo.MemoNumber}");
-                                var delResponse = await _http.SendAsync(deleteRequest);
-                                if (delResponse.IsSuccessStatusCode || delResponse.StatusCode == System.Net.HttpStatusCode.NotFound)
+                                var uploadDto = ServiceMemoDto.FromModel(lMemo, SettingsManager.Default.SyncImagesEnabled);
+                                uploadDto.Status = "Deleted_Synced";
+
+                                var payload = new
                                 {
-                                    db.ServiceMemos.Remove(lMemo);
+                                    memo_number = lMemo.MemoNumber,
+                                    json_data = JsonSerializer.Serialize(uploadDto),
+                                    device_id = deviceId,
+                                    updated_at = ToUtc(lMemo.UpdatedAt).ToString("yyyy-MM-ddTHH:mm:ss.fffZ")
+                                };
+
+                                var request = new HttpRequestMessage(HttpMethod.Post, "/rest/v1/service_memos?on_conflict=memo_number");
+                                request.Headers.Add("Prefer", "resolution=merge-duplicates");
+                                request.Content = JsonContent.Create(payload);
+                                var delResponse = await _http.SendAsync(request);
+                                if (delResponse.IsSuccessStatusCode)
+                                {
+                                    lMemo.Status = "Deleted_Synced";
+                                    db.ServiceMemos.Update(lMemo);
                                 }
+                                continue;
+                            }
+
+                            if (lMemo.Status == "Deleted_Synced")
+                            {
                                 continue;
                             }
 

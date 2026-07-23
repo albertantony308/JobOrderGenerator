@@ -295,7 +295,7 @@ namespace ClientApp.Services
                             using (var db = new LocalDbContext())
                             {
                                 var memos = db.ServiceMemos
-                                    .Select(m => new { m.MemoNumber, m.UpdatedAt })
+                                    .Select(m => new { m.MemoNumber, m.UpdatedAt, m.Status })
                                     .ToList();
                                 string json = JsonSerializer.Serialize(memos);
                                 await writer.WriteLineAsync(json);
@@ -507,7 +507,7 @@ namespace ClientApp.Services
 
                     using (var db = new LocalDbContext())
                     {
-                        var localMemos = db.ServiceMemos.Select(m => new { m.MemoNumber, m.UpdatedAt }).ToList();
+                        var localMemos = db.ServiceMemos.Select(m => new { m.MemoNumber, m.UpdatedAt, m.Status }).ToList();
 
                         // 1. Pull missing/outdated from peer
                         foreach (var pm in peerMemos)
@@ -691,7 +691,7 @@ namespace ClientApp.Services
             try
             {
                 using var db = new LocalDbContext();
-                return db.ServiceMemos.Count();
+                return db.ServiceMemos.Count(m => m.Status != "Deleted" && m.Status != "Deleted_Synced");
             }
             catch { return 0; }
         }
@@ -850,7 +850,7 @@ namespace ClientApp.Services
                     {
                         var cleanId = memoNumber.Trim();
                         var memo = db.ServiceMemos.FirstOrDefault(m => 
-                            string.Equals(m.MemoNumber, cleanId, StringComparison.OrdinalIgnoreCase) && m.Status != "Deleted");
+                            string.Equals(m.MemoNumber, cleanId, StringComparison.OrdinalIgnoreCase) && m.Status != "Deleted" && m.Status != "Deleted_Synced");
                         if (memo != null)
                         {
                             var dto = ServiceMemoDto.FromModel(memo);
@@ -879,7 +879,7 @@ namespace ClientApp.Services
                         {
                             var cleanId = updateReq.MemoNumber.Trim();
                             var memo = db.ServiceMemos.FirstOrDefault(m => 
-                                string.Equals(m.MemoNumber, cleanId, StringComparison.OrdinalIgnoreCase) && m.Status != "Deleted");
+                                string.Equals(m.MemoNumber, cleanId, StringComparison.OrdinalIgnoreCase) && m.Status != "Deleted" && m.Status != "Deleted_Synced");
                             if (memo != null)
                             {
                                 memo.Status = updateReq.Status;
@@ -1033,6 +1033,7 @@ namespace ClientApp.Services
         {
             public string MemoNumber { get; set; } = string.Empty;
             public DateTime UpdatedAt { get; set; }
+            public string Status { get; set; } = string.Empty;
         }
         private class ClearWorkspaceRequest
         {

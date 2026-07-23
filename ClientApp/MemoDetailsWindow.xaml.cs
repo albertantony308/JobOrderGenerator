@@ -527,23 +527,38 @@ namespace ClientApp
             {
                 try
                 {
+                    ServiceMemo memoToDelete;
                     using (var db = new LocalDbContext())
                     {
-                        var memo = db.ServiceMemos.Find(_memoId);
-                        if (memo != null)
+                        memoToDelete = db.ServiceMemos.Find(_memoId);
+                        if (memoToDelete != null)
                         {
-                            memo.Status = "Deleted";
-                            memo.UpdatedAt = DateTime.Now > memo.UpdatedAt ? DateTime.Now : memo.UpdatedAt.AddSeconds(1);
-                            db.ServiceMemos.Update(memo);
+                            memoToDelete.Status = "Deleted";
+                            memoToDelete.UpdatedAt = DateTime.Now;
+                            db.ServiceMemos.Update(memoToDelete);
                             db.SaveChanges();
                         }
                     }
                     
                     NeedsRefresh = true;
                     
-                    if (SettingsManager.Default.IsCloudSyncEnabled && SettingsManager.Default.SyncMode != "LocalOnly")
+                    if (memoToDelete != null)
                     {
-                        _ = CloudSyncService.SyncWithCloudAsync();
+                        // 1. Broadcast delete tombstone to other LAN devices
+                        _ = Task.Run(() => LanSyncService.BroadcastMemoSavedAsync(memoToDelete));
+
+                        // 2. Sync tombstone to Supabase Cloud
+                        if (SettingsManager.Default.IsCloudSyncEnabled && SettingsManager.Default.SyncMode != "LocalOnly" && SupabaseClientManager.IsConfigured)
+                        {
+                            _ = Task.Run(async () =>
+                            {
+                                try
+                                {
+                                    await CloudSyncService.SyncWithCloudAsync();
+                                }
+                                catch { }
+                            });
+                        }
                     }
                     
                     MessageBox.Show("Job order deleted successfully.", "Deleted", MessageBoxButton.OK, MessageBoxImage.Information);

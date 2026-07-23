@@ -1533,13 +1533,20 @@
           if (memoError) throw memoError;
 
           if (memos && memos.length > 0) {
-            const memo = JSON.parse(memos[0].json_data);
-            appState.currentMemo = memos[0]; // Store cloud database reference
-            appState.currentMemo.parsedData = memo;
+            for (const mItem of memos) {
+              try {
+                const memo = JSON.parse(mItem.json_data);
+                if (memo && memo.Status !== 'Deleted' && memo.Status !== 'Deleted_Synced') {
+                  appState.currentMemo = mItem; // Store cloud database reference
+                  appState.currentMemo.parsedData = memo;
 
-            renderOrderResult(memo);
-            showPremiumToast(`Fetched order ${memo.MemoNumber} from Cloud.`, 'cloud-sync', 'Synced to Cloud');
-            found = true;
+                  renderOrderResult(memo);
+                  showPremiumToast(`Fetched order ${memo.MemoNumber} from Cloud.`, 'cloud-sync', 'Synced to Cloud');
+                  found = true;
+                  break;
+                }
+              } catch (e) {}
+            }
           }
         }
       } catch (err) {
@@ -1556,9 +1563,11 @@
 
           if (res.ok) {
             const memo = await res.json();
-            renderOrderResult(memo);
-            showPremiumToast(`Fetched order ${memo.MemoNumber} from local workstation.`, 'wifi-sync', 'Synced on Wi-Fi');
-            found = true;
+            if (memo && memo.Status !== 'Deleted' && memo.Status !== 'Deleted_Synced') {
+              renderOrderResult(memo);
+              showPremiumToast(`Fetched order ${memo.MemoNumber} from local workstation.`, 'wifi-sync', 'Synced on Wi-Fi');
+              found = true;
+            }
           }
         } catch (err) {
           console.warn("Direct LAN lookup failed/unreachable:", err);

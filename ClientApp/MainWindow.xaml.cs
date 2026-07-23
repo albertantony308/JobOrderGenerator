@@ -97,6 +97,7 @@ namespace ClientApp
             // Register and Start LAN sync service
             LanSyncService.PeersChanged += LanSyncService_PeersChanged;
             LanSyncService.SyncStateChanged += LanSyncService_SyncStateChanged;
+            CloudSyncService.CloudOrderCompleted += CloudSyncService_CloudOrderCompleted;
             LanSyncService.Start();
             InitializeNetworkMonitoring();
             LanSyncService_PeersChanged();
@@ -1888,6 +1889,18 @@ namespace ClientApp
             });
         }
 
+        private void CloudSyncService_CloudOrderCompleted(ServiceMemoDto memo)
+        {
+            Application.Current.Dispatcher.BeginInvoke(new Action(() =>
+            {
+                System.Windows.MessageBox.Show(
+                    $"Service Memo {memo.MemoNumber} ({memo.DeviceName} - {memo.DeviceModel}) has been marked as Completed by Staff Member: {memo.TechnicianName}.",
+                    "Order Completed via Staff Portal",
+                    System.Windows.MessageBoxButton.OK,
+                    System.Windows.MessageBoxImage.Information);
+            }));
+        }
+
         private void LanSyncService_SyncStateChanged(bool active)
         {
             this.Dispatcher.Invoke(() =>
@@ -1915,7 +1928,7 @@ namespace ClientApp
             using (var db = new LocalDbContext())
             {
                 db.Migrate();
-                var query = db.ServiceMemos.Where(m => m.Status != "Deleted").AsQueryable();
+                var query = db.ServiceMemos.Where(m => m.Status != "Deleted" && m.Status != "Deleted_Synced").AsQueryable();
 
                 // Internet-Only mode: only show cloud-origin memos (IN prefix)
                 if (SettingsManager.Default.SyncMode == "InternetOnly")
