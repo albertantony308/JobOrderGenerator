@@ -325,6 +325,10 @@ namespace ClientApp
                     }
                 }
                 UpdateWhatsAppSection(newStatus);
+                if (SettingsManager.Default.IsCloudSyncEnabled && SettingsManager.Default.SyncMode != "LocalOnly")
+                {
+                    _ = CloudSyncService.SyncWithCloudAsync();
+                }
             }
         }
 

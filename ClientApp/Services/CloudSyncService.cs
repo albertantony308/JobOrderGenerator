@@ -292,12 +292,9 @@ namespace ClientApp.Services
                                 }
                                 else
                                 {
-                                    // Compare strictly in UTC to avoid local-time vs UTC mismatch
-                                    // Add a 2-second grace window so a record saved just now isn't
-                                    // immediately overwritten by a cloud copy with a marginally newer timestamp.
-                                    var cloudUtc = updatedAt; // already UTC (DateTimeKind.Utc set above)
-                                    var localUtc = ToUtc(localMemo.UpdatedAt);
-                                    bool cloudIsNewer = cloudUtc > localUtc.AddSeconds(2);
+                                     var cloudUtc = updatedAt; // already UTC (DateTimeKind.Utc set above)
+                                     var localUtc = ToUtc(localMemo.UpdatedAt);
+                                     bool cloudIsNewer = cloudUtc > localUtc;
 
                                     if (cloudIsNewer)
                                     {
@@ -401,7 +398,7 @@ namespace ClientApp.Services
                                     {
                                         cUpdatedAt = currentTrustedUtc.AddSeconds(-5);
                                     }
-                                    if (ToUtc(lMemo.UpdatedAt) <= ToUtc(cUpdatedAt))
+                                    if (ToUtc(lMemo.UpdatedAt) < ToUtc(cUpdatedAt))
                                     {
                                         needsUpload = false;
                                     }
