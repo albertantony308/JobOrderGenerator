@@ -104,6 +104,12 @@ namespace ClientApp.Models
 
         [Column("is_repeated_device")]
         public bool IsRepeatedDevice { get; set; } = false;
+
+        [Column("is_mobile_portal_update")]
+        public bool IsMobilePortalUpdate { get; set; } = false;
+
+        [Column("source")]
+        public string Source { get; set; } = "ClientApp";
     }
 
     public class ServiceMemoDto
@@ -134,6 +140,8 @@ namespace ClientApp.Models
         public string ItemizedCosts { get; set; } = string.Empty;
         public DateTime? ReturnDate { get; set; }
         public bool IsRepeatedDevice { get; set; } = false;
+        public bool IsMobilePortalUpdate { get; set; } = false;
+        public string Source { get; set; } = "ClientApp";
 
         public static ServiceMemoDto FromModel(ServiceMemo m, bool syncImages = true)
         {
@@ -164,7 +172,9 @@ namespace ClientApp.Models
                 OrderUpdates = m.OrderUpdates,
                 ItemizedCosts = m.ItemizedCosts,
                 ReturnDate = m.ReturnDate,
-                IsRepeatedDevice = m.IsRepeatedDevice
+                IsRepeatedDevice = m.IsRepeatedDevice,
+                IsMobilePortalUpdate = m.IsMobilePortalUpdate,
+                Source = m.Source
             };
         }
     }

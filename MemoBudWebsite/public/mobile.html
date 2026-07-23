@@ -1695,6 +1695,8 @@
       memo.Status = newStatus;
       memo.TechnicianName = appState.staffMember.name;
       memo.UpdatedAt = new Date().toISOString();
+      memo.IsMobilePortalUpdate = true;
+      memo.Source = "MobilePortal";
       if (updatesText !== null) {
         memo.OrderUpdates = updatesText;
       }

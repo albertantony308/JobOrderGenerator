@@ -312,7 +312,10 @@ namespace ClientApp.Services
                                         {
                                             if (localMemo.Status != "Completed" && cloudMemoDto.Status == "Completed")
                                             {
-                                                CloudOrderCompleted?.Invoke(cloudMemoDto);
+                                                if (cloudMemoDto.IsMobilePortalUpdate || string.Equals(cloudMemoDto.Source, "MobilePortal", StringComparison.OrdinalIgnoreCase))
+                                                {
+                                                    CloudOrderCompleted?.Invoke(cloudMemoDto);
+                                                }
                                             }
 
                                             localMemo.CustomerName = cloudMemoDto.CustomerName;
