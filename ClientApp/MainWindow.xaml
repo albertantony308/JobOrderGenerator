@@ -344,6 +344,39 @@
                                      </DataTemplate>
                                  </DataGridTemplateColumn.CellTemplate>
                              </DataGridTemplateColumn>
+                             <DataGridTemplateColumn Header="RETURN DATE" Width="Auto" MinWidth="110">
+                                 <DataGridTemplateColumn.CellTemplate>
+                                     <DataTemplate>
+                                         <Border CornerRadius="12" Padding="10,4" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,2">
+                                             <Border.Style>
+                                                 <Style TargetType="Border">
+                                                     <Setter Property="Background" Value="{DynamicResource SurfaceContainerBrush}"/>
+                                                     <Style.Triggers>
+                                                         <DataTrigger Binding="{Binding IsReturned}" Value="True">
+                                                             <Setter Property="Background" Value="#1810B981"/>
+                                                         </DataTrigger>
+                                                     </Style.Triggers>
+                                                 </Style>
+                                             </Border.Style>
+                                             <TextBlock Text="{Binding ReturnDateDisplay}" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center" TextAlignment="Center">
+                                                 <TextBlock.Style>
+                                                     <Style TargetType="TextBlock">
+                                                         <Setter Property="Foreground" Value="{DynamicResource OnSurfaceVariantBrush}"/>
+                                                         <Setter Property="Opacity" Value="0.75"/>
+                                                         <Style.Triggers>
+                                                             <DataTrigger Binding="{Binding IsReturned}" Value="True">
+                                                                 <Setter Property="Foreground" Value="#FF10B981"/>
+                                                                 <Setter Property="Opacity" Value="1"/>
+                                                                 <Setter Property="FontWeight" Value="Bold"/>
+                                                             </DataTrigger>
+                                                         </Style.Triggers>
+                                                     </Style>
+                                                 </TextBlock.Style>
+                                             </TextBlock>
+                                         </Border>
+                                     </DataTemplate>
+                                 </DataGridTemplateColumn.CellTemplate>
+                             </DataGridTemplateColumn>
                         </DataGrid.Columns>
                     </DataGrid>
                 </Grid>

@@ -90,10 +90,18 @@
                                 <TextBlock Text="Environment" Foreground="{DynamicResource OnSurfaceVariantBrush}"/>
                                 <TextBlock Text="Desktop Native" Foreground="{DynamicResource OnSurfaceBrush}" DockPanel.Dock="Right" FontWeight="SemiBold"/>
                             </DockPanel>
-                            <DockPanel>
+                            <DockPanel Margin="0,0,0,16">
                                 <TextBlock Text="Database" Foreground="{DynamicResource OnSurfaceVariantBrush}"/>
                                 <TextBlock Text="local_memos.db" Foreground="{DynamicResource OnSurfaceBrush}" DockPanel.Dock="Right" FontWeight="SemiBold"/>
                             </DockPanel>
+
+                            <Separator Background="{DynamicResource OutlineBrush}" Margin="0,0,0,16" Opacity="0.3"/>
+
+                            <!-- Manual Update Check -->
+                            <StackPanel>
+                                <Button x:Name="btnCheckUpdates" Content="Check for Updates" Style="{DynamicResource SecondaryButtonStyle}" Click="CheckForUpdates_Click" HorizontalAlignment="Stretch" Padding="12,8" FontSize="11"/>
+                                <TextBlock x:Name="txtUpdateCheckStatus" Text="" FontSize="11" Foreground="{DynamicResource PrimaryBrush}" HorizontalAlignment="Center" Margin="0,8,0,0" Visibility="Collapsed" TextWrapping="Wrap"/>
+                            </StackPanel>
                         </StackPanel>
                     </Border>
 

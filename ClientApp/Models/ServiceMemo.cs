@@ -82,6 +82,26 @@ namespace ClientApp.Models
         [Column("return_date")]
         public DateTime? ReturnDate { get; set; }
 
+        [Newtonsoft.Json.JsonIgnore]
+        [System.Text.Json.Serialization.JsonIgnore]
+        [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+        public string ReturnDateDisplay
+        {
+            get
+            {
+                if (ReturnDate.HasValue && ReturnDate.Value > DateTime.MinValue.AddYears(1))
+                {
+                    return ReturnDate.Value.ToString("dd MMM yyyy");
+                }
+                return "Not Returned";
+            }
+        }
+
+        [Newtonsoft.Json.JsonIgnore]
+        [System.Text.Json.Serialization.JsonIgnore]
+        [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+        public bool IsReturned => ReturnDate.HasValue && ReturnDate.Value > DateTime.MinValue.AddYears(1);
+
         [Column("is_repeated_device")]
         public bool IsRepeatedDevice { get; set; } = false;
     }
