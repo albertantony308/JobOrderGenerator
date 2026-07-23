@@ -340,6 +340,12 @@ namespace ClientApp.Services
 
         private static bool MergePushedMemo(ServiceMemoDto remote)
         {
+            var currentTrustedUtc = NetworkTimeService.GetUtcNow();
+            if (remote.UpdatedAt > currentTrustedUtc.AddMinutes(1))
+            {
+                remote.UpdatedAt = currentTrustedUtc.AddSeconds(-5);
+            }
+
             using (var db = new LocalDbContext())
             {
                 db.Migrate();
@@ -367,7 +373,9 @@ namespace ClientApp.Services
                         Accessories = remote.Accessories,
                         Diagnostics = remote.Diagnostics,
                         OrderUpdates = remote.OrderUpdates,
+                        ItemizedCosts = remote.ItemizedCosts,
                         ReturnDate = remote.ReturnDate,
+                        IsRepeatedDevice = remote.IsRepeatedDevice,
                         UpdatedAt = remote.UpdatedAt,
                         ImagePath = SettingsManager.Default.SyncImagesEnabled ? remote.ImagePath : string.Empty
                     };
@@ -376,39 +384,50 @@ namespace ClientApp.Services
                     System.Diagnostics.Debug.WriteLine($"[LAN SYNC] Integrated new LAN order: {remote.MemoNumber}");
                     return true;
                 }
-                else if (remote.UpdatedAt > local.UpdatedAt)
+                else
                 {
-                    local.CustomerName = remote.CustomerName;
-                    local.PhoneNumber = remote.PhoneNumber;
-                    local.DeviceName = remote.DeviceName;
-                    local.DeviceModel = remote.DeviceModel;
-                    local.IssueDescription = remote.IssueDescription;
-                    local.Status = remote.Status;
-                    local.EstimatedCost = remote.EstimatedCost;
-                    local.CustomerAddress = remote.CustomerAddress;
-                    local.Phone1 = remote.Phone1;
-                    local.Phone2 = remote.Phone2;
-                    local.TechnicianName = remote.TechnicianName;
-                    local.Brand = remote.Brand;
-                    local.SerialNumber = remote.SerialNumber;
-                    local.Accessories = remote.Accessories;
-                    local.Diagnostics = remote.Diagnostics;
-                    local.OrderUpdates = remote.OrderUpdates;
-                    local.ReturnDate = remote.ReturnDate;
-                    local.UpdatedAt = remote.UpdatedAt;
-
-                    // Only overwrite image if settings allow
-                    if (SettingsManager.Default.SyncImagesEnabled)
+                    // Use a 2-second grace window: the remote must be clearly newer before we overwrite.
+                    // This prevents a peer with a slightly-stale copy from overwriting a record
+                    // that was just saved on THIS device milliseconds ago.
+                    bool remoteIsNewer = remote.UpdatedAt > local.UpdatedAt.AddSeconds(2);
+                    if (remoteIsNewer)
                     {
-                        local.ImagePath = remote.ImagePath;
-                    }
+                        local.CustomerName = remote.CustomerName;
+                        local.PhoneNumber = remote.PhoneNumber;
+                        local.DeviceName = remote.DeviceName;
+                        local.DeviceModel = remote.DeviceModel;
+                        local.IssueDescription = remote.IssueDescription;
+                        local.Status = remote.Status;
+                        local.EstimatedCost = remote.EstimatedCost;
+                        local.CustomerAddress = remote.CustomerAddress;
+                        local.Phone1 = remote.Phone1;
+                        local.Phone2 = remote.Phone2;
+                        local.TechnicianName = remote.TechnicianName;
+                        local.Brand = remote.Brand;
+                        local.SerialNumber = remote.SerialNumber;
+                        local.Accessories = remote.Accessories;
+                        local.Diagnostics = remote.Diagnostics;
+                        local.OrderUpdates = remote.OrderUpdates;
+                        local.ItemizedCosts = remote.ItemizedCosts;
+                        local.ReturnDate = remote.ReturnDate;
+                        local.IsRepeatedDevice = remote.IsRepeatedDevice;
+                        local.UpdatedAt = remote.UpdatedAt;
 
-                    db.ServiceMemos.Update(local);
-                    db.SaveChanges();
-                    System.Diagnostics.Debug.WriteLine($"[LAN SYNC] Updated existing local order from LAN: {remote.MemoNumber}");
-                    return true;
+                        // Only overwrite image if settings allow
+                        if (SettingsManager.Default.SyncImagesEnabled)
+                        {
+                            local.ImagePath = remote.ImagePath;
+                        }
+
+                        db.Entry(local).State = Microsoft.EntityFrameworkCore.EntityState.Modified;
+                        db.ServiceMemos.Update(local);
+                        db.SaveChanges();
+                        System.Diagnostics.Debug.WriteLine($"[LAN SYNC] Updated existing local order from LAN: {remote.MemoNumber}");
+                        return true;
+                    }
+                    // else: local is same age or newer — keep local, peer will get updated on next push
+                    return false;
                 }
-                return false;
             }
         }
 
@@ -513,7 +532,8 @@ namespace ClientApp.Services
                         foreach (var pm in peerMemos)
                         {
                             var lm = localMemos.FirstOrDefault(m => m.MemoNumber == pm.MemoNumber);
-                            if (lm == null || pm.UpdatedAt > lm.UpdatedAt)
+                            // Use 2-second grace: only pull if peer record is clearly newer
+                            if (lm == null || pm.UpdatedAt > lm.UpdatedAt.AddSeconds(2))
                             {
                                 await PullMemoFromPeerAsync(peer, pm.MemoNumber);
                             }
@@ -888,8 +908,9 @@ namespace ClientApp.Services
                                 {
                                     memo.OrderUpdates = updateReq.OrderUpdates;
                                 }
-                                memo.UpdatedAt = DateTime.Now > memo.UpdatedAt ? DateTime.Now : memo.UpdatedAt.AddSeconds(1);
-
+                                var nowUtc = NetworkTimeService.GetUtcNow();
+                                memo.UpdatedAt = nowUtc > memo.UpdatedAt ? nowUtc : memo.UpdatedAt.AddSeconds(1);
+                                db.Entry(memo).State = Microsoft.EntityFrameworkCore.EntityState.Modified;
                                 db.ServiceMemos.Update(memo);
                                 db.SaveChanges();
 

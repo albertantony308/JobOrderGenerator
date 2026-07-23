@@ -315,7 +315,8 @@ namespace ClientApp
                     if (memo != null)
                     {
                         memo.IsRepeatedDevice = false;
-                        memo.UpdatedAt = DateTime.Now;
+                        memo.UpdatedAt = NetworkTimeService.GetUtcNow();
+                        db.Entry(memo).State = Microsoft.EntityFrameworkCore.EntityState.Modified;
                         db.SaveChanges();
                         WasUpdated = true;
                     }
@@ -398,11 +399,17 @@ namespace ClientApp
                 return;
             }
 
-            using (var db = new LocalDbContext())
+            try
             {
-                var memo = db.ServiceMemos.Find(_memoId);
-                if (memo != null)
+                using (var db = new LocalDbContext())
                 {
+                    var memo = db.ServiceMemos.Find(_memoId);
+                    if (memo == null)
+                    {
+                        MessageBox.Show("Could not find the job order to update. Please close and reopen.", "Save Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                        return;
+                    }
+
                     memo.CustomerName = txtCustomerName.Text.Trim();
                     memo.PhoneNumber = fullPhone1;
                     memo.CustomerAddress = txtCustomerAddress.Text.Trim();
@@ -418,7 +425,7 @@ namespace ClientApp
                     memo.EstimatedCost = estCost;
                     memo.Status = ((System.Windows.Controls.ComboBoxItem?)cmbStatus.SelectedItem)?.Content?.ToString() ?? "Pending";
                     memo.IsRepeatedDevice = _isRepeatedDevice;
-                    memo.UpdatedAt = DateTime.Now;
+                    memo.UpdatedAt = NetworkTimeService.GetUtcNow();
 
                     // Handle image updates
                     List<string> localPaths = new List<string>();
@@ -443,14 +450,18 @@ namespace ClientApp
                                 File.Copy(path, localPath, true);
                                 localPaths.Add(localPath);
                             }
-                            catch (Exception ex)
+                            catch (Exception imgEx)
                             {
-                                MessageBox.Show("Error updating image: " + ex.Message);
+                                MessageBox.Show("Error updating image: " + imgEx.Message);
                             }
                         }
                     }
                     memo.ImagePath = string.Join("|", localPaths);
 
+                    // Explicitly mark as Modified — ServiceMemo inherits from Postgrest BaseModel
+                    // which can interfere with EF Core's change-tracking, causing SaveChanges()
+                    // to silently skip the UPDATE. Force the state to ensure the record is saved.
+                    db.Entry(memo).State = Microsoft.EntityFrameworkCore.EntityState.Modified;
                     db.SaveChanges();
                     WasUpdated = true;
 
@@ -460,11 +471,16 @@ namespace ClientApp
                         _ = LanSyncService.BroadcastMemoSavedAsync(memo);
                     }
                 }
-            }
 
-            if (SettingsManager.Default.IsCloudSyncEnabled && SettingsManager.Default.SyncMode != "LocalOnly")
+                if (SettingsManager.Default.IsCloudSyncEnabled && SettingsManager.Default.SyncMode != "LocalOnly")
+                {
+                    _ = CloudSyncService.SyncWithCloudAsync();
+                }
+            }
+            catch (Exception ex)
             {
-                _ = CloudSyncService.SyncWithCloudAsync();
+                MessageBox.Show($"Failed to save changes: {ex.Message}", "Save Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
             }
 
             if (sender is System.Windows.Controls.Button && ((System.Windows.Controls.Button)sender).Content.ToString() == "Save Changes")

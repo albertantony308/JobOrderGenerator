@@ -373,7 +373,7 @@ namespace ClientApp
                 Status = "Pending",
                 IsRepeatedDevice = toggleRepeatedDevice.IsChecked == true,
                 CreatedAt = DateTime.Now,
-                UpdatedAt = DateTime.Now,
+                UpdatedAt = NetworkTimeService.GetUtcNow(),
                 ImagePath = string.Join("|", localPaths)
             };
         }

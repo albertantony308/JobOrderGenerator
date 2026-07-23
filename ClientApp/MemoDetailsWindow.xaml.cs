@@ -197,7 +197,9 @@ namespace ClientApp
                     if (m != null)
                     {
                         m.ReturnDate = date;
-                        m.UpdatedAt = DateTime.Now > m.UpdatedAt ? DateTime.Now : m.UpdatedAt.AddSeconds(1);
+                        var nowUtc = NetworkTimeService.GetUtcNow();
+                        m.UpdatedAt = nowUtc > m.UpdatedAt ? nowUtc : m.UpdatedAt.AddSeconds(1);
+                        db.Entry(m).State = Microsoft.EntityFrameworkCore.EntityState.Modified;
                         db.SaveChanges();
                         _memo.ReturnDate = date;
                         _memo.UpdatedAt = m.UpdatedAt;
@@ -313,7 +315,9 @@ namespace ClientApp
                     if (m != null)
                     {
                         m.Status = newStatus;
-                        m.UpdatedAt = DateTime.Now > m.UpdatedAt ? DateTime.Now : m.UpdatedAt.AddSeconds(1);
+                        var nowUtc = NetworkTimeService.GetUtcNow();
+                        m.UpdatedAt = nowUtc > m.UpdatedAt ? nowUtc : m.UpdatedAt.AddSeconds(1);
+                        db.Entry(m).State = Microsoft.EntityFrameworkCore.EntityState.Modified;
                         db.SaveChanges();
                         _memo.Status = newStatus;
                         _memo.UpdatedAt = m.UpdatedAt;
@@ -464,6 +468,15 @@ namespace ClientApp
             }
         }
 
+        protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
+        {
+            if (_isCostItemsDirty || (txtOrderUpdates != null && txtOrderUpdates.Text.Trim() != (_memo?.OrderUpdates ?? "").Trim()))
+            {
+                SaveOrderUpdatesAndCosts(false);
+            }
+            base.OnClosing(e);
+        }
+
         private void txtOrderUpdates_PreviewKeyDown(object sender, KeyEventArgs e)
         {
             if (e.Key == Key.Enter && !Keyboard.Modifiers.HasFlag(ModifierKeys.Shift))
@@ -475,15 +488,26 @@ namespace ClientApp
 
         private void UpdateOrder_Click(object sender, RoutedEventArgs e)
         {
-            if (_memo == null) return;
-            string updatesText = txtOrderUpdates.Text.Trim();
-            
-            var costItemsList = _costItems.ToList();
-            string costJson = System.Text.Json.JsonSerializer.Serialize(costItemsList);
-            decimal totalCost = costItemsList.Sum(i => i.Cost);
+            SaveOrderUpdatesAndCosts(true);
+        }
 
+        private bool SaveOrderUpdatesAndCosts(bool showMessage = false)
+        {
+            if (_memo == null) return false;
             try
             {
+                try
+                {
+                    dgCostItems.CommitEdit(DataGridEditingUnit.Cell, true);
+                    dgCostItems.CommitEdit(DataGridEditingUnit.Row, true);
+                }
+                catch { }
+
+                string updatesText = txtOrderUpdates.Text.Trim();
+                var costItemsList = _costItems.ToList();
+                string costJson = System.Text.Json.JsonSerializer.Serialize(costItemsList);
+                decimal totalCost = costItemsList.Sum(i => i.Cost);
+
                 using (var db = new LocalDbContext())
                 {
                     var m = db.ServiceMemos.Find(_memoId);
@@ -492,7 +516,9 @@ namespace ClientApp
                         m.OrderUpdates = updatesText;
                         m.ItemizedCosts = costJson;
                         m.EstimatedCost = totalCost;
-                        m.UpdatedAt = DateTime.Now > m.UpdatedAt ? DateTime.Now : m.UpdatedAt.AddSeconds(1);
+                        var nowUtc = NetworkTimeService.GetUtcNow();
+                        m.UpdatedAt = nowUtc > m.UpdatedAt ? nowUtc : m.UpdatedAt.AddSeconds(1);
+                        db.Entry(m).State = Microsoft.EntityFrameworkCore.EntityState.Modified;
                         db.SaveChanges();
                         _isCostItemsDirty = false;
                         
@@ -502,17 +528,25 @@ namespace ClientApp
                         _memo.UpdatedAt = m.UpdatedAt;
                         NeedsRefresh = true;
                         
-                        MessageBox.Show("Order updates and costs saved successfully.", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+                        if (showMessage)
+                        {
+                            MessageBox.Show("Order updates and costs saved successfully.", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+                        }
                     }
                 }
                 if (SettingsManager.Default.IsCloudSyncEnabled && SettingsManager.Default.SyncMode != "LocalOnly")
                 {
                     _ = CloudSyncService.SyncWithCloudAsync();
                 }
+                return true;
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Error saving order updates: " + ex.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                if (showMessage)
+                {
+                    MessageBox.Show("Error saving order updates: " + ex.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+                return false;
             }
         }
 
@@ -535,7 +569,8 @@ namespace ClientApp
                         if (memoToDelete != null)
                         {
                             memoToDelete.Status = "Deleted";
-                            memoToDelete.UpdatedAt = DateTime.Now;
+                            memoToDelete.UpdatedAt = NetworkTimeService.GetUtcNow();
+                            db.Entry(memoToDelete).State = Microsoft.EntityFrameworkCore.EntityState.Modified;
                             db.ServiceMemos.Update(memoToDelete);
                             db.SaveChanges();
                         }

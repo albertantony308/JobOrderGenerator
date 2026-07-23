@@ -2305,7 +2305,7 @@ namespace ClientApp
                 {
                     try
                     {
-                        await System.Threading.Tasks.Task.Delay(1500, token); // every 1.5 seconds for instant feel
+                        await System.Threading.Tasks.Task.Delay(30000, token); // every 30 seconds — gives push time to land before next pull
                         if (token.IsCancellationRequested) break;
 
                         if (SettingsManager.Default.SyncMode != "LocalOnly" && !string.IsNullOrEmpty(SettingsManager.Default.SubscriptionKey))
@@ -2394,6 +2394,16 @@ namespace ClientApp
             }
         }
 
+        private void Window_Loaded(object sender, RoutedEventArgs e)
+        {
+            // On Windows 10 with WindowStyle=None the window can spawn flush against the
+            // top edge of the display (Top <= 0), hiding the in-app title bar.
+            // Clamp to a minimum of 8 device-independent pixels below the screen top.
+            const double MinTop = 8.0;
+            if (this.Top < MinTop)
+                this.Top = MinTop;
+        }
+
         private void MinimizeWindow_Click(object sender, RoutedEventArgs e)
         {
             this.WindowState = WindowState.Minimized;
@@ -2404,15 +2414,54 @@ namespace ClientApp
             if (this.WindowState == WindowState.Maximized)
             {
                 this.WindowState = WindowState.Normal;
-                if (txtMaximizeIcon != null) txtMaximizeIcon.Text = "🗖";
-                if (RootWindowBorder != null) RootWindowBorder.CornerRadius = new CornerRadius(12);
+                if (txtMaximizeIcon != null) txtMaximizeIcon.Text = "\U0001F5D6";
+                if (RootWindowBorder != null)
+                {
+                    RootWindowBorder.CornerRadius = new CornerRadius(12);
+                    RootWindowBorder.Margin = new Thickness(0);
+                }
             }
             else
             {
                 this.WindowState = WindowState.Maximized;
-                if (txtMaximizeIcon != null) txtMaximizeIcon.Text = "🗗";
-                if (RootWindowBorder != null) RootWindowBorder.CornerRadius = new CornerRadius(0);
+                if (txtMaximizeIcon != null) txtMaximizeIcon.Text = "\U0001F5D7";
+                if (RootWindowBorder != null)
+                {
+                    RootWindowBorder.CornerRadius = new CornerRadius(0);
+                    // On Windows 10 with WindowStyle=None, the window can overflow the screen
+                    // edges when maximized. Apply a margin equal to the overflow so the title
+                    // bar and all content stays within the visible work area.
+                    ApplyMaximizeMargin();
+                }
             }
+        }
+
+        private void ApplyMaximizeMargin()
+        {
+            // Get how far the maximized window extends beyond the work area on each edge
+            var screen = System.Windows.Forms.Screen.FromHandle(
+                new System.Windows.Interop.WindowInteropHelper(this).Handle);
+            var workArea = screen.WorkingArea;
+
+            // Convert from physical pixels to WPF device-independent units
+            var source = PresentationSource.FromVisual(this);
+            double dpiX = 1.0, dpiY = 1.0;
+            if (source?.CompositionTarget != null)
+            {
+                dpiX = source.CompositionTarget.TransformToDevice.M11;
+                dpiY = source.CompositionTarget.TransformToDevice.M22;
+            }
+
+            double left   = workArea.Left   / dpiX;
+            double top    = workArea.Top    / dpiY;
+            double right  = (SystemParameters.PrimaryScreenWidth  - workArea.Right  / dpiX);
+            double bottom = (SystemParameters.PrimaryScreenHeight - workArea.Bottom / dpiY);
+
+            // Ensure at minimum 4px from top so title bar is never clipped by the display edge
+            if (top < 4) top = 4;
+
+            if (RootWindowBorder != null)
+                RootWindowBorder.Margin = new Thickness(left, top, right, bottom);
         }
 
         private void CloseWindow_Click(object sender, RoutedEventArgs e)

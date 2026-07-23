@@ -56,6 +56,7 @@ public partial class App : Application
             ThemeManager.Initialize();
             BackupManager.InitializeAutoBackup();
             LanSyncService.StartHttpApiServer();
+            _ = NetworkTimeService.SyncWithTrustedTimeAsync();
 
             // 1. Check for available updates on startup
             try
