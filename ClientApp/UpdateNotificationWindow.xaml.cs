@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Diagnostics;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
 using ClientApp.Services;
@@ -9,51 +10,63 @@ namespace ClientApp
 {
     public partial class UpdateNotificationWindow : Window
     {
-        private readonly string _version;
-        private readonly string _updateType;
-        private readonly string _changelog;
-        private readonly double _paymentAmount;
-        private readonly bool _isCompulsory;
+        private readonly UpdateInfo _updateInfo;
         private bool _isPaid = false;
 
-        public UpdateNotificationWindow(string version, string updateType, string changelog, double paymentAmount, bool isCompulsory)
+        public UpdateNotificationWindow(UpdateInfo updateInfo)
         {
             InitializeComponent();
             WindowDwmFixer.ApplyFix(this);
-            
-            _version = version;
-            _updateType = updateType;
-            _changelog = changelog;
-            _paymentAmount = paymentAmount;
-            _isCompulsory = isCompulsory;
+
+            _updateInfo = updateInfo;
 
             // Apply contents dynamically
-            txtHeaderTitle.Text = _isCompulsory ? "Compulsory Update Required" : (_updateType == "major" ? "Major Upgrade Available" : "Minor Update Available");
-            txtVersionSubtitle.Text = $"Version {version} is ready to install";
-            txtChangelog.Text = string.IsNullOrWhiteSpace(_changelog) ? "• Stability improvements and visual refinements." : _changelog;
+            txtHeaderTitle.Text = _updateInfo.IsCompulsory 
+                ? "Compulsory Update Required" 
+                : (_updateInfo.UpdateType == "major" ? "Major Upgrade Available" : "Software Update Available");
 
-            if (_updateType == "major")
+            txtVersionSubtitle.Text = $"Version {_updateInfo.Version} is available";
+            txtChangelog.Text = string.IsNullOrWhiteSpace(_updateInfo.Changelog) 
+                ? "• Performance refinements, feature updates, and security patches." 
+                : _updateInfo.Changelog;
+
+            if (_updateInfo.UpdateType == "major")
             {
                 borderPayment.Visibility = Visibility.Visible;
-                txtPaymentDetails.Text = $"This is a Major Upgrade (${_paymentAmount:F2} USD) containing premium modules. Please complete checkout to continue.";
-                btnAction.Content = $"Pay & Upgrade (${_paymentAmount:F2})";
+                txtPaymentDetails.Text = $"This is a Major Upgrade (${_updateInfo.PaymentAmount:F2} USD) containing premium modules. Please complete checkout to continue.";
+                btnAction.Content = $"Pay & Upgrade (${_updateInfo.PaymentAmount:F2})";
             }
             else
             {
                 borderPayment.Visibility = Visibility.Collapsed;
-                btnAction.Content = "Update Now";
+                btnAction.Content = _updateInfo.IsCompulsory ? "Download & Install" : "Update Now";
             }
 
-            if (_isCompulsory)
+            if (_updateInfo.IsCompulsory)
             {
                 btnLater.Visibility = Visibility.Collapsed;
+                borderCompulsoryNotice.Visibility = Visibility.Visible;
                 txtSparklesIcon.Text = "🚨";
             }
             else
             {
                 btnLater.Visibility = Visibility.Visible;
+                borderCompulsoryNotice.Visibility = Visibility.Collapsed;
                 txtSparklesIcon.Text = "✨";
             }
+        }
+
+        public UpdateNotificationWindow(string version, string updateType, string changelog, double paymentAmount, bool isCompulsory, string fileUrl = "")
+            : this(new UpdateInfo
+            {
+                Version = version,
+                UpdateType = updateType,
+                Changelog = changelog,
+                PaymentAmount = paymentAmount,
+                IsCompulsory = isCompulsory,
+                FileUrl = fileUrl
+            })
+        {
         }
 
         private void Window_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -64,15 +77,23 @@ namespace ClientApp
 
         private void Later_Click(object sender, RoutedEventArgs e)
         {
-            // Skip this version for the remainder of this session or until next check
-            SettingsManager.Default.SkipUpdateVersion = _version;
+            if (_updateInfo.IsCompulsory)
+            {
+                // Strict updates cannot be postponed if launched at startup
+                MessageBox.Show("This update is mandatory to continue using the application. The app will now exit.", "Compulsory Update", MessageBoxButton.OK, MessageBoxImage.Warning);
+                Application.Current.Shutdown();
+                return;
+            }
+
+            SettingsManager.Default.SkipUpdateVersion = _updateInfo.Version;
             SettingsManager.Save();
+            this.DialogResult = false;
             this.Close();
         }
 
         private async void Action_Click(object sender, RoutedEventArgs e)
         {
-            if (_updateType == "major" && !_isPaid)
+            if (_updateInfo.UpdateType == "major" && !_isPaid)
             {
                 // Validate payment form
                 if (string.IsNullOrWhiteSpace(txtCardholder.Text) || 
@@ -84,46 +105,100 @@ namespace ClientApp
                     return;
                 }
 
-                // Simulate processing payment
-                gridLoader.Visibility = Visibility.Visible;
                 btnAction.IsEnabled = false;
                 btnLater.IsEnabled = false;
 
-                txtLoaderStatus.Text = "Connecting to Merchant Bank...";
+                txtDownloadDetails.Text = "Connecting to Merchant Bank...";
+                gridChangelogView.Visibility = Visibility.Collapsed;
+                gridDownloadView.Visibility = Visibility.Visible;
+                txtPercent.Text = "Pay";
+
                 await Task.Delay(1000);
-
-                txtLoaderStatus.Text = "Authorizing Transaction...";
+                txtDownloadDetails.Text = "Authorizing Premium License...";
                 await Task.Delay(1000);
-
-                txtLoaderStatus.Text = "Activating Lifetime Premium License...";
-                await Task.Delay(800);
-
-                txtLoaderStatus.Text = "Payment Successful! ✅";
-                await Task.Delay(800);
 
                 _isPaid = true;
                 borderPayment.Visibility = Visibility.Collapsed;
-                gridLoader.Visibility = Visibility.Collapsed;
-                btnAction.Content = "Install & Restart";
-                btnAction.IsEnabled = true;
-                if (!_isCompulsory) btnLater.IsEnabled = true;
-                return;
             }
 
-            // Install update and restart
-            try
+            // Start downloading with live percentage progress bar
+            gridChangelogView.Visibility = Visibility.Collapsed;
+            gridDownloadView.Visibility = Visibility.Visible;
+            btnLater.Visibility = Visibility.Collapsed;
+            btnAction.IsEnabled = false;
+            btnAction.Content = "Downloading...";
+
+            UpdateManager.Instance.DownloadProgressDetailsChanged += OnDownloadProgressDetailsChanged;
+            UpdateManager.Instance.DownloadCompleted += OnDownloadCompleted;
+            UpdateManager.Instance.DownloadFailed += OnDownloadFailed;
+
+            await UpdateManager.Instance.StartDownloadAsync(_updateInfo);
+        }
+
+        private void OnDownloadProgressDetailsChanged(double percent, long bytesRead, long totalBytes)
+        {
+            Dispatcher.Invoke(() =>
             {
-                InstallAndRestart();
-            }
-            catch (Exception ex)
+                pbDownload.Value = percent;
+                txtPercent.Text = $"{percent:F1}%";
+
+                if (totalBytes > 0)
+                {
+                    double readMb = bytesRead / (1024.0 * 1024.0);
+                    double totalMb = totalBytes / (1024.0 * 1024.0);
+                    txtDownloadDetails.Text = $"Downloaded {readMb:F1} MB of {totalMb:F1} MB ({percent:F1}%)";
+                }
+                else
+                {
+                    double readMb = bytesRead / (1024.0 * 1024.0);
+                    txtDownloadDetails.Text = $"Downloaded {readMb:F1} MB ({percent:F1}%)";
+                }
+            });
+        }
+
+        private void OnDownloadCompleted(string version)
+        {
+            Dispatcher.Invoke(() =>
             {
-                MessageBox.Show($"Failed to launch installer: {ex.Message}", "Update Error", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
+                UpdateManager.Instance.DownloadProgressDetailsChanged -= OnDownloadProgressDetailsChanged;
+                UpdateManager.Instance.DownloadCompleted -= OnDownloadCompleted;
+                UpdateManager.Instance.DownloadFailed -= OnDownloadFailed;
+
+                pbDownload.Value = 100;
+                txtPercent.Text = "100%";
+                txtDownloadDetails.Text = "Download Complete! Launching Installer...";
+
+                Task.Delay(800).ContinueWith(_ =>
+                {
+                    Dispatcher.Invoke(() =>
+                    {
+                        InstallAndRestart();
+                    });
+                });
+            });
+        }
+
+        private void OnDownloadFailed(string errorMessage)
+        {
+            Dispatcher.Invoke(() =>
+            {
+                UpdateManager.Instance.DownloadProgressDetailsChanged -= OnDownloadProgressDetailsChanged;
+                UpdateManager.Instance.DownloadCompleted -= OnDownloadCompleted;
+                UpdateManager.Instance.DownloadFailed -= OnDownloadFailed;
+
+                gridDownloadView.Visibility = Visibility.Collapsed;
+                gridChangelogView.Visibility = Visibility.Visible;
+                if (!_updateInfo.IsCompulsory) btnLater.Visibility = Visibility.Visible;
+                btnAction.IsEnabled = true;
+                btnAction.Content = "Retry Download";
+
+                MessageBox.Show($"Download failed: {errorMessage}\n\nPlease check your internet connection and try again.", "Download Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            });
         }
 
         private void InstallAndRestart()
         {
-            var fileUrl = SettingsManager.Default.UpdateReadyFileUrl ?? "";
+            var fileUrl = _updateInfo.FileUrl ?? SettingsManager.Default.UpdateReadyFileUrl ?? "";
             bool isSetupInstaller = fileUrl.Contains("_setup_", StringComparison.OrdinalIgnoreCase);
 
             // Reset update ready flags
@@ -139,7 +214,7 @@ namespace ClientApp
             var targetExe = System.Diagnostics.Process.GetCurrentProcess().MainModule?.FileName ?? System.Reflection.Assembly.GetExecutingAssembly().Location;
             var baseDirectory = Path.GetDirectoryName(targetExe) ?? AppDomain.CurrentDomain.BaseDirectory;
             var tempPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ServiceMemoApp", "updates");
-            var exeSource = Path.Combine(tempPath, $"update_v{_version}.exe");
+            var exeSource = Path.Combine(tempPath, $"update_v{_updateInfo.Version}.exe");
 
             if (isSetupInstaller && File.Exists(exeSource))
             {
@@ -179,7 +254,7 @@ timeout /t 2 /nobreak > nul
 echo.
 echo Applying application binary patches...
 {copyCommand}
-echo v{_version} update successfully applied!
+echo v{_updateInfo.Version} update successfully applied!
 
 echo.
 echo Restarting application...
@@ -193,7 +268,6 @@ exit
 
             File.WriteAllText(batPath, scriptContent);
 
-            // Execute bat script as separate shell process
             var startInfoBat = new ProcessStartInfo
             {
                 FileName = batPath,
@@ -203,7 +277,7 @@ exit
             };
             Process.Start(startInfoBat);
 
-            // Shutdown the parent WPF app immediately so it releases locks
+            // Shutdown WPF app so updater can overwrite binary
             Application.Current.Shutdown();
         }
     }

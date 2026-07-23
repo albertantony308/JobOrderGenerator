@@ -57,150 +57,30 @@ public partial class App : Application
             BackupManager.InitializeAutoBackup();
             LanSyncService.StartHttpApiServer();
 
-            // 1. Check if an update is already downloaded and ready to install
-            if (SettingsManager.Default.IsUpdateReady && 
-                SettingsManager.Default.SkipUpdateVersion != SettingsManager.Default.UpdateReadyVersion)
+            // 1. Check for available updates on startup
+            try
             {
-                bool showUpdateWindow = true;
-                var currentVer = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
-                if (currentVer != null && Version.TryParse(SettingsManager.Default.UpdateReadyVersion, out Version? readyVer))
+                var update = await UpdateManager.Instance.CheckForUpdatesAsync();
+                if (update != null && SettingsManager.Default.SkipUpdateVersion != update.Version)
                 {
-                    if (readyVer <= currentVer)
-                    {
-                        // The installed version is already equal to or newer than the downloaded update. Discard the update.
-                        SettingsManager.Default.IsUpdateReady = false;
-                        SettingsManager.Default.UpdateReadyVersion = string.Empty;
-                        SettingsManager.Save();
-                        showUpdateWindow = false;
-                    }
-                }
-                
-                if (showUpdateWindow)
-                {
-                    var updateWindow = new UpdateNotificationWindow(
-                        SettingsManager.Default.UpdateReadyVersion,
-                        SettingsManager.Default.UpdateReadyType,
-                        SettingsManager.Default.UpdateReadyChangelog,
-                        SettingsManager.Default.UpdateReadyPaymentAmount,
-                        SettingsManager.Default.UpdateReadyCompulsory
-                    );
+                    var updateWindow = new UpdateNotificationWindow(update);
+                    bool? dialogResult = updateWindow.ShowDialog();
 
-                    updateWindow.ShowDialog();
-
-                    // If the user selected to update, the app was already shutdown inside the window.
-                    // If they clicked "Do it later", we continue to the main application.
-                    if (SettingsManager.Default.UpdateReadyCompulsory)
+                    if (update.IsCompulsory && dialogResult != true)
                     {
-                        // If it was compulsory and they closed the window without updating, exit the app.
+                        // User cancelled compulsory update - shutdown app
                         Shutdown();
                         return;
                     }
                 }
             }
-
-            // 2. Initialize silent background updates check
-            UpdateManager.Instance.DownloadCompleted += (version) =>
+            catch (Exception ex)
             {
-                Current.Dispatcher.Invoke(() =>
-                {
-                    MessageBoxResult result = MessageBox.Show(
-                        $"A new software update (Version {version}) has been downloaded successfully in the background.\n\nWould you like to restart the application now to apply the update?",
-                        "Software Update Ready",
-                        MessageBoxButton.YesNo,
-                        MessageBoxImage.Information);
+                System.Diagnostics.Debug.WriteLine($"Startup update check failed: {ex.Message}");
+            }
 
-                    if (result == MessageBoxResult.Yes)
-                    {
-                        var fileUrl = SettingsManager.Default.UpdateReadyFileUrl ?? "";
-                        bool isSetupInstaller = fileUrl.Contains("_setup_", StringComparison.OrdinalIgnoreCase);
-
-                        // Reset update ready flags
-                        SettingsManager.Default.IsUpdateReady = false;
-                        SettingsManager.Default.UpdateReadyVersion = string.Empty;
-                        SettingsManager.Default.UpdateReadyChangelog = string.Empty;
-                        SettingsManager.Default.UpdateReadyType = "minor";
-                        SettingsManager.Default.UpdateReadyPaymentAmount = 0.00;
-                        SettingsManager.Default.UpdateReadyFileUrl = string.Empty;
-                        SettingsManager.Default.UpdateReadyCompulsory = false;
-                        SettingsManager.Save();
-
-                        var targetExe = System.Diagnostics.Process.GetCurrentProcess().MainModule?.FileName ?? System.Reflection.Assembly.GetExecutingAssembly().Location;
-                        var baseDirectory = Path.GetDirectoryName(targetExe) ?? AppDomain.CurrentDomain.BaseDirectory;
-                        var tempPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ServiceMemoApp", "updates");
-                        var exeSource = Path.Combine(tempPath, $"update_v{version}.exe");
-
-                        if (isSetupInstaller && File.Exists(exeSource))
-                        {
-                            var startInfo = new ProcessStartInfo
-                            {
-                                FileName = exeSource,
-                                UseShellExecute = true
-                            };
-                            Process.Start(startInfo);
-                            Application.Current.Shutdown();
-                            return;
-                        }
-
-                        // Launch the installer batch script
-                        var batPath = Path.Combine(baseDirectory, "install-update.bat");
-
-                        string copyCommand = ":: Simulated file copy copy/overwrite";
-                        if (File.Exists(exeSource))
-                        {
-                            copyCommand = $@"echo Copying new application executable...
-copy /y ""{exeSource}"" ""{targetExe}""
-if errorlevel 1 (
-    echo Error: Failed to copy the new update file.
-    pause
-)";
-                        }
-
-                        string scriptContent = $@"@echo off
-title Job Order Generator Updater
-echo ============================================
-echo      JOB ORDER GENERATOR AUTO-UPDATER      
-echo ============================================
-echo.
-echo Waiting for parent application to exit...
-timeout /t 2 /nobreak > nul
-
-echo.
-echo Applying application binary patches...
-{copyCommand}
-echo v{version} update successfully applied!
-
-echo.
-echo Restarting application...
-timeout /t 1 /nobreak > nul
-start """" ""{targetExe}""
-
-:: Self-destruct script
-del ""%~f0""
-exit
-";
-                        File.WriteAllText(batPath, scriptContent);
-                        var startInfoBat = new ProcessStartInfo
-                        {
-                            FileName = batPath,
-                            UseShellExecute = true,
-                            CreateNoWindow = false,
-                            WindowStyle = ProcessWindowStyle.Normal
-                        };
-                        Process.Start(startInfoBat);
-                        Current.Shutdown();
-                    }
-                });
-            };
-
-            // Start silent check in background thread
-            _ = Task.Run(async () =>
-            {
-                var update = await UpdateManager.Instance.CheckForUpdatesAsync();
-                if (update != null && SettingsManager.Default.UpdateReadyVersion != update.Version)
-                {
-                    await UpdateManager.Instance.StartDownloadAsync(update);
-                }
-            });
+            // 2. Start periodic live update checks every 60 seconds for in-app notifications
+            UpdateManager.Instance.StartPeriodicCheck(60);
 
             var licenseManager = new LicenseManager();
             var status = await licenseManager.VerifyLicenseStatusAsync();

@@ -99,6 +99,7 @@ namespace ClientApp
             LanSyncService.PeersChanged += LanSyncService_PeersChanged;
             LanSyncService.SyncStateChanged += LanSyncService_SyncStateChanged;
             CloudSyncService.CloudOrderCompleted += CloudSyncService_CloudOrderCompleted;
+            UpdateManager.Instance.LiveUpdateDetected += UpdateManager_LiveUpdateDetected;
             LanSyncService.Start();
             InitializeNetworkMonitoring();
             LanSyncService_PeersChanged();
@@ -2329,6 +2330,41 @@ namespace ClientApp
             _cloudPollCts?.Cancel();
             _cloudPollCts?.Dispose();
             _cloudPollCts = null;
+        }
+
+        private UpdateInfo? _liveDetectedUpdate;
+
+        private void UpdateManager_LiveUpdateDetected(UpdateInfo update)
+        {
+            Dispatcher.Invoke(() =>
+            {
+                if (SettingsManager.Default.SkipUpdateVersion == update.Version) return;
+                _liveDetectedUpdate = update;
+                txtLiveUpdateTitle.Text = update.IsCompulsory ? "Compulsory Update Available" : "New Software Update Available";
+                txtLiveUpdateDesc.Text = $"A new update (v{update.Version}) is available. Restart app to update.";
+                borderLiveUpdateBanner.Visibility = Visibility.Visible;
+            });
+        }
+
+        private void LiveUpdateLater_Click(object sender, RoutedEventArgs e)
+        {
+            if (_liveDetectedUpdate != null)
+            {
+                SettingsManager.Default.SkipUpdateVersion = _liveDetectedUpdate.Version;
+                SettingsManager.Save();
+            }
+            borderLiveUpdateBanner.Visibility = Visibility.Collapsed;
+        }
+
+        private void LiveUpdateNow_Click(object sender, RoutedEventArgs e)
+        {
+            borderLiveUpdateBanner.Visibility = Visibility.Collapsed;
+            if (_liveDetectedUpdate != null)
+            {
+                var win = new UpdateNotificationWindow(_liveDetectedUpdate);
+                win.Owner = this;
+                win.ShowDialog();
+            }
         }
     }
 }
