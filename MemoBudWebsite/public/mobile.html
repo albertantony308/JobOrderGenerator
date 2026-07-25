@@ -1339,62 +1339,6 @@
       }
     }
 
-    // AUTO-SCAN LOCAL NETWORK FOR DESKTOP WORKSTATION
-    async function scanLocalNetworkForWorkstation() {
-      const scanBtn = document.getElementById('btnAutoScan');
-      if (scanBtn) {
-        scanBtn.disabled = true;
-        scanBtn.textContent = '🔍 Scanning...';
-      }
-      
-      showPremiumToast('Scanning local network subnets for your desktop workstation. Please wait...', 'info', 'Auto-Scan Started');
-      
-      const subnets = ['192.168.1', '192.168.0', '192.168.137', '10.0.0'];
-      let foundIp = null;
-      
-      // Batch size to prevent network socket congestion
-      const batchSize = 35;
-      
-      for (const subnet of subnets) {
-        if (foundIp) break;
-        
-        const ips = [];
-        for (let i = 2; i <= 254; i++) {
-          ips.push(`${subnet}.${i}`);
-        }
-        ips.push(`${subnet}.1`);
-        
-        for (let i = 0; i < ips.length; i += batchSize) {
-          if (foundIp) break;
-          const batch = ips.slice(i, i + batchSize);
-          
-          await Promise.all(batch.map(async (ip) => {
-            if (foundIp) return;
-            try {
-              const controller = new AbortController();
-              const timeoutId = setTimeout(() => controller.abort(), 400); // 400ms timeout
-              
-              const res = await fetch(`http://${ip}:14010/api/config`, {
-                method: 'GET',
-                mode: 'cors',
-                signal: controller.signal
-              });
-              clearTimeout(timeoutId);
-              
-              if (res.status === 200) {
-                const config = await res.json();
-                if (config && config.subscription_key) {
-                  if (appState.activationKeyCode && config.subscription_key.toUpperCase() === appState.activationKeyCode.toUpperCase()) {
-                    foundIp = ip;
-                  }
-                }
-              }
-            } catch (e) {
-              // Ignore
-            }
-          }));
-        }
-      }
     function updateConnectionBanner() {
       const card = document.getElementById('syncStatusCard');
       const icon = document.getElementById('syncStatusIcon');
