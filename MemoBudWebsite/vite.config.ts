@@ -10,9 +10,9 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['app_icon.png'],
       manifest: {
-        name: 'MemoBud',
-        short_name: 'MemoBud',
-        description: 'MemoBud delivers high-precision productivity workspaces.',
+        name: 'Service Memo Manager',
+        short_name: 'Service Memo Manager',
+        description: 'Service Memo Manager staff portal for tracking and updating job orders in real-time.',
         theme_color: '#004f96',
         background_color: '#ffffff',
         display: 'standalone',
