@@ -25,6 +25,22 @@ namespace ClientApp.Data
         {
             Database.EnsureCreated();
             
+            // Direct safety migration for new columns
+            try { Database.ExecuteSqlRaw("ALTER TABLE service_memos ADD COLUMN source TEXT DEFAULT 'ClientApp';"); } catch { }
+            try { Database.ExecuteSqlRaw("ALTER TABLE ServiceMemos ADD COLUMN source TEXT DEFAULT 'ClientApp';"); } catch { }
+            try { Database.ExecuteSqlRaw("ALTER TABLE service_memos ADD COLUMN Source TEXT DEFAULT 'ClientApp';"); } catch { }
+            try { Database.ExecuteSqlRaw("ALTER TABLE ServiceMemos ADD COLUMN Source TEXT DEFAULT 'ClientApp';"); } catch { }
+
+            try { Database.ExecuteSqlRaw("ALTER TABLE service_memos ADD COLUMN is_mobile_portal_update INTEGER DEFAULT 0;"); } catch { }
+            try { Database.ExecuteSqlRaw("ALTER TABLE ServiceMemos ADD COLUMN is_mobile_portal_update INTEGER DEFAULT 0;"); } catch { }
+            try { Database.ExecuteSqlRaw("ALTER TABLE service_memos ADD COLUMN IsMobilePortalUpdate INTEGER DEFAULT 0;"); } catch { }
+            try { Database.ExecuteSqlRaw("ALTER TABLE ServiceMemos ADD COLUMN IsMobilePortalUpdate INTEGER DEFAULT 0;"); } catch { }
+
+            try { Database.ExecuteSqlRaw("ALTER TABLE service_memos ADD COLUMN is_pending_cloud_push INTEGER DEFAULT 0;"); } catch { }
+            try { Database.ExecuteSqlRaw("ALTER TABLE ServiceMemos ADD COLUMN is_pending_cloud_push INTEGER DEFAULT 0;"); } catch { }
+            try { Database.ExecuteSqlRaw("ALTER TABLE service_memos ADD COLUMN IsPendingCloudPush INTEGER DEFAULT 0;"); } catch { }
+            try { Database.ExecuteSqlRaw("ALTER TABLE ServiceMemos ADD COLUMN IsPendingCloudPush INTEGER DEFAULT 0;"); } catch { }
+
             // Manual migration for new columns - trying both cases for safety
             var columns = new[] 
             { 
@@ -49,7 +65,10 @@ namespace ClientApp.Data
                 "OrderUpdates", "order_updates",
                 "ReturnDate", "return_date",
                 "IsRepeatedDevice", "is_repeated_device",
-                "ItemizedCosts", "itemized_costs"
+                "ItemizedCosts", "itemized_costs",
+                "IsPendingCloudPush", "is_pending_cloud_push",
+                "IsMobilePortalUpdate", "is_mobile_portal_update",
+                "Source", "source"
             };
 
             // These columns hold nullable non-string types (DateTime?, decimal?) and must
@@ -62,10 +81,48 @@ namespace ClientApp.Data
             // Integer columns that should default to 0 (not empty string)
             var integerColumns = new System.Collections.Generic.HashSet<string>(System.StringComparer.OrdinalIgnoreCase)
             {
-                "IsRepeatedDevice", "is_repeated_device"
+                "IsRepeatedDevice", "is_repeated_device",
+                "IsPendingCloudPush", "is_pending_cloud_push",
+                "IsMobilePortalUpdate", "is_mobile_portal_update"
             };
 
             var tables = new[] { "service_memos", "ServiceMemos" };
+
+            // Dynamic PRAGMA table_info inspection to guarantee ALL missing columns are added automatically
+            foreach (var table in tables)
+            {
+                try
+                {
+                    using var conn = Database.GetDbConnection();
+                    if (conn.State != System.Data.ConnectionState.Open) conn.Open();
+                    using var cmd = conn.CreateCommand();
+                    cmd.CommandText = $"PRAGMA table_info({table});";
+                    var existingCols = new System.Collections.Generic.HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                    using (var reader = cmd.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            existingCols.Add(reader.GetString(1));
+                        }
+                    }
+
+                    foreach (var col in columns)
+                    {
+                        if (!existingCols.Contains(col))
+                        {
+                            try
+                            {
+                                string colType = integerColumns.Contains(col) ? "INTEGER DEFAULT 0" : (col.Equals("source", StringComparison.OrdinalIgnoreCase) ? "TEXT DEFAULT 'ClientApp'" : "TEXT");
+                                using var alterCmd = conn.CreateCommand();
+                                alterCmd.CommandText = $"ALTER TABLE {table} ADD COLUMN {col} {colType};";
+                                alterCmd.ExecuteNonQuery();
+                            }
+                            catch { }
+                        }
+                    }
+                }
+                catch { }
+            }
 
             foreach (var table in tables)
             {

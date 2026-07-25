@@ -11,6 +11,7 @@ namespace ClientApp.Services
         private static readonly object _syncLock = new object();
 
         public static bool HasSynced => _hasSynced;
+        public static event Action<double>? ClockDriftDetected;
 
         /// <summary>
         /// Gets the current trusted UTC time (network time if available, or local machine UTC time).
@@ -40,6 +41,11 @@ namespace ClientApp.Services
             {
                 _clockOffset = serverUtcTime - DateTime.UtcNow;
                 _hasSynced = true;
+
+                if (Math.Abs(_clockOffset.TotalMinutes) >= 2.0)
+                {
+                    ClockDriftDetected?.Invoke(_clockOffset.TotalMinutes);
+                }
             }
         }
 

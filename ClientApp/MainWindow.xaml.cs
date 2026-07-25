@@ -41,6 +41,9 @@ namespace ClientApp
             WindowDwmFixer.ApplyFix(this);
             this.Closing += MainWindow_Closing;
             
+            NotificationManager.OnNotificationsUpdated += RefreshNotificationsUI;
+            RefreshNotificationsUI();
+            
             var version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
             if (txtAppVersionDisplay != null && version != null)
             {
@@ -75,23 +78,31 @@ namespace ClientApp
             UpdatePreview(SettingsManager.Default.SelectedTemplateId);
             UpdateCloudSyncSidebarUI();
 
-            // Hook Cloud status change events for real-time fallback notification
+            // Hook Cloud status change events (Silent background handling)
             CloudSyncService.CloudStatusChanged += () =>
             {
                 this.Dispatcher.Invoke(() =>
                 {
                     UpdateCloudSyncSidebarUI();
-                    if (CloudSyncService.IsCloudOffline)
-                    {
-                        SyncStatusText.Text = "Cloud Slow/Down (LAN Active)";
-                        SyncStatusText.Foreground = new SolidColorBrush(Color.FromRgb(245, 158, 11)); // Amber
-                    }
-                    else if (SettingsManager.Default.IsCloudSyncEnabled)
+                    if (SettingsManager.Default.IsCloudSyncEnabled)
                     {
                         SyncStatusText.Text = "Connected";
                         SyncStatusText.Foreground = new SolidColorBrush(Color.FromRgb(16, 185, 129)); // Green
                     }
                     RefreshCloudOfflineToast();
+                });
+            };
+
+            // Register Network System Clock Drift Detection Warning
+            NetworkTimeService.ClockDriftDetected += (offsetMinutes) =>
+            {
+                this.Dispatcher.Invoke(() =>
+                {
+                    if (borderClockDriftToast != null && txtClockDriftText != null)
+                    {
+                        txtClockDriftText.Text = $"System Clock Skew Detected ({offsetMinutes:F1} min drift): Your computer time is out of sync with standard internet time. Please update your Windows clock settings to ensure accurate cloud syncing.";
+                        borderClockDriftToast.Visibility = Visibility.Visible;
+                    }
                 });
             };
             
@@ -1178,25 +1189,90 @@ namespace ClientApp
             };
         }
 
+        private void SwitchActiveView(string viewName)
+        {
+            if (DashboardView != null) DashboardView.Visibility = (viewName == "Memos") ? Visibility.Visible : Visibility.Collapsed;
+            if (SettingsView != null) SettingsView.Visibility = (viewName == "Settings") ? Visibility.Visible : Visibility.Collapsed;
+            if (CustomizationView != null) CustomizationView.Visibility = (viewName == "Custom") ? Visibility.Visible : Visibility.Collapsed;
+            if (NotificationsView != null) NotificationsView.Visibility = (viewName == "Notifications") ? Visibility.Visible : Visibility.Collapsed;
+
+            if (btnNavMemos != null) btnNavMemos.Tag = (viewName == "Memos") ? "Active" : null;
+            if (btnNavSettings != null) btnNavSettings.Tag = (viewName == "Settings") ? "Active" : null;
+            if (btnNavCustom != null) btnNavCustom.Tag = (viewName == "Custom") ? "Active" : null;
+            if (btnNavNotifications != null) btnNavNotifications.Tag = (viewName == "Notifications") ? "Active" : null;
+        }
+
         private void NavMemos_Click(object sender, RoutedEventArgs e)
         {
-            DashboardView.Visibility = Visibility.Visible;
-            SettingsView.Visibility = Visibility.Collapsed;
-            CustomizationView.Visibility = Visibility.Collapsed;
-            btnNavMemos.Tag = "Active";
-            btnNavSettings.Tag = null;
-            btnNavCustom.Tag = null;
+            SwitchActiveView("Memos");
+        }
+
+        private void NavNotifications_Click(object sender, RoutedEventArgs e)
+        {
+            SwitchActiveView("Notifications");
+            NotificationManager.MarkAllAsRead();
+            RefreshNotificationsUI();
+        }
+
+        public void RefreshNotificationsUI()
+        {
+            this.Dispatcher.Invoke(() =>
+            {
+                var list = NotificationManager.GetAll();
+                int unread = NotificationManager.GetUnreadCount();
+
+                if (txtNotificationBadgeCount != null && badgeNotificationCount != null)
+                {
+                    txtNotificationBadgeCount.Text = unread.ToString();
+                    badgeNotificationCount.Visibility = unread > 0 ? Visibility.Visible : Visibility.Collapsed;
+                }
+
+                if (lstNotifications != null)
+                {
+                    lstNotifications.ItemsSource = list;
+                }
+
+                if (panelEmptyNotifications != null)
+                {
+                    panelEmptyNotifications.Visibility = list.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+                }
+            });
+        }
+
+        private void MarkAllNotificationsRead_Click(object sender, RoutedEventArgs e)
+        {
+            NotificationManager.MarkAllAsRead();
+            RefreshNotificationsUI();
+        }
+
+        private void ClearAllNotifications_Click(object sender, RoutedEventArgs e)
+        {
+            NotificationManager.ClearAll();
+            RefreshNotificationsUI();
+        }
+
+        private void ViewNotificationOrder_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button btn && btn.Tag is string memoNum && !string.IsNullOrEmpty(memoNum))
+            {
+                NavMemos_Click(sender, e);
+                txtSearch.Text = memoNum;
+                LoadData();
+
+                using var db = new LocalDbContext();
+                var memo = db.ServiceMemos.FirstOrDefault(m => m.MemoNumber == memoNum);
+                if (memo != null)
+                {
+                    var win = new MemoDetailsWindow(memo.Id);
+                    win.Owner = this;
+                    win.ShowDialog();
+                }
+            }
         }
 
         private async void NavSettings_Click(object sender, RoutedEventArgs e)
         {
-            DashboardView.Visibility = Visibility.Collapsed;
-            SettingsView.Visibility = Visibility.Visible;
-            CustomizationView.Visibility = Visibility.Collapsed;
-            btnNavMemos.Tag = null;
-            btnNavSettings.Tag = "Active";
-            btnNavCustom.Tag = null;
-            
+            SwitchActiveView("Settings");
             await LoadProfileInfo();
         }
 
@@ -1418,12 +1494,7 @@ namespace ClientApp
 
         private void NavCustom_Click(object sender, RoutedEventArgs e)
         {
-            DashboardView.Visibility = Visibility.Collapsed;
-            SettingsView.Visibility = Visibility.Collapsed;
-            CustomizationView.Visibility = Visibility.Visible;
-            btnNavMemos.Tag = null;
-            btnNavSettings.Tag = null;
-            btnNavCustom.Tag = "Active";
+            SwitchActiveView("Custom");
             RefreshCustomTemplates();
         }
 
@@ -1918,16 +1989,7 @@ namespace ClientApp
                 }
                 catch { }
 
-                // 2. WPF Message Box Dialog
-                try
-                {
-                    MessageBox.Show(
-                        message,
-                        title,
-                        MessageBoxButton.OK,
-                        MessageBoxImage.Information);
-                }
-                catch { }
+                // WPF Message Box Dialog removed per user request (notifications handled silently in Notifications tab)
             }));
         }
 
@@ -2029,14 +2091,6 @@ namespace ClientApp
         private async void UpdateSyncStatus()
         {
             await LoadProfileInfo();
-            if (SettingsManager.Default.IsCloudSyncEnabled && !string.IsNullOrEmpty(SettingsManager.Default.SubscriptionKey))
-            {
-                btnCloudLogin.Content = "Cloud Settings";
-            }
-            else
-            {
-                btnCloudLogin.Content = "Configure Cloud";
-            }
         }
 
         private void WhatsApp_Click(object sender, RoutedEventArgs e)

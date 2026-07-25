@@ -161,9 +161,35 @@ namespace ClientApp.Services
             }
         }
 
+        private static DateTime? _internetOfflineStartTime = null;
+
+        public static bool IsLanSyncActiveDueTo3MinOutage()
+        {
+            if (SettingsManager.Default.SyncMode == "LocalOnly") return true;
+
+            if (!CloudSyncService.IsCloudOffline)
+            {
+                if (_internetOfflineStartTime != null)
+                {
+                    _internetOfflineStartTime = null;
+                    _ = Task.Run(() => CloudSyncService.FlushOfflineQueueAsync());
+                }
+                return false;
+            }
+
+            if (_internetOfflineStartTime == null)
+            {
+                _internetOfflineStartTime = DateTime.UtcNow;
+                return false;
+            }
+
+            return (DateTime.UtcNow - _internetOfflineStartTime.Value).TotalSeconds >= 180;
+        }
+
         private static void BroadcastDiscoveryPacket()
         {
             if (_udpSender == null || string.IsNullOrEmpty(SettingsManager.Default.SubscriptionKey)) return;
+            if (!IsLanSyncActiveDueTo3MinOutage()) return;
 
             try
             {
@@ -927,17 +953,24 @@ namespace ClientApp.Services
                                 string.Equals(m.MemoNumber, cleanId, StringComparison.OrdinalIgnoreCase) && m.Status != "Deleted" && m.Status != "Deleted_Synced");
                             if (memo != null)
                             {
+                                var oldCopy = new ServiceMemo { Status = memo.Status, TechnicianName = memo.TechnicianName, OrderUpdates = memo.OrderUpdates };
+
                                 memo.Status = updateReq.Status;
                                 memo.TechnicianName = updateReq.TechnicianName;
                                 if (updateReq.OrderUpdates != null)
                                 {
                                     memo.OrderUpdates = updateReq.OrderUpdates;
                                 }
+                                memo.IsMobilePortalUpdate = true;
+                                memo.Source = "MobilePortal";
+
                                 var nowUtc = NetworkTimeService.GetUtcNow();
                                 memo.UpdatedAt = nowUtc > memo.UpdatedAt ? nowUtc : memo.UpdatedAt.AddSeconds(1);
                                 db.Entry(memo).State = Microsoft.EntityFrameworkCore.EntityState.Modified;
                                 db.ServiceMemos.Update(memo);
                                 db.SaveChanges();
+
+                                NotificationManager.TrackStatusUpdate(oldCopy, memo);
 
                                 // 1. Broadcast to other LAN peers instantly
                                 _ = Task.Run(() => BroadcastMemoSavedAsync(memo));

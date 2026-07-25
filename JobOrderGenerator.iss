@@ -2,6 +2,7 @@
 #define MyAppPublisher "Albert Antony"
 #define MyAppURL "https://github.com/albertantony308/JobOrderGenerator"
 #define MyAppExeName "JobOrderGenerator.exe"
+#define MyAppVersion "1.4.6"
 
 [Setup]
 AppId={{8B19FC7D-6842-452A-B9B2-C4B13B7E8A0E}
@@ -37,4 +38,5 @@ Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: de
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
 
 [UninstallDelete]
+Type: filesandordirs; Name: "{app}"
 Type: filesandordirs; Name: "{localappdata}\ServiceMemoApp\updates"

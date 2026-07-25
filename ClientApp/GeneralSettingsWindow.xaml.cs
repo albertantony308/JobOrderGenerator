@@ -74,6 +74,63 @@ namespace ClientApp
             }
         }
 
+        private void ExportActiveOrders_Click(object sender, RoutedEventArgs e)
+        {
+            BackupManager.ExportActiveOrdersBackup();
+        }
+
+        private void ImportBackup_Click(object sender, RoutedEventArgs e)
+        {
+            BackupManager.ImportBackup();
+            if (Application.Current.MainWindow is MainWindow mainWin)
+            {
+                mainWin.LoadData();
+            }
+        }
+
+        private async void ForcePush_Click(object sender, RoutedEventArgs e)
+        {
+            if (MessageBox.Show("Are you sure you want to FORCE PUSH your local database to Supabase Cloud?\n\nThis will replace cloud records with your local records.", "Confirm Force Push", MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes)
+            {
+                try
+                {
+                    int count = await CloudSyncService.ForcePushAllLocalToCloudAsync();
+                    MessageBox.Show($"Force Push Completed Successfully! Pushed {count} order(s) to Cloud.", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Force Push error: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+        }
+
+        private async void ForcePull_Click(object sender, RoutedEventArgs e)
+        {
+            if (MessageBox.Show("Are you sure you want to FORCE PULL all records from Supabase Cloud to this device?\n\nThis will update your local database with cloud records.", "Confirm Force Pull", MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
+            {
+                try
+                {
+                    int count = await CloudSyncService.ForcePullAllCloudToLocalAsync();
+                    MessageBox.Show($"Force Pull Completed Successfully! Pulled {count} order(s) to Local.", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+                    if (Application.Current.MainWindow is MainWindow mainWin)
+                    {
+                        mainWin.LoadData();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Force Pull error: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+        }
+
+        private void OpenCloudSettings_Click(object sender, RoutedEventArgs e)
+        {
+            var win = new CloudSettingsWindow();
+            win.Owner = this;
+            win.ShowDialog();
+        }
+
         private void Save_Click(object sender, RoutedEventArgs e)
         {
             SettingsManager.Default.IsAutoBackupEnabled = chkAutoBackup.IsChecked ?? true;

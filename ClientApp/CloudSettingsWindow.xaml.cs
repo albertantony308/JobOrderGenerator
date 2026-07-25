@@ -268,6 +268,42 @@ namespace ClientApp
             }
         }
 
+        private async void ForcePush_Click(object sender, RoutedEventArgs e)
+        {
+            var res = MessageBox.Show("This will push all active orders from this computer to the cloud with updated timestamps, allowing secondary devices to receive your fresh data. Continue?", "Force Push to Cloud", MessageBoxButton.YesNo, MessageBoxImage.Question);
+            if (res != MessageBoxResult.Yes) return;
+
+            try
+            {
+                int count = await CloudSyncService.ForcePushAllLocalToCloudAsync();
+                MessageBox.Show($"Successfully pushed {count} order(s) to cloud.", "Sync Complete", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (System.Exception ex)
+            {
+                MessageBox.Show($"Error pushing to cloud: {ex.Message}", "Sync Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private async void ForcePull_Click(object sender, RoutedEventArgs e)
+        {
+            var res = MessageBox.Show("This will pull all cloud orders for your account and update your local orders to match the cloud version. Continue?", "Force Pull from Cloud", MessageBoxButton.YesNo, MessageBoxImage.Question);
+            if (res != MessageBoxResult.Yes) return;
+
+            try
+            {
+                int count = await CloudSyncService.ForcePullAllCloudToLocalAsync();
+                if (Application.Current.MainWindow is MainWindow mainWin)
+                {
+                    mainWin.LoadData();
+                }
+                MessageBox.Show($"Successfully updated {count} order(s) from cloud.", "Sync Complete", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (System.Exception ex)
+            {
+                MessageBox.Show($"Error pulling from cloud: {ex.Message}", "Sync Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
         private void SaveConfig_Click(object sender, RoutedEventArgs e)
         {
             SettingsManager.Default.IsCloudSyncEnabled = chkEnableSync.IsChecked ?? false;

@@ -108,15 +108,13 @@ function Upload-ToGitHub {
     }
 }
 
-# Upload Raw Executable
-Upload-ToGitHub -FilePath $ExePath -FileName "JobOrderGenerator_v$Version.exe"
-
 Write-Host "`nChecking for Inno Setup Compiler..." -ForegroundColor Cyan
 $ISCC_System = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
 $ISCC_User = "$env:LOCALAPPDATA\Programs\Inno Setup 6\ISCC.exe"
 
 $ISCC = ""
-if (Test-Path $ISCC_System) { $ISCC = $ISCC_System }
+if (Get-Command iscc -ErrorAction SilentlyContinue) { $ISCC = "iscc" }
+elseif (Test-Path $ISCC_System) { $ISCC = $ISCC_System }
 elseif (Test-Path $ISCC_User) { $ISCC = $ISCC_User }
 
 if ($ISCC -eq "") {
@@ -135,7 +133,7 @@ $IssPath = "$PSScriptRoot\JobOrderGenerator.iss"
 $SetupExePath = "$PublishDir\JobOrderGenerator_Setup_v$Version.exe"
 if (Test-Path $SetupExePath) {
     Upload-ToGitHub -FilePath $SetupExePath -FileName "JobOrderGenerator_Setup_v$Version.exe"
-    Write-Host "`nDONE! The release v$Version (both raw and setup executables) is now live on GitHub." -ForegroundColor Green
+    Write-Host "`nDONE! The release v$Version setup installer is now live on GitHub." -ForegroundColor Green
 } else {
     Write-Host "`nFailed to generate Inno Setup executable. Setup not found at $SetupExePath" -ForegroundColor Red
 }

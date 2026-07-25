@@ -110,6 +110,9 @@ namespace ClientApp.Models
 
         [Column("source")]
         public string Source { get; set; } = "ClientApp";
+
+        [Column("is_pending_cloud_push")]
+        public bool IsPendingCloudPush { get; set; } = false;
     }
 
     public class ServiceMemoDto
@@ -142,6 +145,7 @@ namespace ClientApp.Models
         public bool IsRepeatedDevice { get; set; } = false;
         public bool IsMobilePortalUpdate { get; set; } = false;
         public string Source { get; set; } = "ClientApp";
+        public bool IsPendingCloudPush { get; set; } = false;
 
         public static ServiceMemoDto FromModel(ServiceMemo m, bool syncImages = true)
         {
@@ -174,7 +178,8 @@ namespace ClientApp.Models
                 ReturnDate = m.ReturnDate,
                 IsRepeatedDevice = m.IsRepeatedDevice,
                 IsMobilePortalUpdate = m.IsMobilePortalUpdate,
-                Source = m.Source
+                Source = m.Source,
+                IsPendingCloudPush = m.IsPendingCloudPush
             };
         }
     }

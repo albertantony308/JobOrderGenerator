@@ -69,6 +69,15 @@
                     
                     <Button x:Name="btnNavMemos" Content="Job Orders" Style="{DynamicResource NavigationButtonStyle}" Tag="Active" Click="NavMemos_Click"/>
                     <Button x:Name="btnNavCustom" Content="Order Layouts" Style="{DynamicResource NavigationButtonStyle}" Click="NavCustom_Click"/>
+                    
+                    <!-- Notifications Item with Unread Badge -->
+                    <Grid Margin="0,0,0,4">
+                        <Button x:Name="btnNavNotifications" Content="Notifications" Style="{DynamicResource NavigationButtonStyle}" Click="NavNotifications_Click"/>
+                        <Border x:Name="badgeNotificationCount" Background="#ef4444" CornerRadius="8" Padding="6,2" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,12,0" Visibility="Collapsed" IsHitTestVisible="False">
+                            <TextBlock x:Name="txtNotificationBadgeCount" Text="0" Foreground="White" FontSize="10" FontWeight="Bold"/>
+                        </Border>
+                    </Grid>
+                    
                     <Button x:Name="btnNavSettings" Content="App Settings" Style="{DynamicResource NavigationButtonStyle}" Click="NavSettings_Click"/>
 
                 </StackPanel>
@@ -96,56 +105,51 @@
                         <TextBlock Text="Syncing..." FontSize="11" Foreground="{DynamicResource OnSurfaceVariantBrush}" Margin="8,0,0,0" VerticalAlignment="Center"/>
                     </StackPanel>
 
-                    <!-- Cloud Sync block -->
-                    <TextBlock Text="Cloud Sync" Foreground="{DynamicResource OnSurfaceVariantBrush}" 
-                               FontSize="{DynamicResource CaptionFontSize}" FontWeight="SemiBold" Margin="0,0,0,8"/>
-                    <Border Background="{DynamicResource TertiaryContainerBrush}" 
-                            BorderBrush="{DynamicResource TertiaryBrush}" 
-                            BorderThickness="1"
-                            CornerRadius="16" Padding="16" Margin="0,0,0,16">
-                        <StackPanel>
-                            <!-- Disconnected State -->
-                            <StackPanel x:Name="panelSidebarCloudDisconnected" Visibility="Visible">
-                                <TextBlock x:Name="SyncStatusText" Text="Not Connected" FontSize="13" Margin="0,0,0,12" FontWeight="Bold" Foreground="{DynamicResource OnSurfaceBrush}"/>
-                                <Button x:Name="btnCloudLogin" Content="Configure Cloud" Click="CloudSettings_Click" Style="{DynamicResource AccentedButtonStyle}" FontSize="12" Padding="12,8" HorizontalAlignment="Stretch"/>
-                            </StackPanel>
-
-                            <!-- Connected State (Progress Bar Meter) -->
-                            <StackPanel x:Name="panelSidebarCloudConnected" Visibility="Collapsed">
-                                <TextBlock Text="Connected" FontSize="13" Margin="0,0,0,8" FontWeight="Bold" Foreground="#10b981"/>
-                                <TextBlock x:Name="txtSidebarStorageDisplay" Text="0.00 MB / 5 GB" FontSize="11" Foreground="{DynamicResource OnSurfaceVariantBrush}" Margin="0,0,0,8"/>
-                                <ProgressBar x:Name="pbSidebarStorage" Height="6" Minimum="0" Maximum="100" Value="0">
-                                    <ProgressBar.Resources>
-                                        <Style TargetType="Border">
-                                            <Setter Property="CornerRadius" Value="3"/>
-                                        </Style>
-                                    </ProgressBar.Resources>
-                                </ProgressBar>
-                            </StackPanel>
-                        </StackPanel>
-                    </Border>
-
-                    <!-- Local Network Sync Section -->
-                    <TextBlock Text="Local Network Sync" Foreground="{DynamicResource OnSurfaceVariantBrush}" 
-                               FontSize="{DynamicResource CaptionFontSize}" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                    <!-- Compact Cloud & Network Sync Status -->
                     <Border Background="{DynamicResource SurfaceContainerBrush}" 
                             BorderBrush="{DynamicResource OutlineBrush}" 
                             BorderThickness="1"
-                            CornerRadius="16" Padding="16">
+                            CornerRadius="12" Padding="12" Margin="0,0,0,16">
                         <StackPanel>
-                            <DockPanel Margin="0,0,0,6">
-                                <TextBlock Text="LAN Sync:" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource OnSurfaceVariantBrush}"/>
-                                <TextBlock x:Name="txtLanSyncStatus" Text="Active" FontSize="12" FontWeight="Bold" Foreground="#10b981" HorizontalAlignment="Right" DockPanel.Dock="Right"/>
+                            <Grid Margin="0,0,0,8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                
+                                <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,2">
+                                        <Ellipse Width="8" Height="8" Fill="#10b981" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                        <TextBlock x:Name="SyncStatusText" Text="Cloud Connected" FontSize="12" FontWeight="Bold" Foreground="{DynamicResource OnSurfaceBrush}"/>
+                                    </StackPanel>
+                                    <TextBlock x:Name="txtLanSyncStatus" Text="LAN Sync Active" FontSize="10" Foreground="{DynamicResource OnSurfaceVariantBrush}" Opacity="0.8"/>
+                                </StackPanel>
+                                
+                                <Button Grid.Column="1" Content="Cloud Settings" Click="CloudSettings_Click" Style="{DynamicResource SecondaryButtonStyle}" FontSize="11" Padding="8,5" VerticalAlignment="Center"/>
+                            </Grid>
+
+                            <!-- Compact Storage Bar & Meter -->
+                            <DockPanel Margin="0,2,0,4">
+                                <TextBlock Text="Cloud Storage:" FontSize="10" Foreground="{DynamicResource OnSurfaceVariantBrush}" DockPanel.Dock="Left"/>
+                                <TextBlock x:Name="txtSidebarStorageDisplay" Text="0.00 MB / 5.0 GB" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource OnSurfaceBrush}" HorizontalAlignment="Right" DockPanel.Dock="Right"/>
                             </DockPanel>
-                            <DockPanel Margin="0,0,0,6">
-                                <TextBlock Text="Active Peers:" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource OnSurfaceVariantBrush}"/>
-                                <TextBlock x:Name="txtLanPeersCount" Text="0 Devices" FontSize="12" FontWeight="Bold" Foreground="{DynamicResource OnSurfaceBrush}" HorizontalAlignment="Right" DockPanel.Dock="Right"/>
-                            </DockPanel>
-                            <ScrollViewer MaxHeight="80" VerticalScrollBarVisibility="Auto" Margin="0,4,0,0">
-                                <TextBlock x:Name="txtLanPeersList" Text="No active peers found on LAN." FontSize="11" Foreground="{DynamicResource OnSurfaceVariantBrush}" TextWrapping="Wrap" Opacity="0.8"/>
-                            </ScrollViewer>
+                            <ProgressBar x:Name="pbSidebarStorage" Height="4" Minimum="0" Maximum="100" Value="0">
+                                <ProgressBar.Resources>
+                                    <Style TargetType="Border">
+                                        <Setter Property="CornerRadius" Value="2"/>
+                                    </Style>
+                                </ProgressBar.Resources>
+                            </ProgressBar>
                         </StackPanel>
                     </Border>
+
+                    <!-- Hidden bindings for background sync service controls -->
+                    <StackPanel Visibility="Collapsed">
+                        <StackPanel x:Name="panelSidebarCloudDisconnected"/>
+                        <StackPanel x:Name="panelSidebarCloudConnected"/>
+                        <TextBlock x:Name="txtLanPeersCount"/>
+                        <TextBlock x:Name="txtLanPeersList"/>
+                    </StackPanel>
                 </StackPanel>
             </Grid>
         </Border>
@@ -185,6 +189,14 @@
                             </StackPanel>
                             <Button Grid.Column="2" x:Name="btnSwitchOffline" Content="Use App Offline" Click="SwitchOffline_Click" Style="{DynamicResource SecondaryButtonStyle}" Padding="10,4" FontSize="11" Height="26" VerticalAlignment="Center"/>
                         </Grid>
+                    </Border>
+
+                    <!-- System Clock Drift Warning Toast -->
+                    <Border x:Name="borderClockDriftToast" Background="#FFFBEB" BorderBrush="#F59E0B" BorderThickness="1" CornerRadius="8" Padding="12" Margin="0,0,0,8" Visibility="Collapsed">
+                        <DockPanel>
+                            <TextBlock Text="⏰" FontSize="16" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                            <TextBlock x:Name="txtClockDriftText" Text="System Clock Skew Detected: Your computer time is out of sync with standard internet time. Please update your Windows clock settings to ensure accurate cloud syncing." FontSize="12" Foreground="#92400E" FontWeight="SemiBold" VerticalAlignment="Center" TextWrapping="Wrap"/>
+                        </DockPanel>
                     </Border>
 
                     <!-- License Warning Toast -->
@@ -227,7 +239,8 @@
                                ItemsSource="{Binding ServiceMemos}"
                                Style="{DynamicResource DataGridStyle}"
                                IsReadOnly="True" SelectionMode="Single"
-                               ScrollViewer.CanContentScroll="True" 
+                               ScrollViewer.CanContentScroll="False" 
+                               VirtualizingPanel.ScrollUnit="Pixel"
                                ScrollViewer.VerticalScrollBarVisibility="Auto"
                                VerticalAlignment="Stretch"
                                HorizontalScrollBarVisibility="Auto"
@@ -380,6 +393,89 @@
                         </DataGrid.Columns>
                     </DataGrid>
                 </Grid>
+            </Grid>
+
+            <!-- Notifications View -->
+            <Grid x:Name="NotificationsView" Margin="24" Visibility="Collapsed">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <!-- Header & Action Bar -->
+                <Grid Grid.Row="0" Margin="0,0,0,24">
+                    <StackPanel>
+                        <TextBlock Style="{DynamicResource HeadlineLg}" Text="Staff &amp; Mobile Notifications" Foreground="{DynamicResource PrimaryBrush}"/>
+                        <TextBlock Text="Real-time status updates submitted by staff using the mobile portal." Foreground="{DynamicResource OnSurfaceVariantBrush}" Margin="0,4,0,0"/>
+                    </StackPanel>
+
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                        <Button Content="Mark All Read" Style="{DynamicResource SecondaryButtonStyle}" Click="MarkAllNotificationsRead_Click" Margin="0,0,8,0" Padding="12,6" FontSize="11"/>
+                        <Button Content="Clear All" Style="{DynamicResource SecondaryButtonStyle}" Click="ClearAllNotifications_Click" Padding="12,6" FontSize="11"/>
+                    </StackPanel>
+                </Grid>
+
+                <!-- Notifications List -->
+                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                    <StackPanel x:Name="panelNotificationsList">
+                        <!-- Empty State Placeholder -->
+                        <Border x:Name="panelEmptyNotifications" Background="{DynamicResource SurfaceContainerLowBrush}" CornerRadius="16" Padding="32" Margin="0,16" Visibility="Visible">
+                            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <TextBlock Text="🔔" FontSize="36" HorizontalAlignment="Center" Margin="0,0,0,12" Opacity="0.6"/>
+                                <TextBlock Text="No Unread Staff Updates" FontSize="16" FontWeight="Bold" Foreground="{DynamicResource OnSurfaceBrush}" HorizontalAlignment="Center" Margin="0,0,0,4"/>
+                                <TextBlock Text="When staff update repair order statuses via mobile.html, notifications will appear here." FontSize="12" Foreground="{DynamicResource OnSurfaceVariantBrush}" HorizontalAlignment="Center"/>
+                            </StackPanel>
+                        </Border>
+                        
+                        <ItemsControl x:Name="lstNotifications">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Background="{DynamicResource SurfaceContainerLowBrush}" CornerRadius="16" Padding="16,14" Margin="0,0,0,12" BorderThickness="1" BorderBrush="{DynamicResource OutlineBrush}">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+
+                                            <!-- Icon -->
+                                            <Border Grid.Column="0" Background="#263B82F6" CornerRadius="12" Width="44" Height="44" Margin="0,0,14,0" VerticalAlignment="Top">
+                                                <TextBlock Text="📱" FontSize="20" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                            </Border>
+
+                                            <!-- Notification Content -->
+                                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                                <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                                                    <TextBlock Text="{Binding MemoNumber}" FontWeight="Bold" FontSize="15" Foreground="{DynamicResource PrimaryBrush}" Margin="0,0,8,0"/>
+                                                    <TextBlock Text="•" Foreground="{DynamicResource OnSurfaceVariantBrush}" Margin="0,0,8,0" FontSize="14"/>
+                                                    <TextBlock Text="{Binding CustomerName}" FontWeight="SemiBold" FontSize="14" Foreground="{DynamicResource OnSurfaceBrush}" Margin="0,0,8,0"/>
+                                                    <TextBlock Text="{Binding DeviceName}" FontSize="14" Foreground="{DynamicResource OnSurfaceVariantBrush}"/>
+                                                </StackPanel>
+                                                
+                                                <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                                                    <TextBlock Text="Staff Member: " FontSize="13" Foreground="{DynamicResource OnSurfaceVariantBrush}"/>
+                                                    <TextBlock Text="{Binding StaffName}" FontWeight="SemiBold" FontSize="13" Foreground="{DynamicResource OnSurfaceBrush}"/>
+                                                    <TextBlock Text="   Status: " FontSize="13" Foreground="{DynamicResource OnSurfaceVariantBrush}"/>
+                                                    <TextBlock Text="{Binding OldStatus}" FontSize="13" Foreground="{DynamicResource OnSurfaceVariantBrush}" TextDecorations="Strikethrough"/>
+                                                    <TextBlock Text=" ➔ " FontSize="13" Foreground="{DynamicResource PrimaryBrush}"/>
+                                                    <TextBlock Text="{Binding NewStatus}" FontWeight="Bold" FontSize="13" Foreground="#10b981"/>
+                                                </StackPanel>
+
+                                                <TextBlock Text="{Binding UpdateNotes}" FontSize="13" Foreground="{DynamicResource OnSurfaceVariantBrush}" TextWrapping="Wrap" Visibility="{Binding HasNotesVisibility}" Margin="0,2,0,0"/>
+                                            </StackPanel>
+
+                                            <!-- Timestamp & View Order Button -->
+                                            <StackPanel Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="12,0,0,0">
+                                                <TextBlock Text="{Binding TimeAgo}" FontSize="12" Foreground="{DynamicResource OnSurfaceVariantBrush}" HorizontalAlignment="Right" Margin="0,0,0,8"/>
+                                                <Button Content="View Order" Style="{DynamicResource AccentedButtonStyle}" Click="ViewNotificationOrder_Click" Tag="{Binding MemoNumber}" Padding="12,6" FontSize="12" FontWeight="SemiBold"/>
+                                            </StackPanel>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </ScrollViewer>
             </Grid>
 
             <!-- Settings View -->

@@ -2730,18 +2730,37 @@ function App() {
                 className={`sidebar-btn ${selectedDashboardProduct === 'staff' ? 'active' : ''}`} 
                 onClick={async () => { 
                   setSelectedDashboardProduct('staff'); 
-                  if (userKeys.length > 0) {
+                  if (userKeys.length > 0 && userKeys.some((k: any) => k.cloud_sync_enabled)) {
                     fetchStaffList(userKeys[0].id);
                     ensureStaffSubKey(userKeys[0].id);
                   }
                 }}
-                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderRadius: 8, border: 'none', background: selectedDashboardProduct === 'staff' ? 'var(--primary-container)' : 'transparent', color: selectedDashboardProduct === 'staff' ? 'var(--on-primary-container)' : 'var(--on-surface)', cursor: 'pointer', textAlign: 'left', fontWeight: selectedDashboardProduct === 'staff' ? 700 : 500 }}
+                style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'space-between', 
+                  padding: '12px 16px', 
+                  borderRadius: 8, 
+                  border: 'none', 
+                  background: selectedDashboardProduct === 'staff' ? 'var(--primary-container)' : 'transparent', 
+                  color: selectedDashboardProduct === 'staff' ? 'var(--on-primary-container)' : 'var(--on-surface)', 
+                  cursor: 'pointer', 
+                  textAlign: 'left', 
+                  fontWeight: selectedDashboardProduct === 'staff' ? 700 : 500,
+                  opacity: userKeys.some((k: any) => k.cloud_sync_enabled) ? 1 : 0.7
+                }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <User size={18} />
                   <span>Staff Management</span>
                 </div>
-                <span style={{ fontSize: 9, background: 'var(--primary)', color: '#fff', padding: '2px 6px', borderRadius: 4, fontWeight: 'bold' }}>LIVE</span>
+                {userKeys.some((k: any) => k.cloud_sync_enabled) ? (
+                  <span style={{ fontSize: 9, background: 'var(--primary)', color: '#fff', padding: '2px 6px', borderRadius: 4, fontWeight: 'bold' }}>LIVE</span>
+                ) : (
+                  <span style={{ fontSize: 9, background: '#64748b', color: '#fff', padding: '2px 6px', borderRadius: 4, fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 2 }}>
+                    🔒 CLOUD ONLY
+                  </span>
+                )}
               </button>
 
               <button 
@@ -3075,14 +3094,57 @@ function App() {
                     <h2 style={{ fontSize: '1.85rem', marginTop: 4 }}>Staff Management Console</h2>
                     <p style={{ color: 'var(--on-surface-variant)', fontSize: '0.9rem', marginTop: 2 }}>Define and authorize field staff technicians who can modify estimates and update job orders in real-time.</p>
                   </div>
-                  {userKeys.length > 0 && (
+                  {userKeys.some((k: any) => k.cloud_sync_enabled) && (
                     <button className="btn btn-primary" style={{ height: 40 }} onClick={() => setShowAddStaffModal(true)}>
                       + Add Staff Member
                     </button>
                   )}
                 </div>
 
-                {userKeys.length > 0 ? (
+                {!userKeys.some((k: any) => k.cloud_sync_enabled) ? (
+                  /* Gated Cloud Subscription Upgrade Banner */
+                  <div className="card glass-panel" style={{ padding: '40px 32px', textAlign: 'center', background: 'rgba(59, 130, 246, 0.04)', border: '1px solid rgba(59, 130, 246, 0.25)', borderRadius: 20, maxWidth: 820, margin: '10px auto 30px auto' }}>
+                    <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'rgba(59, 130, 246, 0.15)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px auto' }}>
+                      <Cloud size={32} />
+                    </div>
+                    <h3 style={{ fontSize: '1.65rem', fontWeight: 800, color: 'var(--on-surface)', marginBottom: 12 }}>
+                      Staff Management via Mobile App is Available for Cloud Subscribers
+                    </h3>
+                    <p style={{ color: 'var(--on-surface-variant)', fontSize: '1.02rem', lineHeight: 1.6, maxWidth: 650, margin: '0 auto 28px auto' }}>
+                      Empower your field technicians and shop staff to update job order statuses, record diagnostic notes, and sync repair estimates in real-time via <strong>our Mobile App</strong>. Upgrade your activation key to a Cloud Subscription to unlock Staff Management.
+                    </p>
+                    
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16, textAlign: 'left', marginBottom: 32 }}>
+                      <div style={{ background: 'var(--surface-container-low)', padding: 18, borderRadius: 14, border: '1px solid var(--outline-variant)' }}>
+                        <div style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--primary)', marginBottom: 4 }}>📱 Staff Mobile App</div>
+                        <div style={{ fontSize: '0.85rem', color: 'var(--on-surface-variant)', lineHeight: 1.4 }}>Field staff can log in, search orders, and update repair statuses on any smartphone.</div>
+                      </div>
+                      <div style={{ background: 'var(--surface-container-low)', padding: 18, borderRadius: 14, border: '1px solid var(--outline-variant)' }}>
+                        <div style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--primary)', marginBottom: 4 }}>☁️ Instant Cloud Backup</div>
+                        <div style={{ fontSize: '0.85rem', color: 'var(--on-surface-variant)', lineHeight: 1.4 }}>All service memos are backed up securely to central cloud storage across devices.</div>
+                      </div>
+                      <div style={{ background: 'var(--surface-container-low)', padding: 18, borderRadius: 14, border: '1px solid var(--outline-variant)' }}>
+                        <div style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--primary)', marginBottom: 4 }}>🔔 Live Client Notifications</div>
+                        <div style={{ fontSize: '0.85rem', color: 'var(--on-surface-variant)', lineHeight: 1.4 }}>Receive real-time unread notification cards on your desktop app when staff update jobs.</div>
+                      </div>
+                    </div>
+
+                    <button 
+                      className="btn btn-primary" 
+                      style={{ height: 50, padding: '0 36px', fontSize: '1.05rem', fontWeight: 800, borderRadius: 12, boxShadow: '0 8px 24px rgba(59, 130, 246, 0.3)' }}
+                      onClick={() => {
+                        if (userKeys.length > 0) {
+                          handleUpgradeCloudSync(userKeys[0].id);
+                        } else {
+                          window.location.hash = '#pricing';
+                        }
+                      }}
+                    >
+                      🚀 Upgrade Plan to Cloud Version
+                    </button>
+                  </div>
+                ) : (
+                  userKeys.length > 0 ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
                     {/* Activation Key Card */}
                     <div className="card glass-panel" style={{ padding: 24, background: 'rgba(0, 79, 150, 0.03)', border: '1px solid var(--outline-variant)' }}>
@@ -3178,7 +3240,7 @@ function App() {
                       </p>
                     </div>
                   </div>
-                )}
+                ))}
 
                 {/* Add Staff Modal Overlay */}
                 {showAddStaffModal && (

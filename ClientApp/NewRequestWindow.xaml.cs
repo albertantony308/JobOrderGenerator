@@ -394,7 +394,7 @@ namespace ClientApp
 
             if (SettingsManager.Default.IsCloudSyncEnabled && SettingsManager.Default.SyncMode != "LocalOnly")
             {
-                _ = CloudSyncService.SyncWithCloudAsync();
+                _ = CloudSyncService.PushSingleMemoAsync(memo);
             }
 
             WasCreated = true;

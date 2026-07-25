@@ -13,11 +13,16 @@ namespace ClientApp.Services
     {
         public static void ExportBackup()
         {
+            ExportActiveOrdersBackup();
+        }
+
+        public static void ExportActiveOrdersBackup()
+        {
             var sfd = new SaveFileDialog
             {
                 Filter = "JSON Backup File (*.json)|*.json",
-                Title = "Export Local Database Backup",
-                FileName = $"ServiceMemoBackup_{DateTime.Now:yyyyMMdd_HHmmss}.json"
+                Title = "Export Active Orders Backup",
+                FileName = $"ServiceMemo_ActiveOrders_{DateTime.Now:yyyyMMdd_HHmmss}.json"
             };
 
             if (sfd.ShowDialog() == true)
@@ -26,12 +31,14 @@ namespace ClientApp.Services
                 {
                     using (var db = new LocalDbContext())
                     {
-                        var memos = db.ServiceMemos.Where(m => m.Status != "Deleted").ToList();
+                        var memos = db.ServiceMemos
+                            .Where(m => m.Status != "Deleted" && m.Status != "Deleted_Synced")
+                            .ToList();
                         var dtos = memos.Select(m => ServiceMemoDto.FromModel(m)).ToList();
                         var json = JsonSerializer.Serialize(dtos, new JsonSerializerOptions { WriteIndented = true });
                         File.WriteAllText(sfd.FileName, json);
+                        MessageBox.Show($"Exported {dtos.Count} active order(s) successfully to backup file.", "Backup Complete", MessageBoxButton.OK, MessageBoxImage.Information);
                     }
-                    MessageBox.Show("Backup exported successfully.", "Backup Complete", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
                 catch (Exception ex)
                 {
@@ -57,12 +64,13 @@ namespace ClientApp.Services
 
                     if (importedDtos != null && importedDtos.Length > 0)
                     {
+                        int importedCount = 0;
                         using (var db = new LocalDbContext())
                         {
                             foreach (var dto in importedDtos)
                             {
-                                // Assign new ID to prevent conflicts, or match if needed.
-                                // We'll just check by MemoNumber
+                                if (dto.Status == "Deleted" || dto.Status == "Deleted_Synced") continue;
+
                                 var existing = db.ServiceMemos.FirstOrDefault(m => m.MemoNumber == dto.MemoNumber);
                                 if (existing == null)
                                 {
@@ -91,13 +99,16 @@ namespace ClientApp.Services
                                         Accessories = dto.Accessories,
                                         Diagnostics = dto.Diagnostics,
                                         OrderUpdates = dto.OrderUpdates,
-                                        ReturnDate = dto.ReturnDate
+                                        ItemizedCosts = dto.ItemizedCosts,
+                                        ReturnDate = dto.ReturnDate,
+                                        IsRepeatedDevice = dto.IsRepeatedDevice
                                     };
                                     db.ServiceMemos.Add(newMemo);
+                                    importedCount++;
                                 }
                                 else
                                 {
-                                    // Update existing
+                                    // Update existing with newer details
                                     existing.CustomerName = dto.CustomerName;
                                     existing.PhoneNumber = dto.PhoneNumber;
                                     existing.DeviceName = dto.DeviceName;
@@ -118,12 +129,15 @@ namespace ClientApp.Services
                                     existing.Accessories = dto.Accessories;
                                     existing.Diagnostics = dto.Diagnostics;
                                     existing.OrderUpdates = dto.OrderUpdates;
+                                    existing.ItemizedCosts = dto.ItemizedCosts;
                                     existing.ReturnDate = dto.ReturnDate;
+                                    existing.IsRepeatedDevice = dto.IsRepeatedDevice;
+                                    importedCount++;
                                 }
                             }
                             db.SaveChanges();
                         }
-                        MessageBox.Show("Backup imported successfully. Please refresh the dashboard.", "Import Complete", MessageBoxButton.OK, MessageBoxImage.Information);
+                        MessageBox.Show($"Successfully processed {importedCount} order(s) from backup. Dashboard updated.", "Import Complete", MessageBoxButton.OK, MessageBoxImage.Information);
                     }
                 }
                 catch (Exception ex)
@@ -168,7 +182,9 @@ namespace ClientApp.Services
 
                 using (var db = new LocalDbContext())
                 {
-                    var memos = db.ServiceMemos.Where(m => m.Status != "Deleted").ToList();
+                    var memos = db.ServiceMemos
+                        .Where(m => m.Status != "Deleted" && m.Status != "Deleted_Synced")
+                        .ToList();
                     var dtos = memos.Select(m => ServiceMemoDto.FromModel(m)).ToList();
                     var json = JsonSerializer.Serialize(dtos, new JsonSerializerOptions { WriteIndented = true });
                     
@@ -190,6 +206,27 @@ namespace ClientApp.Services
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Auto Backup Error: {ex.Message}");
+            }
+        }
+
+        public static void CreatePreUpdateSafetyBackup()
+        {
+            try
+            {
+                var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+                var dbPath = Path.Combine(localAppData, "ServiceMemoApp", "local_memos.db");
+                if (!File.Exists(dbPath)) return;
+
+                var docsDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "Service Memo Backups");
+                Directory.CreateDirectory(docsDir);
+
+                var backupPath = Path.Combine(docsDir, $"service_memo_backup_{DateTime.Now:yyyy-MM-dd_HHmmss}.db");
+                File.Copy(dbPath, backupPath, true);
+                System.Diagnostics.Debug.WriteLine($"[BackupManager] Safety pre-update DB backup saved to {backupPath}");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[BackupManager] Pre-update backup error: {ex.Message}");
             }
         }
     }

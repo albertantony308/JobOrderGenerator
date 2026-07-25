@@ -79,14 +79,11 @@ namespace ClientApp
         {
             if (_updateInfo.IsCompulsory)
             {
-                // Strict updates cannot be postponed if launched at startup
                 MessageBox.Show("This update is mandatory to continue using the application. The app will now exit.", "Compulsory Update", MessageBoxButton.OK, MessageBoxImage.Warning);
                 Application.Current.Shutdown();
                 return;
             }
 
-            SettingsManager.Default.SkipUpdateVersion = _updateInfo.Version;
-            SettingsManager.Save();
             this.DialogResult = false;
             this.Close();
         }
@@ -95,7 +92,6 @@ namespace ClientApp
         {
             if (_updateInfo.UpdateType == "major" && !_isPaid)
             {
-                // Validate payment form
                 if (string.IsNullOrWhiteSpace(txtCardholder.Text) || 
                     string.IsNullOrWhiteSpace(txtCardNum.Text) || 
                     string.IsNullOrWhiteSpace(txtExpiry.Text) || 
@@ -121,7 +117,6 @@ namespace ClientApp
                 borderPayment.Visibility = Visibility.Collapsed;
             }
 
-            // Start downloading asynchronously in the background so the user can continue working!
             _ = UpdateManager.Instance.StartDownloadAsync(_updateInfo);
 
             this.DialogResult = true;
@@ -130,6 +125,9 @@ namespace ClientApp
 
         public static void InstallAndRestart(UpdateInfo _updateInfo)
         {
+            // Safety offline backup into Documents\Service Memo Backups\
+            BackupManager.CreatePreUpdateSafetyBackup();
+
             var fileUrl = _updateInfo.FileUrl ?? SettingsManager.Default.UpdateReadyFileUrl ?? "";
             bool isSetupInstaller = fileUrl.Contains("_setup_", StringComparison.OrdinalIgnoreCase);
 
@@ -148,30 +146,23 @@ namespace ClientApp
             var tempPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ServiceMemoApp", "updates");
             var exeSource = Path.Combine(tempPath, $"update_v{_updateInfo.Version}.exe");
 
-            if (isSetupInstaller && File.Exists(exeSource))
-            {
-                var startInfo = new ProcessStartInfo
-                {
-                    FileName = exeSource,
-                    UseShellExecute = true
-                };
-                Process.Start(startInfo);
-                Application.Current.Shutdown();
-                return;
-            }
-
-            // Build self-deleting batch helper script to restart the application after exit
             var batPath = Path.Combine(baseDirectory, "install-update.bat");
 
-            string copyCommand = ":: Simulated file copy copy/overwrite";
-            if (File.Exists(exeSource))
+            string runAction = "";
+            if (isSetupInstaller && File.Exists(exeSource))
             {
-                copyCommand = $@"echo Copying new application executable...
+                runAction = $@"echo Launching Setup Installer...
+start """" ""{exeSource}"" /VERYSILENT /SUPPRESSMSGBOXES /NORESTART";
+            }
+            else if (File.Exists(exeSource))
+            {
+                runAction = $@"echo Copying new application executable...
 copy /y ""{exeSource}"" ""{targetExe}""
 if errorlevel 1 (
-    echo Error: Failed to copy the new update file.
+    echo Error: Failed to copy update file.
     pause
-)";
+)
+start """" ""{targetExe}""";
             }
 
             string scriptContent = $@"@echo off
@@ -180,18 +171,10 @@ echo ============================================
 echo      JOB ORDER GENERATOR AUTO-UPDATER      
 echo ============================================
 echo.
-echo Waiting for parent application to exit...
-timeout /t 2 /nobreak > nul
+echo Waiting for application process to terminate...
+timeout /t 3 /nobreak > nul
 
-echo.
-echo Applying application binary patches...
-{copyCommand}
-echo v{_updateInfo.Version} update successfully applied!
-
-echo.
-echo Restarting application...
-timeout /t 1 /nobreak > nul
-start """" ""{targetExe}""
+{runAction}
 
 :: Self-destruct script
 del ""%~f0""
@@ -209,7 +192,6 @@ exit
             };
             Process.Start(startInfoBat);
 
-            // Shutdown WPF app so updater can overwrite binary
             Application.Current.Shutdown();
         }
     }

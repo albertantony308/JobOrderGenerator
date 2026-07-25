@@ -49,6 +49,22 @@
                         </DockPanel>
                     </Border>
 
+                    <TextBlock Text="CLOUD &amp; MULTI-DEVICE SYNCHRONIZATION" Style="{DynamicResource BodyMd}" FontWeight="Bold" Foreground="{DynamicResource PrimaryBrush}" FontSize="12" Margin="0,0,0,16" Opacity="0.8"/>
+                    
+                    <Border Background="{DynamicResource SurfaceContainerLowBrush}" CornerRadius="16" Padding="24" Margin="0,0,0,24">
+                        <StackPanel>
+                            <TextBlock Text="Manual Data Synchronization" Foreground="{DynamicResource OnSurfaceBrush}" FontWeight="SemiBold" FontSize="16" Margin="0,0,0,4"/>
+                            <TextBlock Text="Force push local database to cloud or pull cloud database to local device." Foreground="{DynamicResource OnSurfaceVariantBrush}" FontSize="12" Margin="0,0,0,16" TextWrapping="Wrap"/>
+
+                            <UniformGrid Columns="2" Margin="0,0,0,16">
+                                <Button Content="Force Push Local ➔ Cloud" Style="{DynamicResource SecondaryButtonStyle}" Click="ForcePush_Click" Margin="0,0,6,0" Padding="8,10" FontSize="11"/>
+                                <Button Content="Force Pull Cloud ➔ Local" Style="{DynamicResource SecondaryButtonStyle}" Click="ForcePull_Click" Margin="6,0,0,0" Padding="8,10" FontSize="11"/>
+                            </UniformGrid>
+
+                            <Button Content="Configure Cloud Key &amp; Preferences" Style="{DynamicResource AccentedButtonStyle}" Click="OpenCloudSettings_Click" HorizontalAlignment="Stretch" Padding="12,8" FontSize="12"/>
+                        </StackPanel>
+                    </Border>
+
                     <TextBlock Text="BACKUP &amp; SAFETY" Style="{DynamicResource BodyMd}" FontWeight="Bold" Foreground="{DynamicResource PrimaryBrush}" FontSize="12" Margin="0,0,0,16" Opacity="0.8"/>
                     
                     <Border Background="{DynamicResource SurfaceContainerLowBrush}" CornerRadius="16" Padding="24" Margin="0,0,0,24">
@@ -75,6 +91,13 @@
                                     <ComboBoxItem Content="60 Minutes" Tag="60"/>
                                 </ComboBox>
                             </DockPanel>
+
+                            <Separator Background="{DynamicResource OutlineBrush}" Margin="0,16,0,16" Opacity="0.3"/>
+
+                            <UniformGrid Columns="2">
+                                <Button Content="Export Active Orders" Style="{DynamicResource SecondaryButtonStyle}" Click="ExportActiveOrders_Click" Margin="0,0,6,0" Padding="12,8" FontSize="12"/>
+                                <Button Content="Import Backup File" Style="{DynamicResource SecondaryButtonStyle}" Click="ImportBackup_Click" Margin="6,0,0,0" Padding="12,8" FontSize="12"/>
+                            </UniformGrid>
                         </StackPanel>
                     </Border>
 
@@ -99,6 +122,7 @@
 
                             <!-- Manual Update Check -->
                             <StackPanel>
+                                <Button Content="Open Cloud Sync &amp; Force Sync Window" Style="{DynamicResource AccentedButtonStyle}" Click="OpenCloudSettings_Click" HorizontalAlignment="Stretch" Padding="12,8" FontSize="11" Margin="0,0,0,8"/>
                                 <Button x:Name="btnCheckUpdates" Content="Check for Updates" Style="{DynamicResource SecondaryButtonStyle}" Click="CheckForUpdates_Click" HorizontalAlignment="Stretch" Padding="12,8" FontSize="11"/>
                                 <TextBlock x:Name="txtUpdateCheckStatus" Text="" FontSize="11" Foreground="{DynamicResource PrimaryBrush}" HorizontalAlignment="Center" Margin="0,8,0,0" Visibility="Collapsed" TextWrapping="Wrap"/>
                             </StackPanel>

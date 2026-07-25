@@ -116,6 +116,18 @@ namespace ClientApp.Services
             _periodicCheckTimer.Start();
         }
 
+        private System.Threading.CancellationTokenSource? _downloadCts;
+
+        public void CancelDownload()
+        {
+            if (IsDownloading && _downloadCts != null)
+            {
+                _downloadCts.Cancel();
+                IsDownloading = false;
+                DownloadFailed?.Invoke("Download cancelled by user.");
+            }
+        }
+
         public async Task StartDownloadAsync(UpdateInfo update)
         {
             if (IsDownloading) return;
@@ -123,6 +135,8 @@ namespace ClientApp.Services
             DownloadProgress = 0.0;
             DownloadProgressChanged?.Invoke(0.0);
             DownloadProgressDetailsChanged?.Invoke(0.0, 0, 0);
+
+            _downloadCts = new System.Threading.CancellationTokenSource();
 
             try
             {
@@ -133,11 +147,11 @@ namespace ClientApp.Services
 
                 if (isMock)
                 {
-                    // Simulated progress for mock URLs
-                    long simulatedTotal = 35 * 1024 * 1024; // 35 MB
+                    long simulatedTotal = 35 * 1024 * 1024;
                     for (int i = 1; i <= 100; i++)
                     {
-                        await Task.Delay(40);
+                        _downloadCts.Token.ThrowIfCancellationRequested();
+                        await Task.Delay(40, _downloadCts.Token);
                         DownloadProgress = i;
                         long read = (long)(simulatedTotal * (i / 100.0));
                         DownloadProgressChanged?.Invoke(DownloadProgress);
@@ -146,34 +160,28 @@ namespace ClientApp.Services
                 }
                 else
                 {
-                    // Use a clean HttpClient without Supabase headers for external downloads
                     using (var downloadClient = new HttpClient())
                     {
-                        downloadClient.Timeout = TimeSpan.FromMinutes(10);
-                        using (var response = await downloadClient.GetAsync(update.FileUrl, HttpCompletionOption.ResponseHeadersRead))
+                        downloadClient.Timeout = TimeSpan.FromMinutes(15);
+                        using (var response = await downloadClient.GetAsync(update.FileUrl, HttpCompletionOption.ResponseHeadersRead, _downloadCts.Token))
                         {
                             response.EnsureSuccessStatusCode();
                             var totalBytes = response.Content.Headers.ContentLength ?? -1L;
-                            var contentStream = await response.Content.ReadAsStreamAsync();
+                            var contentStream = await response.Content.ReadAsStreamAsync(_downloadCts.Token);
                             
                             var tempPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ServiceMemoApp", "updates");
                             Directory.CreateDirectory(tempPath);
                             
-                            string extension = ".zip";
-                            if (update.FileUrl.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
-                            {
-                                extension = ".exe";
-                            }
-                            var tempFile = Path.Combine(tempPath, $"update_v{update.Version}{extension}");
+                            var tempFile = Path.Combine(tempPath, $"update_v{update.Version}.exe");
 
                             using (var fileStream = new FileStream(tempFile, FileMode.Create, FileAccess.Write, FileShare.None, 16384, true))
                             {
                                 var buffer = new byte[16384];
                                 var totalRead = 0L;
                                 var bytesRead = 0;
-                                while ((bytesRead = await contentStream.ReadAsync(buffer, 0, buffer.Length)) != 0)
+                                while ((bytesRead = await contentStream.ReadAsync(buffer, 0, buffer.Length, _downloadCts.Token)) != 0)
                                 {
-                                    await fileStream.WriteAsync(buffer, 0, bytesRead);
+                                    await fileStream.WriteAsync(buffer, 0, bytesRead, _downloadCts.Token);
                                     totalRead += bytesRead;
                                     if (totalBytes > 0)
                                     {
@@ -199,6 +207,20 @@ namespace ClientApp.Services
 
                 IsDownloading = false;
                 DownloadCompleted?.Invoke(update.Version);
+
+                // Auto-Install for compulsory updates
+                if (update.IsCompulsory)
+                {
+                    System.Windows.Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        UpdateNotificationWindow.InstallAndRestart(update);
+                    });
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                IsDownloading = false;
+                DownloadFailed?.Invoke("Download cancelled.");
             }
             catch (Exception ex)
             {

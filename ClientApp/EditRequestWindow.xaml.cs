@@ -470,11 +470,11 @@ namespace ClientApp
                     {
                         _ = LanSyncService.BroadcastMemoSavedAsync(memo);
                     }
-                }
 
-                if (SettingsManager.Default.IsCloudSyncEnabled && SettingsManager.Default.SyncMode != "LocalOnly")
-                {
-                    _ = CloudSyncService.SyncWithCloudAsync();
+                    if (SettingsManager.Default.IsCloudSyncEnabled && SettingsManager.Default.SyncMode != "LocalOnly")
+                    {
+                        _ = CloudSyncService.PushSingleMemoAsync(memo);
+                    }
                 }
             }
             catch (Exception ex)

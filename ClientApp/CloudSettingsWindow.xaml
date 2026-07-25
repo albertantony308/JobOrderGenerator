@@ -256,6 +256,16 @@
                             </StackPanel>
                         </Border>
 
+                        <!-- Force Sync Multi-Device Actions -->
+                        <Grid Margin="0,0,0,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Button Grid.Column="0" Content="Force Push Local ➔ Cloud" Style="{DynamicResource SecondaryButtonStyle}" Click="ForcePush_Click" Margin="0,0,6,0" Height="40" FontSize="11"/>
+                            <Button Grid.Column="1" Content="Force Pull Cloud ➔ Local" Style="{DynamicResource SecondaryButtonStyle}" Click="ForcePull_Click" Margin="6,0,0,0" Height="40" FontSize="11"/>
+                        </Grid>
+
                         <!-- Configuration Section Actions -->
                         <Button Style="{DynamicResource PrimaryButtonStyle}" Content="Save Synchronization Preferences" Click="SaveConfig_Click" Height="48" Margin="0,0,0,12"/>
                         

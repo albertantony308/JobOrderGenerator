@@ -502,6 +502,26 @@
       100% { transform: scale(1); opacity: 1; }
     }
 
+    @keyframes modalFadeIn {
+      0% { opacity: 0; transform: scale(0.92); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+
+    .btn-spinner {
+      width: 14px;
+      height: 14px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-top-color: #ffffff;
+      border-radius: 50%;
+      display: inline-block;
+      animation: btnSpin 0.6s linear infinite;
+      margin-right: 6px;
+      vertical-align: middle;
+    }
+    @keyframes btnSpin {
+      to { transform: rotate(360deg); }
+    }
+
     /* Alert / Overlay box */
     .revoked-overlay {
       position: fixed;
@@ -662,19 +682,10 @@
       <div id="staffConsoleScreen" class="screen-view">
         <div class="welcome-banner">
           <div>
-            <span class="spec-label">TECHNICIAN SEAT</span>
+            <span class="spec-label">TECHNICIAN STAFF</span>
             <h2 id="staffGreetingName">John Doe</h2>
           </div>
           <div class="user-avatar" id="avatarPill">JD</div>
-        </div>
-
-        <!-- PERSISTENT SYNC STATUS CARD -->
-        <div id="syncStatusCard" class="card glass-panel" style="padding: 12px 16px; display: flex; flex-direction: row; align-items: center; gap: 12px; border-radius: 12px; margin-bottom: 8px;">
-          <span id="syncStatusIcon" style="font-size: 20px;">📶</span>
-          <div style="display: flex; flex-direction: column;">
-            <span id="syncStatusTitle" style="font-size: 13px; font-weight: 700;">Local Wi-Fi Sync Only</span>
-            <span id="syncStatusDesc" style="font-size: 11px; color: var(--on-surface-variant);">No Cloud tier active for this key</span>
-          </div>
         </div>
 
         <!-- SEARCH CONTAINER -->
@@ -684,64 +695,80 @@
             <span class="search-icon">🔍</span>
             <input type="text" id="orderSearchInput" class="search-input" placeholder="e.g. OR-1002 or 1002" onkeyup="checkSearchSubmit(event)">
           </div>
-          <button class="btn" onclick="searchOrder()" style="height: 48px; border-radius: 12px; margin-top: 8px;">
-            Search
+          <button id="btnSearchOrder" class="btn" onclick="searchOrder()" style="height: 48px; border-radius: 12px; margin-top: 8px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px;">
+            <span id="btnSearchText">Search Order</span>
           </button>
+
+          <!-- INLINE ERROR BANNER FOR NOT FOUND MEMOS (Shown directly below button, NO POPUP) -->
+          <div id="inlineSearchError" style="display: none; margin-top: 12px; padding: 14px 16px; background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 12px; color: #f87171; font-size: 13px; font-weight: 600; align-items: center; gap: 10px;">
+            <span style="font-size: 18px;">⚠️</span>
+            <span id="inlineSearchErrorText">Order ID not found.</span>
+          </div>
         </div>
 
-        <!-- LIVE RESULT CARD -->
-        <div id="orderResultCard" class="card glass-panel" style="display: none;">
-          <div class="order-header">
-            <div>
-              <span class="spec-label">Order Reference</span>
-              <div class="order-number" id="resOrderNumber">OR-1002</div>
-            </div>
-            <span id="resStatusBadge" class="conn-status" style="font-size: 10px; font-weight: 800;">
-              In Progress
-            </span>
-          </div>
-
-          <div class="order-spec">
-            <div class="spec-item">
-              <span class="spec-label">Product Name</span>
-              <span class="spec-value" id="resProductName">MacBook Pro M3</span>
-            </div>
-            <div class="spec-item">
-              <span class="spec-label">Brand / Manufacturer</span>
-              <span class="spec-value" id="resBrand">Apple</span>
-            </div>
-            <div class="spec-item">
-              <span class="spec-label">Model Number</span>
-              <span class="spec-value" id="resModel">A2991</span>
-            </div>
-            <div class="spec-item">
-              <span class="spec-label">Serial Number</span>
-              <span class="spec-value" id="resSerial">C02XG123JL4M</span>
-            </div>
-            <div class="spec-item" style="border-top: 1px dashed var(--outline-variant); padding-top: 12px; margin-top: 4px;">
-              <span class="spec-label">Complaint / Reported Issue</span>
-              <span class="spec-value" id="resComplaint" style="font-weight: 500; font-style: italic; line-height: 1.4;">Screen flickering and battery health at 78%</span>
-            </div>
-          </div>
-
-          <!-- Status interactive updates selector -->
-          <div class="status-selector">
-            <span class="spec-label">Set Job Order Status</span>
-            <div class="status-options">
-              <button class="status-btn pending" id="btnStatusPending" onclick="selectStatus('Pending')">Pending</button>
-              <button class="status-btn progress" id="btnStatusProgress" onclick="selectStatus('In Progress')">Progress</button>
-              <button class="status-btn completed" id="btnStatusCompleted" onclick="selectStatus('Completed')">Completed</button>
-              <button class="status-btn rejected" id="btnStatusRejected" onclick="selectStatus('Rejected')">Rejected</button>
-            </div>
-          </div>
-
-          <!-- Order Update Form Container (condenser text box for completed/rejected orders) -->
-          <div id="orderUpdateFormContainer" class="status-selector" style="display: none; border-top: 1px solid var(--outline); padding-top: 16px; margin-top: 16px; flex-direction: column; gap: 8px;">
-            <span class="spec-label">Order Update Details</span>
-            <textarea id="orderUpdateInput" placeholder="Enter comments or updates (e.g. details of completion/rejection)..." style="background: var(--surface-low); border: 1px solid var(--outline); color: var(--on-surface); border-radius: 12px; padding: 12px; font-size: 16px; font-weight: 500; width: 100%; min-height: 80px; resize: vertical; outline: none; margin-top: 4px; transition: all 0.2s;" onfocus="this.style.borderColor='#717783'; this.style.background='var(--surface-lowest)';" onblur="this.style.borderColor='var(--outline)'; this.style.background='var(--surface-low)';"></textarea>
-            <button class="btn" style="height: 44px; border-radius: 12px; margin-top: 8px;" onclick="submitOrderUpdate()">
-              Submit Update & Status
+        <!-- POP-UP MODAL OVERLAY FOR SEARCHED MEMO DETAILS -->
+        <div id="orderModalOverlay" onclick="if(event.target===this) closeOrderModal();" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(9, 13, 22, 0.85); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); z-index: 1000; display: none; justify-content: center; align-items: center; padding: 20px; animation: modalFadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);">
+          <div id="orderResultCard" class="card glass-panel" style="width: 100%; max-width: 440px; max-height: 90vh; overflow-y: auto; position: relative; border: 1px solid rgba(255, 255, 255, 0.15); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8); border-radius: 20px; padding: 24px;">
+            
+            <!-- POP-UP CLOSE BUTTON (✕) -->
+            <button onclick="closeOrderModal()" style="position: absolute; top: 16px; right: 16px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: #ffffff; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: bold; cursor: pointer; transition: all 0.2s; outline: none;" onmouseover="this.style.background='rgba(239,68,68,0.2)'; this.style.color='#f87171';" onmouseout="this.style.background='rgba(255,255,255,0.08)'; this.style.color='#ffffff';">
+              ✕
             </button>
+
+            <!-- Order Header -->
+            <div class="order-header" style="padding-right: 40px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between;">
+              <div>
+                <span class="spec-label" style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--on-surface-variant);">Order Reference</span>
+                <div class="order-number" id="resOrderNumber" style="font-size: 22px; font-weight: 800; color: #3b82f6;">OR-1002</div>
+              </div>
+              <span id="resStatusBadge" class="conn-status" style="font-size: 11px; font-weight: 800; padding: 4px 10px; border-radius: 20px;">
+                In Progress
+              </span>
+            </div>
+
+            <!-- Product Specifications -->
+            <div class="order-spec" style="background: rgba(255,255,255,0.03); border-radius: 14px; padding: 14px; margin-bottom: 16px; border: 1px solid var(--outline);">
+              <div class="spec-item" style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                <span class="spec-label" style="color: var(--on-surface-variant); font-size: 12px;">Product Name</span>
+                <span class="spec-value" id="resProductName" style="font-weight: 600; font-size: 13px;">MacBook Pro M3</span>
+              </div>
+              <div class="spec-item" style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                <span class="spec-label" style="color: var(--on-surface-variant); font-size: 12px;">Brand / Manufacturer</span>
+                <span class="spec-value" id="resBrand" style="font-weight: 600; font-size: 13px;">Apple</span>
+              </div>
+              <div class="spec-item" style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                <span class="spec-label" style="color: var(--on-surface-variant); font-size: 12px;">Model Number</span>
+                <span class="spec-value" id="resModel" style="font-weight: 600; font-size: 13px;">A2991</span>
+              </div>
+              <div class="spec-item" style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                <span class="spec-label" style="color: var(--on-surface-variant); font-size: 12px;">Serial Number</span>
+                <span class="spec-value" id="resSerial" style="font-weight: 600; font-size: 13px;">C02XG123JL4M</span>
+              </div>
+              <div class="spec-item" style="border-top: 1px dashed var(--outline); padding-top: 10px; margin-top: 8px;">
+                <span class="spec-label" style="color: var(--on-surface-variant); font-size: 12px; display: block; margin-bottom: 4px;">Complaint / Reported Issue</span>
+                <span class="spec-value" id="resComplaint" style="font-weight: 500; font-style: italic; line-height: 1.4; color: #cbd5e1; font-size: 13px;">Screen flickering and battery health at 78%</span>
+              </div>
+            </div>
+
+            <!-- Status interactive updates selector -->
+            <div class="status-selector" style="margin-bottom: 12px;">
+              <span class="spec-label" style="font-size: 12px; font-weight: 600; color: var(--on-surface-variant);">Set Job Order Status</span>
+              <div class="status-options" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 6px;">
+                <button class="status-btn pending" id="btnStatusPending" onclick="selectStatus('Pending')">Pending</button>
+                <button class="status-btn progress" id="btnStatusProgress" onclick="selectStatus('In Progress')">Progress</button>
+                <button class="status-btn completed" id="btnStatusCompleted" onclick="selectStatus('Completed')">Completed</button>
+                <button class="status-btn rejected" id="btnStatusRejected" onclick="selectStatus('Rejected')">Rejected</button>
+              </div>
+            </div>
+
+            <!-- Order Update Details Textarea -->
+            <div id="orderUpdateFormContainer" class="status-selector" style="display: none; border-top: 1px solid var(--outline); padding-top: 14px; margin-top: 14px; flex-direction: column; gap: 8px;">
+              <span class="spec-label" style="font-size: 12px; font-weight: 600; color: var(--on-surface-variant);">Order Update Details</span>
+              <textarea id="orderUpdateInput" placeholder="Enter comments or updates (e.g. details of completion/rejection)..." style="background: var(--surface-low); border: 1px solid var(--outline); color: var(--on-surface); border-radius: 12px; padding: 12px; font-size: 14px; font-weight: 500; width: 100%; min-height: 80px; resize: vertical; outline: none; margin-top: 4px;"></textarea>
+              <button class="btn" style="height: 44px; border-radius: 12px; margin-top: 8px; font-weight: 700;" onclick="submitOrderUpdate()">
+                Submit Update &amp; Status
+              </button>
+            </div>
           </div>
         </div>
 
@@ -1450,15 +1477,13 @@
             }
           }
         }
-        return true;
       } catch (err) {
-        console.warn('LAN Workstation ping failed:', err);
-        return true; // Ignore if offline/unreachable on LAN
+        console.warn('LAN Workstation ping skipped/failed:', err);
       }
+      return true; // Ignore if offline/unreachable on LAN
     }
 
-    // UPDATE PERSISTENT SYNC STATUS CARD
-    function updateSyncStatusCard() {
+    function updateConnectionBanner() {
       const card = document.getElementById('syncStatusCard');
       const icon = document.getElementById('syncStatusIcon');
       const title = document.getElementById('syncStatusTitle');
@@ -1466,23 +1491,15 @@
       
       if (!card) return;
       
-      const isCloudActive = appState.syncMode !== 'wifi' && appState.cloudSyncEnabled;
-      
-      if (isCloudActive) {
-        icon.textContent = '☁️';
-        title.textContent = 'Real-time Cloud Sync Active';
-        title.style.color = '#10b981'; // Green
-        desc.textContent = 'Data automatically synced to central cloud servers';
-      } else {
-        icon.textContent = '📶';
-        title.textContent = 'Syncing over Wi-Fi only (No Cloud)';
-        title.style.color = '#f59e0b'; // Amber
-        if (!appState.cloudSyncEnabled) {
-          desc.textContent = 'Your company subscription key does not have cloud enabled';
-        } else {
-          desc.textContent = 'Manual Local network Wi-Fi override active';
-        }
-      }
+      icon.textContent = '☁️';
+      title.textContent = 'Real-time Cloud Sync Active';
+      title.style.color = '#10b981'; // Green
+      desc.textContent = 'Data automatically synced to central cloud servers';
+    }
+
+    // UPDATE PERSISTENT SYNC STATUS CARD
+    function updateSyncStatusCard() {
+      updateConnectionBanner();
     }
 
     // SEARCH ORDER
@@ -1490,29 +1507,32 @@
       const orderIdInput = document.getElementById('orderSearchInput').value.trim();
       if (!orderIdInput) return showPremiumToast('Please enter an Order ID.', 'error', 'Input Required');
 
+      // Hide previous inline error banner and pop-up modal
+      const inlineError = document.getElementById('inlineSearchError');
+      if (inlineError) inlineError.style.display = 'none';
+      const modal = document.getElementById('orderModalOverlay');
+      if (modal) modal.style.display = 'none';
+
       // Perform a real-time deauthorization check first!
       const isAuthorized = await verifyStaffStillExistsRealtime();
       if (!isAuthorized) return; // Exit if access revoked
 
-      // Ping workstation key mismatch check first!
-      const isMatching = await pingWorkstationConfig();
-      if (isMatching === false) return; // Exit if logged out due to key change
-
       document.getElementById('emptySearchState').style.display = 'none';
-      
+
+      // Show loading spinner animation on search button!
+      const btn = document.getElementById('btnSearchOrder');
+      const btnText = document.getElementById('btnSearchText');
+      if (btn) btn.disabled = true;
+      if (btnText) btnText.innerHTML = '<span class="btn-spinner"></span> Searching...';
+
       const cleanId = orderIdInput.trim();
       const strippedId = cleanId.replace(/^or-/i, '').trim();
       const paddedId = 'OR-' + strippedId;
 
-      // Show loader
-      const resultCard = document.getElementById('orderResultCard');
-      resultCard.style.display = 'none';
-
       let found = false;
 
-      // 1. Try Supabase Cloud first (priority lookup)
       try {
-        // Get devices linked to our activation_key_id
+        // Query Supabase Cloud Database (Cloud-Sole Operation)
         const { data: devices, error: devError } = await supabaseClient
           .from('devices')
           .select('id')
@@ -1523,7 +1543,6 @@
         if (devices && devices.length > 0) {
           const deviceIds = devices.map(d => d.id);
 
-          // Query service_memos with case-insensitive exact matching
           let query = supabaseClient.from('service_memos')
             .select('*')
             .in('device_id', deviceIds)
@@ -1537,11 +1556,10 @@
               try {
                 const memo = JSON.parse(mItem.json_data);
                 if (memo && memo.Status !== 'Deleted' && memo.Status !== 'Deleted_Synced') {
-                  appState.currentMemo = mItem; // Store cloud database reference
+                  appState.currentMemo = mItem;
                   appState.currentMemo.parsedData = memo;
 
                   renderOrderResult(memo);
-                  showPremiumToast(`Fetched order ${memo.MemoNumber} from Cloud.`, 'cloud-sync', 'Synced to Cloud');
                   found = true;
                   break;
                 }
@@ -1549,41 +1567,29 @@
             }
           }
         }
-      } catch (err) {
-        console.warn("Cloud lookup failed, falling back to local network:", err);
-      }
 
-      // 2. If not found or LAN was unreachable, and cloud is enabled, fetch from local workstation via Wi-Fi LAN
-      if (!found && appState.workstationIp) {
-        try {
-          const res = await fetch(`http://${appState.workstationIp}:14010/api/memo?id=${encodeURIComponent(cleanId)}`, {
-            method: 'GET',
-            mode: 'cors'
-          });
-
-          if (res.ok) {
-            const memo = await res.json();
-            if (memo && memo.Status !== 'Deleted' && memo.Status !== 'Deleted_Synced') {
-              renderOrderResult(memo);
-              showPremiumToast(`Fetched order ${memo.MemoNumber} from local workstation.`, 'wifi-sync', 'Synced on Wi-Fi');
-              found = true;
+        // Handle NOT FOUND state: Show inline error directly below search button (NO POP-UP!)
+        if (!found) {
+          if (inlineError) {
+            const errorText = document.getElementById('inlineSearchErrorText');
+            if (errorText) {
+              errorText.textContent = `Order ID "${cleanId}" not found in Cloud Database. Please verify the order number.`;
             }
+            inlineError.style.display = 'flex';
           }
-        } catch (err) {
-          console.warn("Direct LAN lookup failed/unreachable:", err);
         }
-      }
-
-      // 3. Handle not found state
-      if (!found) {
-        document.getElementById('emptySearchState').style.display = 'block';
-        document.getElementById('emptySearchState').querySelector('span:nth-child(2)').textContent = 
-          `Order ID "${cleanId}" not found. Ensure the workstation is running, on the same network, or synced to the cloud.`;
+      } catch (err) {
+        console.error("Cloud lookup error:", err);
+        showPremiumToast("Cloud search failed. Please check network.", "error", "Cloud Connection Error");
+      } finally {
+        // Reset Search Button loading state
+        if (btn) btn.disabled = false;
+        if (btnText) btnText.textContent = 'Search Order';
       }
     }
 
     function renderOrderResult(memo) {
-      document.getElementById('resOrderNumber').textContent = memo.MemoNumber;
+      document.getElementById('resOrderNumber').textContent = memo.MemoNumber || 'N/A';
       document.getElementById('resProductName').textContent = memo.DeviceName || 'N/A';
       document.getElementById('resBrand').textContent = memo.Brand || 'N/A';
       document.getElementById('resModel').textContent = memo.DeviceModel || 'N/A';
@@ -1598,7 +1604,7 @@
       // Highlight active status buttons
       highlightStatusButtons(memo.Status);
 
-      // Show/prefill the updates form if Completed or Rejected
+      // Show/prefill the updates form if Completed or Rejected or status has updates
       const formContainer = document.getElementById('orderUpdateFormContainer');
       if (memo.Status === 'Completed' || memo.Status === 'Rejected') {
         formContainer.style.display = 'flex';
@@ -1612,7 +1618,23 @@
       // Save local memory reference
       appState.currentMemoData = memo;
       
-      document.getElementById('orderResultCard').style.display = 'flex';
+      // Ensure orderResultCard and orderModalOverlay are BOTH VISIBLE with all details!
+      const card = document.getElementById('orderResultCard');
+      if (card) card.style.display = 'block';
+
+      const modal = document.getElementById('orderModalOverlay');
+      if (modal) modal.style.display = 'flex';
+    }
+
+    function closeOrderModal() {
+      const modal = document.getElementById('orderModalOverlay');
+      if (modal) modal.style.display = 'none';
+      
+      const searchInput = document.getElementById('orderSearchInput');
+      if (searchInput) {
+        searchInput.value = '';
+        searchInput.focus();
+      }
     }
 
     function getStatusClass(status) {
@@ -1654,7 +1676,8 @@
 
     async function submitOrderUpdate() {
       const status = appState.selectedStatus;
-      if (!status) return;
+      if (!status) return showPremiumToast('Please select a status first.', 'error', 'Selection Required');
+      
       const updatesText = document.getElementById('orderUpdateInput').value.trim();
       
       const loadingOverlay = document.getElementById('loadingOverlay');
@@ -1662,38 +1685,45 @@
       
       if (loadingOverlay) loadingOverlay.style.display = 'flex';
       
-      const success = await updateOrderStatus(status, updatesText);
-      
-      if (loadingOverlay) loadingOverlay.style.display = 'none';
-      
-      if (success) {
-        if (successOverlay) {
-          successOverlay.style.display = 'flex';
-          setTimeout(() => {
-            successOverlay.style.display = 'none';
-            document.getElementById('orderUpdateFormContainer').style.display = 'none';
-          }, 1500);
-        } else {
-          document.getElementById('orderUpdateFormContainer').style.display = 'none';
+      try {
+        const success = await updateOrderStatus(status, updatesText);
+        
+        if (success) {
+          if (successOverlay) {
+            successOverlay.style.display = 'flex';
+            setTimeout(() => {
+              successOverlay.style.display = 'none';
+              const formContainer = document.getElementById('orderUpdateFormContainer');
+              if (formContainer) formContainer.style.display = 'none';
+              closeOrderModal();
+            }, 1200);
+          } else {
+            const formContainer = document.getElementById('orderUpdateFormContainer');
+            if (formContainer) formContainer.style.display = 'none';
+            closeOrderModal();
+          }
         }
+      } catch (err) {
+        console.error('Error submitting order status:', err);
+        showPremiumToast('Failed to update order status: ' + (err.message || err), 'error', 'Update Error');
+      } finally {
+        if (loadingOverlay) loadingOverlay.style.display = 'none';
       }
     }
 
-    // UPDATE ORDER STATUS
+    // UPDATE ORDER STATUS (Solely via Supabase Cloud)
     async function updateOrderStatus(newStatus, updatesText = null) {
-      if (!appState.currentMemoData) return;
-
-      // Perform a real-time deauthorization check first!
-      const isAuthorized = await verifyStaffStillExistsRealtime();
-      if (!isAuthorized) return; // Exit if access revoked
+      if (!appState.currentMemoData) return false;
 
       const memo = appState.currentMemoData;
       const originalStatus = memo.Status;
       const originalUpdates = memo.OrderUpdates;
 
-      // Update locally
+      const staffName = (appState.staffMember && appState.staffMember.name) ? appState.staffMember.name : "Staff";
+
+      // Update local memory representation immediately
       memo.Status = newStatus;
-      memo.TechnicianName = appState.staffMember.name;
+      memo.TechnicianName = staffName;
       memo.UpdatedAt = new Date().toISOString();
       memo.IsMobilePortalUpdate = true;
       memo.Source = "MobilePortal";
@@ -1702,10 +1732,9 @@
       }
 
       let cloudSynced = false;
-      let wifiSynced = false;
 
-      // 1. First priority: Update in Supabase cloud backups
-      if (appState.currentMemo) {
+      // Update solely in Supabase Cloud
+      if (appState.currentMemo && appState.currentMemo.id) {
         try {
           const updatedJson = JSON.stringify(memo);
           const { error } = await supabaseClient
@@ -1716,52 +1745,36 @@
             })
             .eq('id', appState.currentMemo.id);
 
-          if (error) throw error;
-          cloudSynced = true;
-          
-          // Render updated UI immediately
-          renderOrderResult(memo);
-          showPremiumToast('Job status successfully synced to Cloud!', 'cloud-sync', 'Synced to Cloud');
+          if (!error) {
+            cloudSynced = true;
+          } else {
+            // Fallback update by memo_number
+            const { error: err2 } = await supabaseClient
+              .from('service_memos')
+              .update({
+                json_data: updatedJson,
+                updated_at: new Date().toISOString()
+              })
+              .eq('memo_number', memo.MemoNumber);
+
+            if (!err2) cloudSynced = true;
+          }
         } catch (err) {
           console.warn('Cloud Sync Failed:', err);
         }
       }
 
-      // 2. Local Wi-Fi Sync (Always fire if on LAN to bypass PC clock skew and instantly notify desktop app)
-      if (appState.workstationIp) {
-        try {
-          const res = await fetch(`http://${appState.workstationIp}:14010/api/memo/status`, {
-            method: 'POST',
-            mode: 'cors',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              MemoNumber: memo.MemoNumber,
-              Status: newStatus,
-              TechnicianName: appState.staffMember.name,
-              OrderUpdates: updatesText !== null ? updatesText : (memo.OrderUpdates || "")
-            })
-          });
-
-          if (res.ok) {
-            wifiSynced = true;
-            renderOrderResult(memo);
-            showPremiumToast('Job status successfully updated!', 'wifi-sync', 'Submitted Successfully');
-          }
-        } catch (err) {
-          console.warn("Real-time LAN Wi-Fi sync failed/unreachable:", err);
-        }
+      if (cloudSynced) {
+        renderOrderResult(memo);
+        showPremiumToast('Job status successfully updated in Cloud!', 'cloud-sync', 'Submitted Successfully');
+        return true;
       }
 
-      // 3. Error Handling if BOTH failed
-      if (!cloudSynced && !wifiSynced) {
-        memo.Status = originalStatus; // roll back
-        memo.OrderUpdates = originalUpdates;
-        showPremiumToast('Could not reach workstation or cloud. Please check connection.', 'error', 'Sync Failed');
-        return false;
-      }
-      return true;
+      // Rollback if connection failed
+      memo.Status = originalStatus;
+      memo.OrderUpdates = originalUpdates;
+      showPremiumToast('Could not sync to cloud. Please check network connection.', 'error', 'Cloud Sync Failed');
+      return false;
     }
   </script>
 </body>
