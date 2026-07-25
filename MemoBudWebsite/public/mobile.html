@@ -1023,15 +1023,6 @@
       
       updateConnectionIndicator();
       restoreSession();
-
-      // Ping workstation config or auto-scan if not set
-      setTimeout(() => {
-        if (appState.staffMember && !appState.workstationIp) {
-          scanLocalNetworkForWorkstation();
-        } else {
-          pingWorkstationConfig();
-        }
-      }, 1000);
     });
 
     function toggleNetworkConfig() {
@@ -1404,85 +1395,6 @@
           }));
         }
       }
-      
-      if (foundIp) {
-        appState.workstationIp = foundIp;
-        document.getElementById('workstationIpInput').value = foundIp;
-        
-        // Save the settings automatically
-        localStorage.setItem('mb_staff_config', JSON.stringify(appState));
-        updateConnectionIndicator();
-        updateSyncStatusCard();
-        
-        showPremiumToast(`Successfully detected workstation at ${foundIp}! Connected automatically.`, 'wifi-sync', 'Workstation Found');
-      } else {
-        showPremiumToast('Could not find any active workstation matching your subscription key on typical subnets.', 'error', 'Scan Completed');
-      }
-      
-      if (scanBtn) {
-        scanBtn.disabled = false;
-        scanBtn.textContent = '🔍 Auto-Scan';
-      }
-    }
-
-    // LAN WORKSTATION DYNAMIC KEY-CHANGE PING
-    async function pingWorkstationConfig() {
-      if (!appState.workstationIp || !appState.staffMember) return true;
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 2000); // 2-second timeout
-
-        const res = await fetch(`http://${appState.workstationIp}:14010/api/config`, {
-          method: 'GET',
-          mode: 'cors',
-          signal: controller.signal
-        });
-        clearTimeout(timeoutId);
-
-        if (res.status === 200) {
-          const config = await res.json();
-          if (config && config.subscription_key) {
-            // Verify if workstation key matches mobile active session key code
-            if (appState.activationKeyCode && config.subscription_key.toUpperCase() !== appState.activationKeyCode.toUpperCase()) {
-              // Workstation has upgraded/changed key! Force logout and prompt staff to use the new key!
-              appState.staffMember = null;
-              appState.activationKeyId = null;
-              appState.activationKeyCode = null;
-              appState.currentMemo = null;
-              localStorage.setItem('mb_staff_config', JSON.stringify(appState));
-              
-              // Hide console screen, reset active screens
-              showStep1Screen();
-              
-              showPremiumToast('Workstation has been upgraded to a new subscription key! Please sign in using the new key.', 'error', 'Key Mismatch');
-              return false;
-            }
-
-            // Dynamically sync cloud capability based on local workstation state
-            const latestCloudEnabled = config.cloud_sync_enabled === true;
-            let stateChanged = false;
-            if (appState.cloudSyncEnabled !== latestCloudEnabled) {
-              appState.cloudSyncEnabled = latestCloudEnabled;
-              stateChanged = true;
-            }
-            if (config.company_name && appState.companyName !== config.company_name) {
-              appState.companyName = config.company_name;
-              stateChanged = true;
-              updateHeaderCompanyName();
-            }
-            fetchWorkstationLogo();
-            if (stateChanged) {
-              localStorage.setItem('mb_staff_config', JSON.stringify(appState));
-              updateSyncStatusCard();
-            }
-          }
-        }
-      } catch (err) {
-        console.warn('LAN Workstation ping skipped/failed:', err);
-      }
-      return true; // Ignore if offline/unreachable on LAN
-    }
-
     function updateConnectionBanner() {
       const card = document.getElementById('syncStatusCard');
       const icon = document.getElementById('syncStatusIcon');
