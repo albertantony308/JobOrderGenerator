@@ -829,6 +829,20 @@
       <h2 style="font-size: 22px;">Submitted Successfully</h2>
     </div>
 
+    <!-- Internet Offline Overlay -->
+    <div id="offlineOverlay" class="loading-overlay" style="z-index: 20000; background: rgba(9, 13, 22, 0.95); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); display: none;">
+      <div style="width: 72px; height: 72px; border-radius: 50%; background: rgba(239, 68, 68, 0.15); color: #ef4444; display: flex; align-items: center; justify-content: center; font-size: 36px; margin-bottom: 20px;">
+        📡
+      </div>
+      <h2 style="font-size: 22px; font-weight: 800; color: #fff; margin-bottom: 8px;">No Internet Connection</h2>
+      <p style="font-size: 14px; color: #94a3b8; max-width: 320px; text-align: center; line-height: 1.5; margin-bottom: 24px;">
+        An active Internet connection (Wi-Fi or Mobile Data) is required to continue using the staff portal and sync job orders.
+      </p>
+      <button class="btn" onclick="checkNetworkConnection(true)" style="width: auto; padding: 12px 28px; font-weight: 700; background: var(--primary-color, #3b82f6); border-radius: 12px;">
+        🔄 Retry Connection
+      </button>
+    </div>
+
     <!-- ACCESS REVOKED KICKOUT OVERLAY -->
     <div id="revokedOverlay" class="revoked-overlay">
       <div class="revoked-icon">🔒</div>
@@ -1005,6 +1019,41 @@
       }, 4000);
     }
 
+    // INTERNET CONNECTION MONITOR
+    function updateOnlineStatus() {
+      const isOnline = navigator.onLine;
+      const offlineOverlay = document.getElementById('offlineOverlay');
+      
+      if (!isOnline) {
+        if (offlineOverlay) offlineOverlay.style.display = 'flex';
+      } else {
+        if (offlineOverlay && offlineOverlay.style.display === 'flex') {
+          offlineOverlay.style.display = 'none';
+          showPremiumToast('Internet connection restored! You are back online.', 'cloud-sync', 'Online');
+        }
+      }
+    }
+
+    function checkNetworkConnection(manualRetry = false) {
+      const isOnline = navigator.onLine;
+      const offlineOverlay = document.getElementById('offlineOverlay');
+      
+      if (isOnline) {
+        if (offlineOverlay) offlineOverlay.style.display = 'none';
+        if (manualRetry) {
+          showPremiumToast('Internet connection verified! You are connected.', 'cloud-sync', 'Connected');
+        }
+      } else {
+        if (offlineOverlay) offlineOverlay.style.display = 'flex';
+        if (manualRetry) {
+          showPremiumToast('Still offline. Please enable Wi-Fi or Mobile Data.', 'error', 'No Connection');
+        }
+      }
+    }
+
+    window.addEventListener('online', updateOnlineStatus);
+    window.addEventListener('offline', updateOnlineStatus);
+
     // Load initial configurations from local storage
     window.addEventListener('DOMContentLoaded', () => {
       const savedConfig = localStorage.getItem('mb_staff_config');
@@ -1023,6 +1072,7 @@
       
       updateConnectionIndicator();
       restoreSession();
+      updateOnlineStatus(); // Check internet connection on load
     });
 
     function toggleNetworkConfig() {
