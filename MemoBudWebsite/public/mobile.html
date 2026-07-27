@@ -1518,195 +1518,39 @@
     function getStatusClass(status) {
       if (status === 'Completed') return 'status-online';
       if (status === 'Rejected') return 'status-rejected';
-      if (status === 'In Progress') return 'status-offline'; // maps to Progress color scheme
-      return 'status-offline'; // maps to Pending
-    }
-
-    function highlightStatusButtons(status) {
+      if (status === 'In Progress') return 'status-offline'; // maps     function highlightStatusButtons(status) {
       const btnPending = document.getElementById('btnStatusPending');
       const btnProgress = document.getElementById('btnStatusProgress');
       const btnCompleted = document.getElementById('btnStatusCompleted');
       const btnRejected = document.getElementById('btnStatusRejected');
 
-      btnPending.classList.remove('selected');
-      btnProgress.classList.remove('selected');
-document.getElementById('loginStep2Screen').classList.remove('active');
-      document.getElementById('staffConsoleScreen').classList.remove('active');
-      document.getElementById('revokedOverlay').style.display = 'flex';
-    }
+      if (btnPending) btnPending.classList.remove('selected');
+      if (btnProgress) btnProgress.classList.remove('selected');
+      if (btnCompleted) btnCompleted.classList.remove('selected');
+      if (btnRejected) btnRejected.classList.remove('selected');
 
-    function dismissRevokedOverlay() {
-      document.getElementById('revokedOverlay').style.display = 'none';
-      showStep1Screen();
-    }
-
-    function logoutStaffSession() {
-      if (!confirm('Are you sure you want to log out of the staff console?')) return;
-      appState.staffMember = null;
-      appState.currentMemo = null;
-      localStorage.setItem('mb_staff_config', JSON.stringify(appState));
-
-      document.getElementById('staffConsoleScreen').classList.remove('active');
-      showStep2Screen();
-    }
-
-    function checkSearchSubmit(e) {
-      if (e.key === 'Enter') {
-        searchOrder();
-      }
-    }
-
-    function updateConnectionBanner() {
-      const card = document.getElementById('syncStatusCard');
-      const icon = document.getElementById('syncStatusIcon');
-      const title = document.getElementById('syncStatusTitle');
-      const desc = document.getElementById('syncStatusDesc');
-      
-      if (!card) return;
-      
-      icon.textContent = '☁️';
-      title.textContent = 'Real-time Cloud Sync Active';
-      title.style.color = '#10b981'; // Green
-      desc.textContent = 'Data automatically synced to central cloud servers';
-    }
-
-    // UPDATE PERSISTENT SYNC STATUS CARD
-    function updateSyncStatusCard() {
-      updateConnectionBanner();
-    }
-
-    // SEARCH ORDER
-    async function searchOrder() {
-      const orderIdInput = document.getElementById('orderSearchInput').value.trim();
-      if (!orderIdInput) return showPremiumToast('Please enter an Order ID.', 'error', 'Input Required');
-
-      // Hide previous inline error banner and pop-up modal
-      const inlineError = document.getElementById('inlineSearchError');
-      if (inlineError) inlineError.style.display = 'none';
-      const modal = document.getElementById('orderModalOverlay');
-      if (modal) modal.style.display = 'none';
-
-      // Perform a real-time deauthorization check first!
-      const isAuthorized = await verifyStaffStillExistsRealtime();
-      if (!isAuthorized) return; // Exit if access revoked
-
-      document.getElementById('emptySearchState').style.display = 'none';
-
-      // Show loading spinner animation on search button!
-      const btn = document.getElementById('btnSearchOrder');
-      const btnText = document.getElementById('btnSearchText');
-      if (btn) btn.disabled = true;
-      if (btnText) btnText.innerHTML = '<span class="btn-spinner"></span> Searching...';
-
-      const cleanId = orderIdInput.trim();
-      const strippedId = cleanId.replace(/^or-/i, '').trim();
-      const paddedId = 'OR-' + strippedId;
-
-      let found = false;
-
-      try {
-        // Query Supabase Cloud Database (Cloud-Sole Operation)
-        const { data: devices, error: devError } = await supabaseClient
-          .from('devices')
-          .select('id')
-          .eq('activation_key_id', appState.activationKeyId);
-
-        if (devError) throw devError;
-
-        if (devices && devices.length > 0) {
-          const deviceIds = devices.map(d => d.id);
-
-          let query = supabaseClient.from('service_memos')
-            .select('*')
-            .in('device_id', deviceIds)
-            .or(`memo_number.ilike."${cleanId}",memo_number.ilike."${strippedId}",memo_number.ilike."${paddedId}"`);
-
-          const { data: memos, error: memoError } = await query;
-          if (memoError) throw memoError;
-
-          if (memos && memos.length > 0) {
-            for (const mItem of memos) {
-              try {
-                const memo = JSON.parse(mItem.json_data);
-                if (memo && memo.Status !== 'Deleted' && memo.Status !== 'Deleted_Synced') {
-                  appState.currentMemo = mItem;
-                  appState.currentMemo.parsedData = memo;
-
-                  renderOrderResult(memo);
-                  found = true;
-                  break;
-                }
-              } catch (e) {}
-            }
-          }
-        }
-
-        // Handle NOT FOUND state: Show inline error directly below search button (NO POP-UP!)
-        if (!found) {
-          if (inlineError) {
-            const errorText = document.getElementById('inlineSearchErrorText');
-            if (errorText) {
-              errorText.textContent = `Order ID "${cleanId}" not found in Cloud Database. Please verify the order number.`;
-            }
-            inlineError.style.display = 'flex';
-          }
-        }
-      } catch (err) {
-        console.error("Cloud lookup error:", err);
-        showPremiumToast("Cloud search failed. Please check network.", "error", "Cloud Connection Error");
-      } finally {
-        // Reset Search Button loading state
-        if (btn) btn.disabled = false;
-        if (btnText) btnText.textContent = 'Search Order';
-      }
-    }
-
-    function renderOrderResult(memo) {
-      document.getElementById('resOrderNumber').textContent = memo.MemoNumber || 'N/A';
-      document.getElementById('resProductName').textContent = memo.DeviceName || 'N/A';
-      document.getElementById('resBrand').textContent = memo.Brand || 'N/A';
-      document.getElementById('resModel').textContent = memo.DeviceModel || 'N/A';
-      document.getElementById('resSerial').textContent = memo.SerialNumber || 'N/A';
-      document.getElementById('resComplaint').textContent = memo.IssueDescription || 'N/A';
-
-      // Status Badge
-      const statusBadge = document.getElementById('resStatusBadge');
-      statusBadge.textContent = memo.Status || 'Pending';
-      statusBadge.className = 'conn-status ' + getStatusClass(memo.Status);
-
-      // Highlight active status buttons
-      highlightStatusButtons(memo.Status);
-
-      // Show/prefill the updates form if Completed or Rejected or status has updates
-      const formContainer = document.getElementById('orderUpdateFormContainer');
-      if (memo.Status === 'Completed' || memo.Status === 'Rejected') {
-        formContainer.style.display = 'flex';
-        appState.selectedStatus = memo.Status;
-        document.getElementById('orderUpdateInput').value = memo.OrderUpdates || '';
+      if (status === 'Completed') {
+        if (btnCompleted) btnCompleted.classList.add('selected');
+      } else if (status === 'In Progress') {
+        if (btnProgress) btnProgress.classList.add('selected');
+      } else if (status === 'Rejected') {
+        if (btnRejected) btnRejected.classList.add('selected');
       } else {
-        formContainer.style.display = 'none';
-        appState.selectedStatus = null;
+        if (btnPending) btnPending.classList.add('selected');
       }
-
-      // Save local memory reference
-      appState.currentMemoData = memo;
-      
-      // Ensure orderResultCard and orderModalOverlay are BOTH VISIBLE with all details!
-      const card = document.getElementById('orderResultCard');
-      if (card) card.style.display = 'block';
-
-      const modal = document.getElementById('orderModalOverlay');
-      if (modal) modal.style.display = 'flex';
     }
 
-    function closeOrderModal() {
-      const modal = document.getElementById('orderModalOverlay');
-      if (modal) modal.style.display = 'none';
-      
-      const searchInput = document.getElementById('orderSearchInput');
-      if (searchInput) {
-        searchInput.value = '';
-        searchInput.focus();
+    function selectStatus(status) {
+      highlightStatusButtons(status);
+      const formContainer = document.getElementById('orderUpdateFormContainer');
+      if (formContainer) formContainer.style.display = 'flex';
+      appState.selectedStatus = status;
+        
+      // Prefill text box with current updates if any
+      const memo = appState.currentMemoData;
+      const updateInput = document.getElementById('orderUpdateInput');
+      if (updateInput) {
+        updateInput.value = memo ? (memo.OrderUpdates || '') : '';
       }
     }
 
