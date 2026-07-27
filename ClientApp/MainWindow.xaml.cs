@@ -89,6 +89,7 @@ namespace ClientApp
                         if (CloudSyncService.IsCloudOffline)
                         {
                             SyncStatusText.Text = "Not Connected";
+                            SyncStatusText.Foreground = new SolidColorBrush(Color.FromRgb(239, 68, 68)); // Red
                             if (dotSyncStatus != null) dotSyncStatus.Fill = new SolidColorBrush(Color.FromRgb(239, 68, 68)); // Red
                         }
                         else
@@ -1851,11 +1852,12 @@ namespace ClientApp
             if (SyncStatusText != null)
             {
                 SyncStatusText.Text = "Checking for Internet...";
+                SyncStatusText.Foreground = new SolidColorBrush(Color.FromRgb(245, 158, 11)); // Yellow / Amber
                 if (dotSyncStatus != null)
-                    dotSyncStatus.Fill = new SolidColorBrush(Color.FromRgb(245, 158, 11)); // Amber / Yellow
+                    dotSyncStatus.Fill = new SolidColorBrush(Color.FromRgb(245, 158, 11)); // Yellow / Amber
             }
 
-            await Task.Delay(800); // Visual indicator pause
+            await Task.Delay(500); // Brief visual indicator pause
 
             bool isOnline = await CloudSyncService.TestCloudConnectionAsync();
             if (isOnline)
@@ -1878,10 +1880,16 @@ namespace ClientApp
                 if (SyncStatusText != null)
                 {
                     SyncStatusText.Text = "Not Connected";
+                    SyncStatusText.Foreground = new SolidColorBrush(Color.FromRgb(239, 68, 68)); // Red
                     if (dotSyncStatus != null)
                         dotSyncStatus.Fill = new SolidColorBrush(Color.FromRgb(239, 68, 68)); // Red
                 }
             }
+        }
+
+        private async void ManualCheckConnection_Click(object sender, RoutedEventArgs e)
+        {
+            await CheckAndRestoreInternetConnectionAsync();
         }
 
         private void RefreshCloudOfflineToast()

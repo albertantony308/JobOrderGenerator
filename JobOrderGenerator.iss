@@ -2,7 +2,7 @@
 #define MyAppPublisher "Albert Antony"
 #define MyAppURL "https://github.com/albertantony308/JobOrderGenerator"
 #define MyAppExeName "JobOrderGenerator.exe"
-#define MyAppVersion "1.5.2"
+#define MyAppVersion "1.5.3"
 
 [Setup]
 AppId={{8B19FC7D-6842-452A-B9B2-C4B13B7E8A0E}

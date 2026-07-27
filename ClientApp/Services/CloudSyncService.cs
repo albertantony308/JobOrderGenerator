@@ -572,16 +572,11 @@ namespace ClientApp.Services
                     return false;
 
                 var _http = SupabaseClientManager.GetHttpClient();
-                var keyId = SettingsManager.Default.SubscriptionKey;
-                if (string.IsNullOrEmpty(keyId)) return false;
 
-                var req = new HttpRequestMessage(HttpMethod.Get, $"/rest/v1/devices?select=id&activation_key_id=eq.{keyId}&limit=1");
-                req.Headers.Add("Range-Unit", "items");
-                req.Headers.Add("Range", "0-0");
-
+                // Ping Supabase REST API root endpoint to verify real internet & cloud reachability
                 using var cts = new System.Threading.CancellationTokenSource(4000);
-                var resp = await _http.SendAsync(req, cts.Token);
-                if (resp.IsSuccessStatusCode)
+                var resp = await _http.GetAsync("/rest/v1/", cts.Token);
+                if (resp.IsSuccessStatusCode || ((int)resp.StatusCode >= 200 && (int)resp.StatusCode < 500))
                 {
                     MarkCloudAvailable();
                     return true;
