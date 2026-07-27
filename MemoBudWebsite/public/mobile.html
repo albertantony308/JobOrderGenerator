@@ -1131,47 +1131,24 @@
       showStep1Screen();
     }
 
-    // Step 1: Verify Activation Key
+    // Step 1: Verify Activation Key or Staff Key
     async function verifyActivationKey() {
       const keyInput = document.getElementById('actKeyInput').value.trim().toUpperCase();
       if (!keyInput) return showPremiumToast('Please enter your Staff Activation Key code.', 'error', 'Input Required');
 
       try {
-        let targetKeyId = null;
-        let isAlias = false;
-
-        // If the key starts with SMK-, it might be a Staff Management Key Alias stored in the staff table
-        if (keyInput.startsWith('SMK-')) {
-          const { data: staffData, error: staffError } = await supabaseClient
-            .from('staff')
-            .select('activation_key_id')
-            .eq('email', keyInput)
-            .eq('name', '__STAFF_KEY__');
-          
-          if (!staffError && staffData && staffData.length > 0) {
-            targetKeyId = staffData[0].activation_key_id;
-            isAlias = true;
-          }
-        }
-
-        // Query Supabase activation_keys to verify key and fetch cloud status
-        let query = supabaseClient
+        // Query Supabase activation_keys directly for key_code or staff_key where cloud_sync_enabled is TRUE
+        const { data, error } = await supabaseClient
           .from('activation_keys')
-          .select('id, key_code, cloud_sync_enabled')
-          .eq('is_active', true);
-        
-        if (isAlias) {
-          query = query.eq('id', targetKeyId);
-        } else {
-          query = query.eq('key_code', keyInput);
-        }
-
-        const { data, error } = await query;
+          .select('id, key_code, staff_key, cloud_sync_enabled')
+          .eq('is_active', true)
+          .eq('cloud_sync_enabled', true)
+          .or(`key_code.eq."${keyInput}",staff_key.eq."${keyInput}"`);
 
         if (error) throw error;
 
         if (!data || data.length === 0) {
-          return showPremiumToast('The entered key code is expired or suspended by your administrator.', 'error', 'Key Suspended');
+          return showPremiumToast('The entered key code is invalid, or Cloud Sync is disabled by your administrator.', 'error', 'Access Disabled');
         }
 
         // Store authorization key variables

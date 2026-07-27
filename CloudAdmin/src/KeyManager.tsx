@@ -99,9 +99,11 @@ export default function KeyManager({ isDarkMode: _isDarkMode }: { isDarkMode: bo
     // Generate a random key like ABCD-1234-EFGH-5678
     const segments = Array.from({ length: 4 }, () => Math.random().toString(36).substring(2, 6).toUpperCase());
     const keyCode = segments.join('-');
+    const staffKey = cloudSyncEnabled ? ("STF-" + Math.floor(100000 + Math.random() * 900000)) : null;
 
     const payload: any = {
       key_code: keyCode,
+      staff_key: staffKey,
       email,
       subscription_id: selectedSubId,
       cloud_sync_enabled: cloudSyncEnabled,
@@ -156,11 +158,19 @@ export default function KeyManager({ isDarkMode: _isDarkMode }: { isDarkMode: bo
       }
     }
 
+    let updatedStaffKey = editingKey.staff_key;
+    if (!editCloudSyncEnabled) {
+      updatedStaffKey = null;
+    } else if (!updatedStaffKey) {
+      updatedStaffKey = "STF-" + Math.floor(100000 + Math.random() * 900000);
+    }
+
     const payload: any = {
       subscription_id: editSubId,
       custom_max_devices: editCustomMax ? parseInt(editCustomMax) : null,
       expires_at: editExpiresAt ? new Date(editExpiresAt).toISOString() : null,
       cloud_sync_enabled: editCloudSyncEnabled,
+      staff_key: updatedStaffKey,
       cloud_storage_limit_gb: limitGb,
       cloud_storage_used_mb: parseFloat(editCloudStorageUsed) || 0.0
     };
@@ -274,6 +284,9 @@ export default function KeyManager({ isDarkMode: _isDarkMode }: { isDarkMode: bo
             <div key={k.id} style={{ background: 'var(--surface)', padding: 24, borderRadius: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid var(--outline)', borderLeft: k.is_active ? '6px solid #10b981' : '6px solid #ef4444', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
               <div>
                 <div style={{ fontSize: 20, fontFamily: 'monospace', fontWeight: 'bold', color: 'var(--primary)' }}>{k.key_code}</div>
+                <div style={{ fontSize: 13, fontFamily: 'monospace', color: 'var(--text-muted)', marginTop: 4 }}>
+                  Staff Login Key: <span style={{ fontWeight: 'bold', color: k.staff_key ? '#3b82f6' : '#ef4444' }}>{k.staff_key || 'Disabled (Cloud Sync Off)'}</span>
+                </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 24, marginTop: 12, color: 'var(--text-muted)', fontSize: 14 }}>
                   <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><User size={16} /> {k.email}</span>
                   <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Shield size={16} /> {k.subscriptions?.name} Tier{k.is_trial && <span style={{ marginLeft: 8, background: '#f59e0b', color: '#fff', padding: '2px 6px', borderRadius: 4, fontSize: 10, fontWeight: 'bold' }}>TRIAL</span>}</span>
