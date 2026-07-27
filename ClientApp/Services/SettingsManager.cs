@@ -10,6 +10,8 @@ namespace ClientApp.Services
         public bool IsCloudSyncEnabled { get; set; } = false;
         public bool SyncImagesEnabled { get; set; } = false;
         public string SyncMode { get; set; } = "Hybrid"; // Options: "InternetOnly", "Hybrid", "LocalOnly"
+        public bool IsFullyOfflineMode { get; set; } = false; // Disconnects from cloud, 100% LAN Sync
+        public bool IsPrimaryCloudSourceDevice { get; set; } = false; // Primary device for offline cloud reconciliation
         public string CloudAuthToken { get; set; } = string.Empty;
         public string SubscriptionKey { get; set; } = string.Empty;
         public string CloudUserEmail { get; set; } = string.Empty;

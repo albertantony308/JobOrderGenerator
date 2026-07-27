@@ -42,10 +42,14 @@ try {
     }
 }
 
-Write-Host "`nUpdating version in ClientApp.csproj..." -ForegroundColor Cyan
+Write-Host "`nUpdating version in ClientApp.csproj and JobOrderGenerator.iss..." -ForegroundColor Cyan
 $CsprojPath = "$PSScriptRoot\ClientApp\ClientApp.csproj"
 if (Test-Path $CsprojPath) {
     (Get-Content $CsprojPath) -replace "<Version>.*?</Version>", "<Version>$Version</Version>" -replace "<AssemblyVersion>.*?</AssemblyVersion>", "<AssemblyVersion>$Version.0</AssemblyVersion>" -replace "<FileVersion>.*?</FileVersion>", "<FileVersion>$Version.0</FileVersion>" | Set-Content $CsprojPath
+}
+$IssPath = "$PSScriptRoot\JobOrderGenerator.iss"
+if (Test-Path $IssPath) {
+    (Get-Content $IssPath) -replace '#define MyAppVersion ".*?"', "#define MyAppVersion `"$Version`"" | Set-Content $IssPath
 }
 
 Write-Host "`nPublishing WPF Application as Single File Executable..." -ForegroundColor Cyan

@@ -21,8 +21,8 @@ namespace ClientApp.Services
             if (string.IsNullOrEmpty(SettingsManager.Default.SubscriptionKey))
                 return;
             
-            // Check if Cloud Sync is bypassed by SyncMode
-            if (SettingsManager.Default.SyncMode == "LocalOnly")
+            // Check if Cloud Sync is bypassed by SyncMode or Fully Offline Mode
+            if (SettingsManager.Default.SyncMode == "LocalOnly" || SettingsManager.Default.IsFullyOfflineMode)
                 return;
 
             var _http = SupabaseClientManager.GetHttpClient();
@@ -146,12 +146,12 @@ namespace ClientApp.Services
                 }
                 LogSyncStatus($"Active deviceId in cloud devices table: {deviceId}");
 
-                // 1. PULL FROM CLOUD (Fetch memos for devices linked to any key ID in workspace)
+                // 1. PULL FROM CLOUD (Smart Delta Sync - Lightweight Header Query first to save bandwidth)
                 var inKeysQuery = string.Join(",", allKeyIds);
                 var allDevicesResponse = await _http.GetAsync($"/rest/v1/devices?activation_key_id=in.({inKeysQuery})&select=id");
                 
-                // Primary query by devices; fallback to fetching all service memos if devices list is pending
-                HttpResponseMessage memosResponse;
+                // Primary header query by devices; fallback to fetching all service memo headers if devices list is pending
+                HttpResponseMessage headerResponse;
                 if (allDevicesResponse.IsSuccessStatusCode)
                 {
                     var allDevices = await allDevicesResponse.Content.ReadFromJsonAsync<JsonElement[]>();
@@ -160,27 +160,94 @@ namespace ClientApp.Services
                     if (deviceIds != null && deviceIds.Count > 0)
                     {
                         var inQuery = string.Join(",", deviceIds);
-                        memosResponse = await _http.GetAsync($"/rest/v1/service_memos?device_id=in.({inQuery})&select=memo_number,json_data,updated_at");
+                        headerResponse = await _http.GetAsync($"/rest/v1/service_memos?device_id=in.({inQuery})&select=memo_number,updated_at");
                     }
                     else
                     {
-                        memosResponse = await _http.GetAsync("/rest/v1/service_memos?select=memo_number,json_data,updated_at&order=updated_at.desc&limit=1000");
+                        headerResponse = await _http.GetAsync("/rest/v1/service_memos?select=memo_number,updated_at&order=updated_at.desc&limit=1000");
                     }
                 }
                 else
                 {
-                    memosResponse = await _http.GetAsync("/rest/v1/service_memos?select=memo_number,json_data,updated_at&order=updated_at.desc&limit=1000");
+                    headerResponse = await _http.GetAsync("/rest/v1/service_memos?select=memo_number,updated_at&order=updated_at.desc&limit=1000");
                 }
 
-                if (memosResponse.IsSuccessStatusCode)
+                if (headerResponse.IsSuccessStatusCode)
                 {
-                    var cloudMemosJson = await memosResponse.Content.ReadFromJsonAsync<JsonElement[]>();
+                    var cloudHeadersJson = await headerResponse.Content.ReadFromJsonAsync<JsonElement[]>();
                     
-                    if (cloudMemosJson != null)
+                    var cloudHeaderMap = new System.Collections.Generic.Dictionary<string, DateTime>(StringComparer.OrdinalIgnoreCase);
+                    if (cloudHeadersJson != null)
                     {
-                        RealTimeCloudRowsCount = cloudMemosJson.Length;
+                        RealTimeCloudRowsCount = cloudHeadersJson.Length;
+                        foreach (var record in cloudHeadersJson)
+                        {
+                            if (record.TryGetProperty("memo_number", out JsonElement memoProp) && memoProp.ValueKind == JsonValueKind.String)
+                            {
+                                var mNum = memoProp.GetString();
+                                if (!string.IsNullOrEmpty(mNum) && record.TryGetProperty("updated_at", out JsonElement dateProp) && dateProp.ValueKind == JsonValueKind.String)
+                                {
+                                    if (DateTime.TryParse(dateProp.GetString(), out DateTime uTime))
+                                    {
+                                        cloudHeaderMap[mNum] = DateTime.SpecifyKind(uTime, DateTimeKind.Utc);
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Compare cloud headers with local DB to determine which memos actually require full payload download
+                    var memosToFetch = new System.Collections.Generic.List<string>();
+                    using (var dbCheck = new LocalDbContext())
+                    {
+                        var localMemosMap = dbCheck.ServiceMemos.ToDictionary(m => m.MemoNumber, m => m, StringComparer.OrdinalIgnoreCase);
+
+                        foreach (var kvp in cloudHeaderMap)
+                        {
+                            var cloudMemoNum = kvp.Key;
+                            var cloudUtc = kvp.Value;
+
+                            if (!localMemosMap.TryGetValue(cloudMemoNum, out var localM))
+                            {
+                                // New record from cloud -> fetch full JSON
+                                memosToFetch.Add(cloudMemoNum);
+                            }
+                            else if (localM.Status != "Deleted" && localM.Status != "Deleted_Synced")
+                            {
+                                var localUtc = ToUtc(localM.UpdatedAt);
+                                if (cloudUtc > localUtc.AddMilliseconds(500))
+                                {
+                                    // Cloud has newer update -> fetch full JSON
+                                    memosToFetch.Add(cloudMemoNum);
+                                }
+                            }
+                        }
+                    }
+
+                    LogSyncStatus($"Smart Delta Sync: Cloud Total Memos = {cloudHeaderMap.Count}, Changed/New Memos To Download = {memosToFetch.Count}");
+
+                    // Batch fetch full json_data ONLY for memos that changed or are new
+                    var cloudMemosJsonList = new System.Collections.Generic.List<JsonElement>();
+                    if (memosToFetch.Count > 0)
+                    {
+                        for (int i = 0; i < memosToFetch.Count; i += 50)
+                        {
+                            var batch = memosToFetch.Skip(i).Take(50);
+                            var inMemosQuery = string.Join(",", batch.Select(Uri.EscapeDataString));
+                            var batchRes = await _http.GetAsync($"/rest/v1/service_memos?memo_number=in.({inMemosQuery})&select=memo_number,json_data,updated_at");
+                            if (batchRes.IsSuccessStatusCode)
+                            {
+                                var batchItems = await batchRes.Content.ReadFromJsonAsync<JsonElement[]>();
+                                if (batchItems != null)
+                                {
+                                    cloudMemosJsonList.AddRange(batchItems);
+                                }
+                            }
+                        }
+
+                        // Calculate real-time storage used from fetched full payloads
                         double totalBytes = 0;
-                        foreach (var record in cloudMemosJson)
+                        foreach (var record in cloudMemosJsonList)
                         {
                             if (record.TryGetProperty("json_data", out JsonElement prop) && prop.ValueKind == JsonValueKind.String)
                             {
@@ -188,27 +255,28 @@ namespace ClientApp.Services
                                 totalBytes += System.Text.Encoding.UTF8.GetByteCount(jData);
                             }
                         }
-                        RealTimeCloudStorageUsedMb = totalBytes / (1024.0 * 1024.0);
-
-                        // Async PATCH back to Supabase database so the cloud used storage remains synchronized globally
-                        try
+                        if (totalBytes > 0)
                         {
-                            var updatePayload = new { cloud_storage_used_mb = RealTimeCloudStorageUsedMb };
-                            var updateRequest = new HttpRequestMessage(HttpMethod.Patch, $"/rest/v1/activation_keys?id=eq.{ownerKeyId}");
-                            updateRequest.Content = JsonContent.Create(updatePayload);
-                            await _http.SendAsync(updateRequest);
-                        }
-                        catch (Exception ex)
-                        {
-                            LogSyncStatus($"Failed to patch real-time storage to cloud: {ex.Message}");
+                            RealTimeCloudStorageUsedMb = Math.Max(RealTimeCloudStorageUsedMb, totalBytes / (1024.0 * 1024.0));
+                            try
+                            {
+                                var updatePayload = new { cloud_storage_used_mb = RealTimeCloudStorageUsedMb };
+                                var updateRequest = new HttpRequestMessage(HttpMethod.Patch, $"/rest/v1/activation_keys?id=eq.{ownerKeyId}");
+                                updateRequest.Content = JsonContent.Create(updatePayload);
+                                await _http.SendAsync(updateRequest);
+                            }
+                            catch (Exception ex)
+                            {
+                                LogSyncStatus($"Failed to patch real-time storage to cloud: {ex.Message}");
+                            }
                         }
                     }
-                    
+
                     using (var db = new LocalDbContext())
                     {
-                        if (cloudMemosJson != null)
+                        if (cloudMemosJsonList.Count > 0)
                         {
-                            foreach (var record in cloudMemosJson)
+                            foreach (var record in cloudMemosJsonList)
                             {
                                 var memoNum = record.GetProperty("memo_number").GetString();
                                 var jsonData = record.GetProperty("json_data").GetString();
@@ -393,25 +461,20 @@ namespace ClientApp.Services
                                 continue;
                             }
 
-                            // Find corresponding cloud record to compare timestamp
+                            // Find corresponding cloud record to compare timestamp using cloudHeaderMap
                             bool needsUpload = true;
-                            if (cloudMemosJson != null)
+                            if (cloudHeaderMap.TryGetValue(lMemo.MemoNumber, out var cUpdatedAt))
                             {
-                                var cMatch = cloudMemosJson.FirstOrDefault(c => c.GetProperty("memo_number").GetString() == lMemo.MemoNumber);
-                                if (cMatch.ValueKind != JsonValueKind.Undefined)
+                                var currentTrustedUtc = NetworkTimeService.GetUtcNow();
+                                if (cUpdatedAt > currentTrustedUtc.AddMinutes(1))
                                 {
-                                    var cUpdatedAt = DateTime.SpecifyKind(cMatch.GetProperty("updated_at").GetDateTime(), DateTimeKind.Utc);
-                                    var currentTrustedUtc = NetworkTimeService.GetUtcNow();
-                                    if (cUpdatedAt > currentTrustedUtc.AddMinutes(1))
-                                    {
-                                        cUpdatedAt = currentTrustedUtc.AddSeconds(-5);
-                                    }
+                                    cUpdatedAt = currentTrustedUtc.AddSeconds(-5);
+                                }
 
-                                    // DO NOT upload if local record is not newer than cloud (using 500ms threshold for clock precision)
-                                    if (ToUtc(lMemo.UpdatedAt) <= ToUtc(cUpdatedAt).AddMilliseconds(500))
-                                    {
-                                        needsUpload = false;
-                                    }
+                                // DO NOT upload if local record is not newer than cloud (using 500ms threshold for clock precision)
+                                if (ToUtc(lMemo.UpdatedAt) <= ToUtc(cUpdatedAt).AddMilliseconds(500))
+                                {
+                                    needsUpload = false;
                                 }
                             }
 
@@ -708,7 +771,7 @@ namespace ClientApp.Services
         public static async Task PushSingleMemoAsync(ServiceMemo memo)
         {
             if (memo == null || string.IsNullOrEmpty(SettingsManager.Default.SubscriptionKey)) return;
-            if (SettingsManager.Default.SyncMode == "LocalOnly") return;
+            if (SettingsManager.Default.SyncMode == "LocalOnly" || SettingsManager.Default.IsFullyOfflineMode) return;
 
             var ownerKey = SettingsManager.Default.SubscriptionKey;
             var nowUtc = NetworkTimeService.GetUtcNow();

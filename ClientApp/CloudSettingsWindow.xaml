@@ -256,6 +256,38 @@
                             </StackPanel>
                         </Border>
 
+                        <!-- Fully Offline Mode (LAN Sync Only) Card -->
+                        <TextBlock Text="OFFLINE &amp; LOCAL NETWORK (LAN) MODE" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource OnSurfaceVariantBrush}" Margin="4,0,0,12"/>
+
+                        <Border Background="{DynamicResource SurfaceContainerLowBrush}" CornerRadius="16" Padding="16,12" Margin="0,0,0,24">
+                            <StackPanel>
+                                <Grid Margin="0,6">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                        <TextBlock Text="Enable Fully Offline Mode (LAN Sync)" FontWeight="Bold" FontSize="13" Foreground="{DynamicResource OnSurfaceBrush}"/>
+                                        <TextBlock Text="Disconnects from Cloud. All job orders sync 100% locally via Wi-Fi/LAN between computers." FontSize="11" Foreground="{DynamicResource OnSurfaceVariantBrush}" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                                    </StackPanel>
+                                    <CheckBox Grid.Column="1" x:Name="chkFullyOfflineMode" VerticalAlignment="Center" Style="{DynamicResource ToggleSwitchStyle}" Click="FullyOfflineMode_Click"/>
+                                </Grid>
+
+                                <Border BorderBrush="{DynamicResource OutlineBrush}" BorderThickness="0,0.5,0,0" Opacity="0.2" Margin="0,8"/>
+
+                                <!-- Local LAN Force Push / Force Pull Buttons -->
+                                <Grid Margin="0,6">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Button Grid.Column="0" Content="🚀 Force Local Push (LAN)" Style="{DynamicResource SecondaryButtonStyle}" Click="ForceLocalPush_Click" Margin="0,0,4,0" Height="38" FontSize="11"/>
+                                    <Button Grid.Column="1" Content="📥 Force Local Pull (LAN)" Style="{DynamicResource SecondaryButtonStyle}" Click="ForceLocalPull_Click" Margin="4,0,0,0" Height="38" FontSize="11"/>
+                                </Grid>
+
+                            </StackPanel>
+                        </Border>
+
                         <!-- Force Sync Multi-Device Actions -->
                         <Grid Margin="0,0,0,16">
                             <Grid.ColumnDefinitions>

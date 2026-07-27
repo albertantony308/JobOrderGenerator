@@ -87,6 +87,7 @@ namespace ClientApp.Services
             // 3. Start Background Daemons
             Task.Run(() => ListenForDiscoveryPacketsAsync(_cts.Token));
             Task.Run(() => SendDiscoveryPacketsPeriodicAsync(_cts.Token));
+            Task.Run(() => ScanSubnetForPeersAsync(_cts.Token));
             Task.Run(() => AcceptTcpClientsAsync(_cts.Token));
             Task.Run(() => IncrementalSyncDaemonAsync(_cts.Token));
             Task.Run(() => PeerTimeoutCheckAsync(_cts.Token));
@@ -189,7 +190,11 @@ namespace ClientApp.Services
         private static void BroadcastDiscoveryPacket()
         {
             if (_udpSender == null || string.IsNullOrEmpty(SettingsManager.Default.SubscriptionKey)) return;
-            if (!IsLanSyncActiveDueTo3MinOutage()) return;
+            
+            // Allow broadcast when fully offline mode is ON or when sync mode is not InternetOnly
+            bool isOfflineMode = SettingsManager.Default.IsFullyOfflineMode;
+            bool isLanMode = SettingsManager.Default.SyncMode != "InternetOnly";
+            if (!isOfflineMode && !isLanMode) return;
 
             try
             {
@@ -204,12 +209,64 @@ namespace ClientApp.Services
 
                 string json = JsonSerializer.Serialize(packet);
                 byte[] bytes = Encoding.UTF8.GetBytes(json);
-                _udpSender.Send(bytes, bytes.Length, new IPEndPoint(IPAddress.Broadcast, UdpDiscoveryPort));
+                
+                // Broadcast to global broadcast address (255.255.255.255)
+                try
+                {
+                    _udpSender.Send(bytes, bytes.Length, new IPEndPoint(IPAddress.Broadcast, UdpDiscoveryPort));
+                }
+                catch { }
+
+                // Broadcast to all active local interface subnet broadcast addresses
+                var broadcastAddresses = GetSubnetBroadcastAddresses();
+                foreach (var addr in broadcastAddresses)
+                {
+                    try
+                    {
+                        _udpSender.Send(bytes, bytes.Length, new IPEndPoint(addr, UdpDiscoveryPort));
+                    }
+                    catch { }
+                }
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[LAN SYNC] UDP Broadcast error: {ex.Message}");
             }
+        }
+
+        private static List<IPAddress> GetSubnetBroadcastAddresses()
+        {
+            var list = new List<IPAddress>();
+            try
+            {
+                var interfaces = System.Net.NetworkInformation.NetworkInterface.GetAllNetworkInterfaces()
+                    .Where(ni => ni.OperationalStatus == System.Net.NetworkInformation.OperationalStatus.Up &&
+                                 ni.NetworkInterfaceType != System.Net.NetworkInformation.NetworkInterfaceType.Loopback);
+
+                foreach (var ni in interfaces)
+                {
+                    var ipProps = ni.GetIPProperties();
+                    foreach (var unicast in ipProps.UnicastAddresses)
+                    {
+                        if (unicast.Address.AddressFamily == AddressFamily.InterNetwork)
+                        {
+                            byte[] ipBytes = unicast.Address.GetAddressBytes();
+                            byte[]? maskBytes = unicast.IPv4Mask?.GetAddressBytes();
+                            if (maskBytes != null && maskBytes.Length == 4)
+                            {
+                                byte[] broadcastBytes = new byte[4];
+                                for (int i = 0; i < 4; i++)
+                                {
+                                    broadcastBytes[i] = (byte)(ipBytes[i] | ~maskBytes[i]);
+                                }
+                                list.Add(new IPAddress(broadcastBytes));
+                            }
+                        }
+                    }
+                }
+            }
+            catch { }
+            return list.Distinct().ToList();
         }
 
         private static async Task ListenForDiscoveryPacketsAsync(CancellationToken token)
@@ -279,6 +336,132 @@ namespace ClientApp.Services
 
                 await Task.Delay(3000, token);
             }
+        }
+
+        private static async Task ScanSubnetForPeersAsync(CancellationToken token)
+        {
+            // Initial delay before starting TCP subnet scan to let UDP run first
+            await Task.Delay(2000, token);
+
+            while (!token.IsCancellationRequested)
+            {
+                if (!string.IsNullOrEmpty(SettingsManager.Default.SubscriptionKey))
+                {
+                    try
+                    {
+                        var localIps = GetLocalIPv4Addresses();
+                        foreach (var localIp in localIps)
+                        {
+                            if (token.IsCancellationRequested) break;
+                            byte[] bytes = localIp.GetAddressBytes();
+                            string subnetPrefix = $"{bytes[0]}.{bytes[1]}.{bytes[2]}.";
+
+                            var tasks = new List<Task>();
+                            for (int i = 1; i <= 254; i++)
+                            {
+                                string targetIpStr = subnetPrefix + i;
+                                if (targetIpStr == localIp.ToString()) continue;
+
+                                tasks.Add(Task.Run(async () =>
+                                {
+                                    for (int port = TcpBasePort; port <= TcpMaxPort; port++)
+                                    {
+                                        if (token.IsCancellationRequested) break;
+                                        try
+                                        {
+                                            using (var client = new TcpClient())
+                                            {
+                                                var connectTask = client.ConnectAsync(targetIpStr, port);
+                                                if (await Task.WhenAny(connectTask, Task.Delay(300, token)) == connectTask && client.Connected)
+                                                {
+                                                    using (var stream = client.GetStream())
+                                                    using (var writer = new StreamWriter(stream, Encoding.UTF8) { AutoFlush = true })
+                                                    using (var reader = new StreamReader(stream, Encoding.UTF8))
+                                                    {
+                                                        await writer.WriteLineAsync($"PingDiscovery|{SettingsManager.Default.SubscriptionKey}");
+                                                        string? resp = await reader.ReadLineAsync();
+                                                        if (!string.IsNullOrEmpty(resp) && resp.StartsWith("PongDiscovery|"))
+                                                        {
+                                                            var parts = resp.Split('|');
+                                                            if (parts.Length >= 3)
+                                                            {
+                                                                string peerDeviceId = parts[1];
+                                                                string peerMachineName = parts[2];
+                                                                string localDeviceId = LicenseManager.GetDeviceId();
+                                                                if (peerDeviceId != localDeviceId)
+                                                                {
+                                                                    var peer = new LanPeer
+                                                                    {
+                                                                        DeviceId = peerDeviceId,
+                                                                        MachineName = peerMachineName,
+                                                                        IPAddress = IPAddress.Parse(targetIpStr),
+                                                                        TcpPort = port,
+                                                                        LastSeen = DateTime.Now
+                                                                    };
+
+                                                                    bool isNew = !DiscoveredPeers.ContainsKey(peerDeviceId);
+                                                                    DiscoveredPeers[peerDeviceId] = peer;
+                                                                    if (isNew)
+                                                                    {
+                                                                        PeersChanged?.Invoke();
+                                                                        _ = Task.Run(() => SyncWithSinglePeerAsync(peer));
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        catch { }
+                                    }
+                                }));
+
+                                if (tasks.Count >= 20)
+                                {
+                                    await Task.WhenAll(tasks);
+                                    tasks.Clear();
+                                }
+                            }
+                            if (tasks.Count > 0)
+                            {
+                                await Task.WhenAll(tasks);
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[LAN SYNC] Direct subnet scan error: {ex.Message}");
+                    }
+                }
+
+                await Task.Delay(12000, token);
+            }
+        }
+
+        private static List<IPAddress> GetLocalIPv4Addresses()
+        {
+            var list = new List<IPAddress>();
+            try
+            {
+                var interfaces = System.Net.NetworkInformation.NetworkInterface.GetAllNetworkInterfaces()
+                    .Where(ni => ni.OperationalStatus == System.Net.NetworkInformation.OperationalStatus.Up &&
+                                 ni.NetworkInterfaceType != System.Net.NetworkInformation.NetworkInterfaceType.Loopback);
+
+                foreach (var ni in interfaces)
+                {
+                    var ipProps = ni.GetIPProperties();
+                    foreach (var unicast in ipProps.UnicastAddresses)
+                    {
+                        if (unicast.Address.AddressFamily == AddressFamily.InterNetwork)
+                        {
+                            list.Add(unicast.Address);
+                        }
+                    }
+                }
+            }
+            catch { }
+            return list.Distinct().ToList();
         }
 
         private static async Task AcceptTcpClientsAsync(CancellationToken token)
@@ -351,6 +534,13 @@ namespace ClientApp.Services
                             {
                                 bool applied = MergePushedMemo(pushedMemoDto);
                                 await writer.WriteLineAsync(applied ? "OK" : "SKIP");
+                            }
+                            break;
+
+                        case "PingDiscovery":
+                            if (payload == SettingsManager.Default.SubscriptionKey)
+                            {
+                                await writer.WriteLineAsync($"PongDiscovery|{LicenseManager.GetDeviceId()}|{Environment.MachineName}");
                             }
                             break;
                     }
@@ -473,8 +663,8 @@ namespace ClientApp.Services
         public static async Task BroadcastMemoSavedAsync(ServiceMemo memo)
         {
             // Fallback Architecture: If Cloud Sync is enabled & online, Cloud is primary sync engine.
-            // LAN Wi-Fi broadcast steps aside to prevent dual-channel race conditions and duplicates.
-            if (SettingsManager.Default.SyncMode != "LocalOnly" && !CloudSyncService.IsCloudOffline)
+            // LAN Wi-Fi broadcast steps aside unless in Fully Offline Mode or Cloud is offline.
+            if (SettingsManager.Default.SyncMode != "LocalOnly" && !SettingsManager.Default.IsFullyOfflineMode && !CloudSyncService.IsCloudOffline)
             {
                 return;
             }
@@ -522,8 +712,8 @@ namespace ClientApp.Services
                 if (_isSyncing || DiscoveredPeers.Count == 0) continue;
 
                 // Fallback Architecture: If Cloud Sync is enabled & online, Cloud handles sync.
-                // LAN background daemon skips active peer polling when Cloud is online.
-                if (SettingsManager.Default.SyncMode != "LocalOnly" && !CloudSyncService.IsCloudOffline)
+                // LAN background daemon steps aside unless in Fully Offline Mode or Cloud is offline.
+                if (SettingsManager.Default.SyncMode != "LocalOnly" && !SettingsManager.Default.IsFullyOfflineMode && !CloudSyncService.IsCloudOffline)
                 {
                     continue;
                 }
@@ -1113,6 +1303,61 @@ namespace ClientApp.Services
         private class ClearWorkspaceRequest
         {
             public string KeyCode { get; set; } = string.Empty;
+        }
+
+        public static async Task<int> ForceLocalPushToAllPeersAsync()
+        {
+            var peers = DiscoveredPeers.Values.ToList();
+            if (peers.Count == 0) return 0;
+
+            int totalPushed = 0;
+            TriggerSyncState(true);
+            try
+            {
+                using (var db = new LocalDbContext())
+                {
+                    db.Migrate();
+                    var allMemos = db.ServiceMemos.Where(m => m.Status != "Deleted" && m.Status != "Deleted_Synced").ToList();
+
+                    foreach (var memo in allMemos)
+                    {
+                        foreach (var peer in peers)
+                        {
+                            await PushMemoToPeerAsync(peer, memo);
+                        }
+                        totalPushed++;
+                    }
+                }
+            }
+            finally
+            {
+                TriggerSyncState(false);
+            }
+
+            return totalPushed;
+        }
+
+        public static async Task<int> ForceLocalPullFromAllPeersAsync()
+        {
+            var peers = DiscoveredPeers.Values.ToList();
+            if (peers.Count == 0) return 0;
+
+            int totalPulled = 0;
+            TriggerSyncState(true);
+            try
+            {
+                foreach (var peer in peers)
+                {
+                    await SyncWithSinglePeerAsync(peer);
+                    totalPulled++;
+                }
+            }
+            finally
+            {
+                TriggerSyncState(false);
+            }
+
+            return totalPulled;
         }
     }
 }

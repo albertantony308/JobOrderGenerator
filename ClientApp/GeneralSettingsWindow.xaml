@@ -1,7 +1,7 @@
 <Window x:Class="ClientApp.GeneralSettingsWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Settings" Height="550" Width="450"
+        Title="Settings" Height="680" Width="480"
         WindowStartupLocation="CenterOwner"
         WindowStyle="None"
         AllowsTransparency="True"
@@ -53,15 +53,10 @@
                     
                     <Border Background="{DynamicResource SurfaceContainerLowBrush}" CornerRadius="16" Padding="24" Margin="0,0,0,24">
                         <StackPanel>
-                            <TextBlock Text="Manual Data Synchronization" Foreground="{DynamicResource OnSurfaceBrush}" FontWeight="SemiBold" FontSize="16" Margin="0,0,0,4"/>
-                            <TextBlock Text="Force push local database to cloud or pull cloud database to local device." Foreground="{DynamicResource OnSurfaceVariantBrush}" FontSize="12" Margin="0,0,0,16" TextWrapping="Wrap"/>
+                            <TextBlock Text="Cloud Sync &amp; Account Settings" Foreground="{DynamicResource OnSurfaceBrush}" FontWeight="SemiBold" FontSize="16" Margin="0,0,0,4"/>
+                            <TextBlock Text="Configure cloud activation key, storage usage, and image upload preferences." Foreground="{DynamicResource OnSurfaceVariantBrush}" FontSize="12" Margin="0,0,0,16" TextWrapping="Wrap"/>
 
-                            <UniformGrid Columns="2" Margin="0,0,0,16">
-                                <Button Content="Force Push Local ➔ Cloud" Style="{DynamicResource SecondaryButtonStyle}" Click="ForcePush_Click" Margin="0,0,6,0" Padding="8,10" FontSize="11"/>
-                                <Button Content="Force Pull Cloud ➔ Local" Style="{DynamicResource SecondaryButtonStyle}" Click="ForcePull_Click" Margin="6,0,0,0" Padding="8,10" FontSize="11"/>
-                            </UniformGrid>
-
-                            <Button Content="Configure Cloud Key &amp; Preferences" Style="{DynamicResource AccentedButtonStyle}" Click="OpenCloudSettings_Click" HorizontalAlignment="Stretch" Padding="12,8" FontSize="12"/>
+                            <Button Content="Configure Cloud Key &amp; Preferences" Style="{DynamicResource AccentedButtonStyle}" Click="OpenCloudSettings_Click" HorizontalAlignment="Stretch" Padding="12,10" FontSize="12"/>
                         </StackPanel>
                     </Border>
 
@@ -97,6 +92,30 @@
                             <UniformGrid Columns="2">
                                 <Button Content="Export Active Orders" Style="{DynamicResource SecondaryButtonStyle}" Click="ExportActiveOrders_Click" Margin="0,0,6,0" Padding="12,8" FontSize="12"/>
                                 <Button Content="Import Backup File" Style="{DynamicResource SecondaryButtonStyle}" Click="ImportBackup_Click" Margin="6,0,0,0" Padding="12,8" FontSize="12"/>
+                            </UniformGrid>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- OFFLINE MODE & LAN SYNC SECTION -->
+                    <TextBlock Text="OFFLINE MODE &amp; LOCAL NETWORK (LAN)" Style="{DynamicResource BodyMd}" FontWeight="Bold" Foreground="{DynamicResource PrimaryBrush}" FontSize="12" Margin="0,0,0,16" Opacity="0.8"/>
+                    
+                    <Border Background="{DynamicResource SurfaceContainerLowBrush}" CornerRadius="16" Padding="24" Margin="0,0,0,32">
+                        <StackPanel>
+                            <!-- Fully Offline Mode Checkbox -->
+                            <DockPanel LastChildFill="True" Margin="0,0,0,16">
+                                <StackPanel DockPanel.Dock="Left" MaxWidth="340">
+                                    <TextBlock Text="Enable Fully Offline Mode (LAN Sync Only)" Foreground="{DynamicResource OnSurfaceBrush}" FontWeight="SemiBold" FontSize="15" Margin="0,0,0,4"/>
+                                    <TextBlock Text="Disconnects from Cloud servers completely. All job orders sync 100% locally via Wi-Fi/LAN between computers." Foreground="{DynamicResource OnSurfaceVariantBrush}" FontSize="12" TextWrapping="Wrap"/>
+                                </StackPanel>
+                                <CheckBox x:Name="chkFullyOfflineModeGeneral" Style="{DynamicResource ToggleSwitchStyle}" DockPanel.Dock="Right" VerticalAlignment="Center"/>
+                            </DockPanel>
+
+                            <Separator Background="{DynamicResource OutlineBrush}" Margin="0,0,0,16" Opacity="0.3"/>
+
+                            <!-- Force Local Push & Force Local Pull Buttons -->
+                            <UniformGrid Columns="2">
+                                <Button Content="🚀 Force Local Push (LAN)" Style="{DynamicResource SecondaryButtonStyle}" Click="ForceLocalPush_Click" Margin="0,0,6,0" Padding="12,8" FontSize="11"/>
+                                <Button Content="📥 Force Local Pull (LAN)" Style="{DynamicResource SecondaryButtonStyle}" Click="ForceLocalPull_Click" Margin="6,0,0,0" Padding="12,8" FontSize="11"/>
                             </UniformGrid>
                         </StackPanel>
                     </Border>

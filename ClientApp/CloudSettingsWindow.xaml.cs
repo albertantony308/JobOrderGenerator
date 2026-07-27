@@ -54,6 +54,7 @@ namespace ClientApp
             txtSubscriptionKey.Text = SettingsManager.Default.SubscriptionKey;
             chkEnableSync.IsChecked = SettingsManager.Default.IsCloudSyncEnabled;
             chkSyncImages.IsChecked = SettingsManager.Default.SyncImagesEnabled;
+            chkFullyOfflineMode.IsChecked = SettingsManager.Default.IsFullyOfflineMode;
             
             if (SettingsManager.Default.IsCloudSyncEnabled && !string.IsNullOrEmpty(SettingsManager.Default.SubscriptionKey))
             {
@@ -304,11 +305,92 @@ namespace ClientApp
             }
         }
 
-        private void SaveConfig_Click(object sender, RoutedEventArgs e)
+        private void FullyOfflineMode_Click(object sender, RoutedEventArgs e)
         {
+            // Toggle offline state preference UI
+        }
+
+        private async void ForceLocalPush_Click(object sender, RoutedEventArgs e)
+        {
+            var res = MessageBox.Show("This will force push all current local database orders to all active computers connected on your local Wi-Fi/LAN network. Continue?", "Force Local Push (LAN)", MessageBoxButton.YesNo, MessageBoxImage.Question);
+            if (res != MessageBoxResult.Yes) return;
+
+            try
+            {
+                int count = await LanSyncService.ForceLocalPushToAllPeersAsync();
+                MessageBox.Show($"Successfully pushed local database to {count} LAN record batch(es) across local computers.", "LAN Sync Complete", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (System.Exception ex)
+            {
+                MessageBox.Show($"Error during Local Push: {ex.Message}", "LAN Sync Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private async void ForceLocalPull_Click(object sender, RoutedEventArgs e)
+        {
+            var res = MessageBox.Show("This will query all connected computers on your local Wi-Fi/LAN network and pull any missing or updated orders into your database. Continue?", "Force Local Pull (LAN)", MessageBoxButton.YesNo, MessageBoxImage.Question);
+            if (res != MessageBoxResult.Yes) return;
+
+            try
+            {
+                int count = await LanSyncService.ForceLocalPullFromAllPeersAsync();
+                if (Application.Current.MainWindow is MainWindow mainWin)
+                {
+                    mainWin.LoadData();
+                }
+                MessageBox.Show($"Successfully pulled latest data from {count} LAN peer computer(s).", "LAN Sync Complete", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (System.Exception ex)
+            {
+                MessageBox.Show($"Error during Local Pull: {ex.Message}", "LAN Sync Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private async void SaveConfig_Click(object sender, RoutedEventArgs e)
+        {
+            bool wasOffline = SettingsManager.Default.IsFullyOfflineMode;
+            bool isOfflineNow = chkFullyOfflineMode.IsChecked ?? false;
+
             SettingsManager.Default.IsCloudSyncEnabled = chkEnableSync.IsChecked ?? false;
             SettingsManager.Default.SyncImagesEnabled = chkSyncImages.IsChecked ?? false;
+            SettingsManager.Default.IsFullyOfflineMode = isOfflineNow;
             SettingsManager.Save();
+
+            // When user turns OFF Fully Offline Mode and returns to Cloud Mode
+            if (wasOffline && !isOfflineNow && SettingsManager.Default.IsCloudSyncEnabled)
+            {
+                var result = MessageBox.Show(
+                    "You are turning OFF Fully Offline Mode and reconnecting to Cloud Sync.\n\n" +
+                    "Would you like to mark THIS computer as the PRIMARY SOURCE DEVICE?\n\n" +
+                    "• CLICK [YES]: All local records from this computer will be force-pushed to Supabase Cloud, replacing/updating cloud data for all other devices on your activation key.\n\n" +
+                    "• CLICK [NO]: Reconnect normally and pull current data from the Cloud.",
+                    "Primary Source Device Reconciliation",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Question
+                );
+
+                if (result == MessageBoxResult.Yes)
+                {
+                    try
+                    {
+                        SettingsManager.Default.IsPrimaryCloudSourceDevice = true;
+                        SettingsManager.Save();
+
+                        int pushed = await CloudSyncService.ForcePushAllLocalToCloudAsync();
+                        MessageBox.Show($"Primary Source Device Reconciliation Complete!\n\nPushed {pushed} order(s) to Supabase Cloud.", "Reconciliation Successful", MessageBoxButton.OK, MessageBoxImage.Information);
+                    }
+                    catch (System.Exception ex)
+                    {
+                        MessageBox.Show($"Could not complete Cloud reconciliation: {ex.Message}", "Reconciliation Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    }
+                }
+                else
+                {
+                    SettingsManager.Default.IsPrimaryCloudSourceDevice = false;
+                    SettingsManager.Save();
+                }
+            }
+
             this.Close();
         }
 

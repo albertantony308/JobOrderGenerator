@@ -1314,7 +1314,8 @@ namespace ClientApp
             }
 
             // Set Cloud Sync elements based on remote subscription key capabilities
-            if (!string.IsNullOrEmpty(info.key) && info.cloudSyncEnabled)
+            bool hasCloud = !string.IsNullOrEmpty(info.key) && info.cloudSyncEnabled;
+            if (hasCloud)
             {
                 txtCloudSyncStatus.Text = "Enabled";
                 txtCloudSyncStatus.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#10b981"));
@@ -1395,6 +1396,11 @@ namespace ClientApp
                     }
                     UpdateSyncStatus();
                 }
+            }
+
+            if (btnCloudBackupHeader != null)
+            {
+                btnCloudBackupHeader.Visibility = (hasCloud && !SettingsManager.Default.IsFullyOfflineMode) ? Visibility.Visible : Visibility.Collapsed;
             }
 
             if (LicenseManager.CurrentStatus != null)
@@ -2108,6 +2114,35 @@ namespace ClientApp
         private void ExportBackup_Click(object sender, RoutedEventArgs e) => BackupManager.ExportBackup();
         private void ImportBackup_Click(object sender, RoutedEventArgs e) { BackupManager.ImportBackup(); LoadData(); }
         private void CloudSettings_Click(object sender, RoutedEventArgs e) { var settingsWindow = new CloudSettingsWindow(); settingsWindow.Owner = this; settingsWindow.ShowDialog(); UpdateSyncStatus(); }
+
+        private async void CloudBackupHeader_Click(object sender, RoutedEventArgs e)
+        {
+            var result = MessageBox.Show(
+                "⚠️ CLOUD DATA OVERWRITE DISCLAIMER\n\n" +
+                "If you proceed, all data currently in your local database will be designated as the authoritative master database and uploaded to central cloud storage.\n\n" +
+                "This will overwrite and update cloud records for all terminals registered under your activation key so all other devices receive this dataset.\n\n" +
+                "Do you wish to proceed with pushing your local database to the Cloud?",
+                "Cloud Database Backup Confirmation",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning
+            );
+
+            if (result == MessageBoxResult.Yes)
+            {
+                try
+                {
+                    dbSyncProgress.Visibility = Visibility.Visible;
+                    int pushedCount = await CloudSyncService.ForcePushAllLocalToCloudAsync();
+                    dbSyncProgress.Visibility = Visibility.Collapsed;
+                    MessageBox.Show($"Cloud Backup Successful!\n\nPushed {pushedCount} order(s) to central Cloud storage.", "Backup Complete", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                catch (Exception ex)
+                {
+                    dbSyncProgress.Visibility = Visibility.Collapsed;
+                    MessageBox.Show($"Could not complete Cloud Backup: {ex.Message}", "Backup Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+        }
         private async void Refresh_Click(object sender, RoutedEventArgs e)
         {
             dbSyncProgress.Visibility = Visibility.Visible;

@@ -521,6 +521,15 @@
         <Setter Property="Foreground" Value="{DynamicResource OnTertiaryBrush}"/>
     </Style>
 
+    <Style x:Key="CloudBackupButtonStyle" TargetType="Button" BasedOn="{StaticResource SecondaryButtonStyle}">
+        <Setter Property="Background" Value="{DynamicResource SurfaceContainerLowBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource PrimaryBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource PrimaryBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Padding" Value="14,8"/>
+    </Style>
+
     <!-- Premium DataGrid Architecture: Modern Elegance Style -->
     <Style x:Key="DataGridStyle" TargetType="DataGrid">
         <Setter Property="Background" Value="Transparent"/>
