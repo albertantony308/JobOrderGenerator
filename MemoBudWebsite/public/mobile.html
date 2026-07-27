@@ -1261,26 +1261,37 @@
     async function verifyStaffStillExistsRealtime() {
       if (!appState.staffMember || !appState.activationKeyId) return false;
       try {
-        // 1. Verify the activation key status
-        const { data: keyData, error: keyError } = await supabaseClient
+        // 1. Verify the activation key status safely (fallback by key_code if needed)
+        let keyRecord = null;
+        const { data: kData, error: keyError } = await supabaseClient
           .from('activation_keys')
-          .select('is_active, cloud_sync_enabled')
+          .select('id, is_active, cloud_sync_enabled')
           .eq('id', appState.activationKeyId);
 
-        if (keyError) throw keyError;
+        if (!keyError && kData && kData.length > 0) {
+          keyRecord = kData[0];
+        } else if (appState.activationKeyCode) {
+          const { data: kData2 } = await supabaseClient
+            .from('activation_keys')
+            .select('id, is_active, cloud_sync_enabled')
+            .eq('key_code', appState.activationKeyCode);
+          if (kData2 && kData2.length > 0) keyRecord = kData2[0];
+        }
 
-        if (!keyData || keyData.length === 0 || !keyData[0].is_active) {
-          // Activation key is deactivated or deleted! Kick out!
+        // Only kick out if activation key is explicitly de-activated by the administrator
+        if (keyRecord && keyRecord.is_active === false) {
           triggerInstantRevocationKickout();
           return false;
         }
 
-        // Dynamically update cloud sync capability in real-time!
-        const latestCloudEnabled = keyData[0].cloud_sync_enabled === true;
-        let stateChanged = false;
-        if (appState.cloudSyncEnabled !== latestCloudEnabled) {
-          appState.cloudSyncEnabled = latestCloudEnabled;
-          stateChanged = true;
+        // Dynamically update cloud sync capability in real-time
+        if (keyRecord) {
+          const latestCloudEnabled = keyRecord.cloud_sync_enabled === true;
+          if (appState.cloudSyncEnabled !== latestCloudEnabled) {
+            appState.cloudSyncEnabled = latestCloudEnabled;
+            localStorage.setItem('mb_staff_config', JSON.stringify(appState));
+            updateSyncStatusCard();
+          }
         }
 
         // Fetch latest company profile branding name and logo
@@ -1301,7 +1312,7 @@
               innerStateChanged = true;
             }
             if (innerStateChanged) {
-              stateChanged = true;
+              localStorage.setItem('mb_staff_config', JSON.stringify(appState));
               updateHeaderCompanyName();
             }
           }
@@ -1309,40 +1320,10 @@
           console.warn("Failed to update company profile in background:", profileErr);
         }
 
-        if (stateChanged) {
-          localStorage.setItem('mb_staff_config', JSON.stringify(appState));
-          updateSyncStatusCard();
-        }
-
-        // 2. Verify the staff member still exists under this activation key
-        if (appState.staffMember) {
-          let staffQuery = supabaseClient
-            .from('staff')
-            .select('id, email')
-            .eq('activation_key_id', appState.activationKeyId);
-
-          if (appState.staffMember.id) {
-            staffQuery = staffQuery.eq('id', appState.staffMember.id);
-          } else if (appState.staffMember.email) {
-            staffQuery = staffQuery.eq('email', appState.staffMember.email);
-          } else if (appState.staffMember.phone_number) {
-            staffQuery = staffQuery.eq('phone_number', appState.staffMember.phone_number);
-          }
-
-          const { data: staffData, error: staffError } = await staffQuery;
-
-          if (staffError) {
-            console.warn('Staff verification query warning (failing open):', staffError);
-          } else if (!staffData || staffData.length === 0) {
-            // Access has been revoked/deleted by the admin! Trigger kickout instantly!
-            triggerInstantRevocationKickout();
-            return false;
-          }
-        }
         return true;
       } catch (err) {
-        console.error('Revocation check error:', err);
-        return true; // If network fails, fail open to avoid locking out staff due to poor internet
+        console.warn('Revocation check warning (failing open):', err);
+        return true; // Fail open during search to prevent false kickouts
       }
     }
 
