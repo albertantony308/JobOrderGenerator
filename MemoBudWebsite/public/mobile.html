@@ -1370,104 +1370,6 @@
       if (!card) return;
       
       icon.textContent = '☁️';
-      title.textContent = 'Real-time Cloud Sync Active';
-      title.style.color = '#10b981'; // Green
-      desc.textContent = 'Data automatically synced to central cloud servers';
-    }
-
-    // UPDATE PERSISTENT SYNC STATUS CARD
-    function updateSyncStatusCard() {
-      updateConnectionBanner();
-    }
-
-    // SEARCH ORDER
-    async function searchOrder() {
-      const orderIdInput = document.getElementById('orderSearchInput').value.trim();
-      if (!orderIdInput) return showPremiumToast('Please enter an Order ID.', 'error', 'Input Required');
-
-      // Hide previous inline error banner and pop-up modal
-      const inlineError = document.getElementById('inlineSearchError');
-      if (inlineError) inlineError.style.display = 'none';
-      const modal = document.getElementById('orderModalOverlay');
-      if (modal) modal.style.display = 'none';
-
-      // Perform a real-time deauthorization check first!
-      const isAuthorized = await verifyStaffStillExistsRealtime();
-      if (!isAuthorized) return; // Exit if access revoked
-
-      document.getElementById('emptySearchState').style.display = 'none';
-
-      // Show loading spinner animation on search button!
-      const btn = document.getElementById('btnSearchOrder');
-      const btnText = document.getElementById('btnSearchText');
-      if (btn) btn.disabled = true;
-      if (btnText) btnText.innerHTML = '<span class="btn-spinner"></span> Searching...';
-
-      const cleanId = orderIdInput.trim();
-      const strippedId = cleanId.replace(/^or-/i, '').trim();
-      const paddedId = 'OR-' + strippedId;
-
-      let found = false;
-
-      try {
-        // Query Supabase Cloud Database (Cloud-Sole Operation)
-        const { data: devices, error: devError } = await supabaseClient
-          .from('devices')
-          .select('id')
-          .eq('activation_key_id', appState.activationKeyId);
-
-        if (devError) throw devError;
-
-        if (devices && devices.length > 0) {
-          const deviceIds = devices.map(d => d.id);
-
-          let query = supabaseClient.from('service_memos')
-            .select('*')
-            .in('device_id', deviceIds)
-            .or(`memo_number.ilike."${cleanId}",memo_number.ilike."${strippedId}",memo_number.ilike."${paddedId}"`);
-
-          const { data: memos, error: memoError } = await query;
-          if (memoError) throw memoError;
-
-          if (memos && memos.length > 0) {
-            for (const mItem of memos) {
-              try {
-                const memo = JSON.parse(mItem.json_data);
-                if (memo && memo.Status !== 'Deleted' && memo.Status !== 'Deleted_Synced') {
-                  appState.currentMemo = mItem;
-                  appState.currentMemo.parsedData = memo;
-
-                  renderOrderResult(memo);
-                  found = true;
-                  break;
-                }
-              } catch (e) {}
-            }
-          }
-        }
-
-        // Handle NOT FOUND state: Show inline error directly below search button (NO POP-UP!)
-        if (!found) {
-          if (inlineError) {
-            const errorText = document.getElementById('inlineSearchErrorText');
-            if (errorText) {
-              errorText.textContent = `Order ID "${cleanId}" not found in Cloud Database. Please verify the order number.`;
-            }
-            inlineError.style.display = 'flex';
-          }
-        }
-      } catch (err) {
-        console.error("Cloud lookup error:", err);
-        showPremiumToast("Cloud search failed. Please check network.", "error", "Cloud Connection Error");
-      } finally {
-        // Reset Search Button loading state
-        if (btn) btn.disabled = false;
-        if (btnText) btnText.textContent = 'Search Order';
-      }
-    }
-
-    function renderOrderResult(memo) {
-      document.getElementById('resOrderNumber').textContent = memo.MemoNumber || 'N/A';
       document.getElementById('resProductName').textContent = memo.DeviceName || 'N/A';
       document.getElementById('resBrand').textContent = memo.Brand || 'N/A';
       document.getElementById('resModel').textContent = memo.DeviceModel || 'N/A';
@@ -1492,19 +1394,6 @@
         formContainer.style.display = 'none';
         appState.selectedStatus = null;
       }
-
-      // Save local memory reference
-      appState.currentMemoData = memo;
-      
-      // Ensure orderResultCard and orderModalOverlay are BOTH VISIBLE with all details!
-      const card = document.getElementById('orderResultCard');
-      if (card) card.style.display = 'block';
-
-      const modal = document.getElementById('orderModalOverlay');
-      if (modal) modal.style.display = 'flex';
-    }
-
-    function closeOrderModal() {
       const modal = document.getElementById('orderModalOverlay');
       if (modal) modal.style.display = 'none';
       
