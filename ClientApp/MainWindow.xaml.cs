@@ -86,8 +86,17 @@ namespace ClientApp
                     UpdateCloudSyncSidebarUI();
                     if (SettingsManager.Default.IsCloudSyncEnabled)
                     {
-                        SyncStatusText.Text = "Connected";
-                        SyncStatusText.Foreground = new SolidColorBrush(Color.FromRgb(16, 185, 129)); // Green
+                        if (CloudSyncService.IsCloudOffline)
+                        {
+                            SyncStatusText.Text = "Not Connected";
+                            if (dotSyncStatus != null) dotSyncStatus.Fill = new SolidColorBrush(Color.FromRgb(239, 68, 68)); // Red
+                        }
+                        else
+                        {
+                            SyncStatusText.Text = "Connected";
+                            SyncStatusText.Foreground = new SolidColorBrush(Color.FromRgb(16, 185, 129)); // Green
+                            if (dotSyncStatus != null) dotSyncStatus.Fill = new SolidColorBrush(Color.FromRgb(16, 185, 129)); // Green
+                        }
                     }
                     RefreshCloudOfflineToast();
                 });
@@ -330,7 +339,7 @@ namespace ClientApp
             string company = SettingsManager.Default.CompanyName?.Trim() ?? "";
             if (string.IsNullOrEmpty(company))
             {
-                txtSidebarWorkspaceHeader.Text = "MemoBud Workspace";
+                txtSidebarWorkspaceHeader.Text = "Joborgan Workspace";
             }
             else
             {
@@ -1810,12 +1819,69 @@ namespace ClientApp
             }
         }
 
+        private System.Windows.Threading.DispatcherTimer? _internetRetryTimer;
+
         private void InitializeNetworkMonitoring()
         {
             System.Net.NetworkInformation.NetworkChange.NetworkAddressChanged += (s, e) => {
-                this.Dispatcher.Invoke(() => UpdateNetworkStatus());
+                this.Dispatcher.Invoke(async () => {
+                    UpdateNetworkStatus();
+                    if (CloudSyncService.IsCloudOffline && SettingsManager.Default.IsCloudSyncEnabled)
+                    {
+                        await CheckAndRestoreInternetConnectionAsync();
+                    }
+                });
             };
             UpdateNetworkStatus();
+
+            _internetRetryTimer = new System.Windows.Threading.DispatcherTimer();
+            _internetRetryTimer.Interval = TimeSpan.FromSeconds(30);
+            _internetRetryTimer.Tick += async (s, e) =>
+            {
+                if (SettingsManager.Default.IsCloudSyncEnabled && CloudSyncService.IsCloudOffline)
+                {
+                    await CheckAndRestoreInternetConnectionAsync();
+                }
+            };
+            _internetRetryTimer.Start();
+        }
+
+        private async Task CheckAndRestoreInternetConnectionAsync()
+        {
+            if (SyncStatusText != null)
+            {
+                SyncStatusText.Text = "Checking for Internet...";
+                if (dotSyncStatus != null)
+                    dotSyncStatus.Fill = new SolidColorBrush(Color.FromRgb(245, 158, 11)); // Amber / Yellow
+            }
+
+            await Task.Delay(800); // Visual indicator pause
+
+            bool isOnline = await CloudSyncService.TestCloudConnectionAsync();
+            if (isOnline)
+            {
+                if (SyncStatusText != null)
+                {
+                    SyncStatusText.Text = "Connected";
+                    SyncStatusText.Foreground = new SolidColorBrush(Color.FromRgb(16, 185, 129)); // Green
+                    if (dotSyncStatus != null)
+                        dotSyncStatus.Fill = new SolidColorBrush(Color.FromRgb(16, 185, 129)); // Green
+                }
+                _ = System.Threading.Tasks.Task.Run(async () =>
+                {
+                    await CloudSyncService.FlushOfflineQueueAsync();
+                    await CloudSyncService.SyncWithCloudAsync();
+                });
+            }
+            else
+            {
+                if (SyncStatusText != null)
+                {
+                    SyncStatusText.Text = "Not Connected";
+                    if (dotSyncStatus != null)
+                        dotSyncStatus.Fill = new SolidColorBrush(Color.FromRgb(239, 68, 68)); // Red
+                }
+            }
         }
 
         private void RefreshCloudOfflineToast()

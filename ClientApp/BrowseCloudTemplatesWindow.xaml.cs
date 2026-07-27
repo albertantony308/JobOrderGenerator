@@ -106,7 +106,7 @@ namespace ClientApp
             CloudTemplatesList.Children.Clear();
             var demo = new CloudTemplate { 
                 name = "Modern Gradient (Demo)", 
-                author = "Antigravity", 
+                author = "Joborgan", 
                 json_data = DefaultTemplateService.GetTemplateJson("HalfModernDark"),
                 is_half_a4 = true 
             };

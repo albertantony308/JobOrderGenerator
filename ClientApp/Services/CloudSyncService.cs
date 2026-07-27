@@ -144,7 +144,8 @@ namespace ClientApp.Services
                     MarkCloudUnavailable();
                     return;
                 }
-                LogSyncStatus($"Active deviceId in cloud devices table: {deviceId}");
+                // 0. Flush any offline pending queued records before pulling cloud updates
+                await FlushOfflineQueueAsync();
 
                 // 1. PULL FROM CLOUD (Smart Delta Sync - Lightweight Header Query first to save bandwidth)
                 var inKeysQuery = string.Join(",", allKeyIds);
@@ -485,6 +486,7 @@ namespace ClientApp.Services
                                 var payload = new
                                 {
                                     memo_number = lMemo.MemoNumber,
+                                    technician_name = lMemo.TechnicianName,
                                     json_data = JsonSerializer.Serialize(uploadDto),
                                     device_id = deviceId,
                                     updated_at = ToUtc(lMemo.UpdatedAt).ToString("yyyy-MM-ddTHH:mm:ss.fffZ")
@@ -553,13 +555,40 @@ namespace ClientApp.Services
             }
         }
 
-        private static void MarkCloudAvailable()
+        public static void MarkCloudAvailable()
         {
             if (IsCloudOffline)
             {
                 IsCloudOffline = false;
                 CloudStatusChanged?.Invoke();
             }
+        }
+
+        public static async Task<bool> TestCloudConnectionAsync()
+        {
+            try
+            {
+                if (!System.Net.NetworkInformation.NetworkInterface.GetIsNetworkAvailable())
+                    return false;
+
+                var _http = SupabaseClientManager.GetHttpClient();
+                var keyId = SettingsManager.Default.SubscriptionKey;
+                if (string.IsNullOrEmpty(keyId)) return false;
+
+                var req = new HttpRequestMessage(HttpMethod.Get, $"/rest/v1/devices?select=id&activation_key_id=eq.{keyId}&limit=1");
+                req.Headers.Add("Range-Unit", "items");
+                req.Headers.Add("Range", "0-0");
+
+                using var cts = new System.Threading.CancellationTokenSource(4000);
+                var resp = await _http.SendAsync(req, cts.Token);
+                if (resp.IsSuccessStatusCode)
+                {
+                    MarkCloudAvailable();
+                    return true;
+                }
+            }
+            catch { }
+            return false;
         }
 
         public static async Task<int> ForcePushAllLocalToCloudAsync()

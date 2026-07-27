@@ -28,7 +28,7 @@ namespace ClientApp.Services
         public int DefaultPrintCopies { get; set; } = 1;
 
         // Branding & Customization
-        public string CompanyName { get; set; } = "ANTIGRAVITY SERVICE";
+        public string CompanyName { get; set; } = "JOBORGAN";
         public string CompanyPhone { get; set; } = "+1 800 555 0199";
         public string CompanyPhone2 { get; set; } = string.Empty;
         public string CompanyAddress { get; set; } = "123 Innovation Drive, Tech Park Suite 400";
