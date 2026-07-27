@@ -1366,34 +1366,136 @@
       const icon = document.getElementById('syncStatusIcon');
       const title = document.getElementById('syncStatusTitle');
       const desc = document.getElementById('syncStatusDesc');
-      
       if (!card) return;
-      
-      icon.textContent = '☁️';
-      document.getElementById('resProductName').textContent = memo.DeviceName || 'N/A';
-      document.getElementById('resBrand').textContent = memo.Brand || 'N/A';
-      document.getElementById('resModel').textContent = memo.DeviceModel || 'N/A';
-      document.getElementById('resSerial').textContent = memo.SerialNumber || 'N/A';
-      document.getElementById('resComplaint').textContent = memo.IssueDescription || 'N/A';
+      if (icon) icon.textContent = '☁️';
+      if (title) {
+        title.textContent = 'Real-time Cloud Sync Active';
+        title.style.color = '#10b981';
+      }
+      if (desc) desc.textContent = 'Data automatically synced to central cloud servers';
+    }
 
-      // Status Badge
+    function updateSyncStatusCard() {
+      updateConnectionBanner();
+    }
+
+    async function searchOrder() {
+      const orderIdInput = document.getElementById('orderSearchInput').value.trim();
+      if (!orderIdInput) return showPremiumToast('Please enter an Order ID.', 'error', 'Input Required');
+
+      const inlineError = document.getElementById('inlineSearchError');
+      if (inlineError) inlineError.style.display = 'none';
+      const modal = document.getElementById('orderModalOverlay');
+      if (modal) modal.style.display = 'none';
+
+      const isAuthorized = await verifyStaffStillExistsRealtime();
+      if (!isAuthorized) return;
+
+      document.getElementById('emptySearchState').style.display = 'none';
+
+      const btn = document.getElementById('btnSearchOrder');
+      const btnText = document.getElementById('btnSearchText');
+      if (btn) btn.disabled = true;
+      if (btnText) btnText.innerHTML = '<span class="btn-spinner"></span> Searching...';
+
+      const cleanId = orderIdInput.trim();
+      const strippedId = cleanId.replace(/^or-/i, '').trim();
+      const paddedId = 'OR-' + strippedId;
+
+      let found = false;
+
+      try {
+        const { data: memos, error: memoError } = await supabaseClient
+          .from('service_memos')
+          .select('*')
+          .or(`memo_number.ilike."${cleanId}",memo_number.ilike."${strippedId}",memo_number.ilike."${paddedId}"`);
+
+        if (memoError) throw memoError;
+
+        if (memos && memos.length > 0) {
+          for (const mItem of memos) {
+            try {
+              const memo = typeof mItem.json_data === 'string' ? JSON.parse(mItem.json_data) : mItem.json_data;
+              if (memo && memo.Status !== 'Deleted' && memo.Status !== 'Deleted_Synced') {
+                appState.currentMemo = mItem;
+                appState.currentMemo.parsedData = memo;
+
+                renderOrderResult(memo);
+                found = true;
+                break;
+              }
+            } catch (e) {}
+          }
+        }
+
+        if (!found) {
+          if (inlineError) {
+            const errorText = document.getElementById('inlineSearchErrorText');
+            if (errorText) {
+              errorText.textContent = `Order ID "${cleanId}" not found in Cloud Database. Please verify the order number.`;
+            }
+            inlineError.style.display = 'flex';
+          }
+        }
+      } catch (err) {
+        console.error('Cloud lookup error:', err);
+        showPremiumToast('Cloud search failed. Please check network.', 'error', 'Cloud Connection Error');
+      } finally {
+        if (btn) btn.disabled = false;
+        if (btnText) btnText.textContent = 'Search Order';
+      }
+    }
+
+    function renderOrderResult(memo) {
+      const resNum = document.getElementById('resOrderNumber');
+      if (resNum) resNum.textContent = memo.MemoNumber || 'N/A';
+
+      const resProd = document.getElementById('resProductName');
+      if (resProd) resProd.textContent = memo.DeviceName || 'N/A';
+
+      const resBrand = document.getElementById('resBrand');
+      if (resBrand) resBrand.textContent = memo.Brand || 'N/A';
+
+      const resModel = document.getElementById('resModel');
+      if (resModel) resModel.textContent = memo.DeviceModel || 'N/A';
+
+      const resSerial = document.getElementById('resSerial');
+      if (resSerial) resSerial.textContent = memo.SerialNumber || 'N/A';
+
+      const resComplaint = document.getElementById('resComplaint');
+      if (resComplaint) resComplaint.textContent = memo.IssueDescription || 'N/A';
+
       const statusBadge = document.getElementById('resStatusBadge');
-      statusBadge.textContent = memo.Status || 'Pending';
-      statusBadge.className = 'conn-status ' + getStatusClass(memo.Status);
+      if (statusBadge) {
+        statusBadge.textContent = memo.Status || 'Pending';
+        statusBadge.className = 'conn-status ' + getStatusClass(memo.Status);
+      }
 
-      // Highlight active status buttons
       highlightStatusButtons(memo.Status);
 
-      // Show/prefill the updates form if Completed or Rejected or status has updates
       const formContainer = document.getElementById('orderUpdateFormContainer');
-      if (memo.Status === 'Completed' || memo.Status === 'Rejected') {
-        formContainer.style.display = 'flex';
-        appState.selectedStatus = memo.Status;
-        document.getElementById('orderUpdateInput').value = memo.OrderUpdates || '';
-      } else {
-        formContainer.style.display = 'none';
-        appState.selectedStatus = null;
+      if (formContainer) {
+        if (memo.Status === 'Completed' || memo.Status === 'Rejected') {
+          formContainer.style.display = 'flex';
+          appState.selectedStatus = memo.Status;
+          const updateInput = document.getElementById('orderUpdateInput');
+          if (updateInput) updateInput.value = memo.OrderUpdates || '';
+        } else {
+          formContainer.style.display = 'none';
+          appState.selectedStatus = null;
+        }
       }
+
+      appState.currentMemoData = memo;
+      
+      const resCard = document.getElementById('orderResultCard');
+      if (resCard) resCard.style.display = 'block';
+
+      const modal = document.getElementById('orderModalOverlay');
+      if (modal) modal.style.display = 'flex';
+    }
+
+    function closeOrderModal() {
       const modal = document.getElementById('orderModalOverlay');
       if (modal) modal.style.display = 'none';
       
@@ -1407,7 +1509,11 @@
     function getStatusClass(status) {
       if (status === 'Completed') return 'status-online';
       if (status === 'Rejected') return 'status-rejected';
-      if (status === 'In Progress') return 'status-offline'; // maps     function highlightStatusButtons(status) {
+      if (status === 'In Progress') return 'status-offline';
+      return 'status-offline';
+    }
+
+    function highlightStatusButtons(status) {
       const btnPending = document.getElementById('btnStatusPending');
       const btnProgress = document.getElementById('btnStatusProgress');
       const btnCompleted = document.getElementById('btnStatusCompleted');
@@ -1435,7 +1541,6 @@
       if (formContainer) formContainer.style.display = 'flex';
       appState.selectedStatus = status;
         
-      // Prefill text box with current updates if any
       const memo = appState.currentMemoData;
       const updateInput = document.getElementById('orderUpdateInput');
       if (updateInput) {
@@ -1447,7 +1552,8 @@
       const status = appState.selectedStatus;
       if (!status) return showPremiumToast('Please select a status first.', 'error', 'Selection Required');
       
-      const updatesText = document.getElementById('orderUpdateInput').value.trim();
+      const updateInput = document.getElementById('orderUpdateInput');
+      const updatesText = updateInput ? updateInput.value.trim() : '';
       
       const loadingOverlay = document.getElementById('loadingOverlay');
       const successOverlay = document.getElementById('successOverlay');
@@ -1480,7 +1586,6 @@
       }
     }
 
-    // UPDATE ORDER STATUS (Solely via Supabase Cloud)
     async function updateOrderStatus(newStatus, updatesText = null) {
       if (!appState.currentMemoData) return false;
 
@@ -1488,21 +1593,19 @@
       const originalStatus = memo.Status;
       const originalUpdates = memo.OrderUpdates;
 
-      const staffName = (appState.staffMember && appState.staffMember.name) ? appState.staffMember.name : "Staff";
+      const staffName = (appState.staffMember && appState.staffMember.name) ? appState.staffMember.name : 'Staff';
 
-      // Update local memory representation immediately
       memo.Status = newStatus;
       memo.TechnicianName = staffName;
       memo.UpdatedAt = new Date().toISOString();
       memo.IsMobilePortalUpdate = true;
-      memo.Source = "MobilePortal";
+      memo.Source = 'MobilePortal';
       if (updatesText !== null) {
         memo.OrderUpdates = updatesText;
       }
 
       let cloudSynced = false;
 
-      // Update solely in Supabase Cloud
       if (appState.currentMemo && appState.currentMemo.id) {
         try {
           const updatedJson = JSON.stringify(memo);
@@ -1518,7 +1621,6 @@
           if (!error) {
             cloudSynced = true;
           } else {
-            // Fallback update by memo_number
             const { error: err2 } = await supabaseClient
               .from('service_memos')
               .update({
@@ -1541,7 +1643,6 @@
         return true;
       }
 
-      // Rollback if connection failed
       memo.Status = originalStatus;
       memo.OrderUpdates = originalUpdates;
       showPremiumToast('Could not sync to cloud. Please check network connection.', 'error', 'Cloud Sync Failed');
