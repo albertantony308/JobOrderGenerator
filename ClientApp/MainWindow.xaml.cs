@@ -1408,10 +1408,7 @@ namespace ClientApp
                 }
             }
 
-            if (btnCloudBackupHeader != null)
-            {
-                btnCloudBackupHeader.Visibility = (hasCloud && !SettingsManager.Default.IsFullyOfflineMode) ? Visibility.Visible : Visibility.Collapsed;
-            }
+
 
             if (LicenseManager.CurrentStatus != null)
             {
