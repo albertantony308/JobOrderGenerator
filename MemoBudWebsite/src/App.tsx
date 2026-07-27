@@ -451,10 +451,14 @@ function App() {
           setSelectedKeyForDevices(filteredKeys[0].id)
           setDevicesForKey(filteredKeys[0].devices || [])
           fetchStaffList(filteredKeys[0].id)
+          fetchStaffKey(filteredKeys[0].id)
         } else if (selectedKeyForDevices) {
           const currentKeyObj = filteredKeys.find(k => k.id === selectedKeyForDevices)
           setDevicesForKey(currentKeyObj ? currentKeyObj.devices : [])
-          if (currentKeyObj) fetchStaffList(currentKeyObj.id)
+          if (currentKeyObj) {
+            fetchStaffList(currentKeyObj.id)
+            fetchStaffKey(currentKeyObj.id)
+          }
         }
       }
     } catch (e) {
@@ -471,43 +475,31 @@ function App() {
         .eq('activation_key_id', keyId)
         .order('created_at', { ascending: false })
       if (!error && data) {
-        setStaffList(data.filter((s: any) => s.name !== '__STAFF_KEY__'))
+        setStaffList(data.filter((s: any) => s.name !== '__STAFF_KEY__' && !s.email?.startsWith('SMK-')))
       }
     } catch (e) {
       console.error('Error fetching staff list:', e)
     }
   }
 
-  // Ensure staff sub-key alias exists
-  const ensureStaffSubKey = async (keyId: string) => {
+  // Fetch staff activation key directly from activation_keys table
+  const fetchStaffKey = async (keyId: string) => {
     try {
-      const { data } = await supabase
-        .from('staff')
-        .select('*')
-        .eq('activation_key_id', keyId)
-        .eq('name', '__STAFF_KEY__')
+      const { data, error } = await supabase
+        .from('activation_keys')
+        .select('staff_key, cloud_sync_enabled')
+        .eq('id', keyId)
+        .single()
       
-      if (data && data.length > 0) {
-        setStaffKeyString(data[0].email)
-      } else {
-        const newKey = 'SMK-' + Math.random().toString(36).substring(2, 10).toUpperCase()
-        const { data: newRow, error: insertError } = await supabase
-          .from('staff')
-          .insert([{
-            activation_key_id: keyId,
-            name: '__STAFF_KEY__',
-            email: newKey,
-            phone_number: 'N/A',
-            password: 'N/A'
-          }])
-          .select()
-        
-        if (!insertError && newRow) {
-          setStaffKeyString(newKey)
+      if (!error && data) {
+        if (data.cloud_sync_enabled && data.staff_key) {
+          setStaffKeyString(data.staff_key)
+        } else {
+          setStaffKeyString('Disabled (Cloud Sync Off)')
         }
       }
     } catch (e) {
-      console.error('Error ensuring staff sub-key:', e)
+      console.error('Error fetching staff key:', e)
     }
   }
 
@@ -2732,7 +2724,7 @@ function App() {
                   setSelectedDashboardProduct('staff'); 
                   if (userKeys.length > 0 && userKeys.some((k: any) => k.cloud_sync_enabled)) {
                     fetchStaffList(userKeys[0].id);
-                    ensureStaffSubKey(userKeys[0].id);
+                    fetchStaffKey(userKeys[0].id);
                   }
                 }}
                 style={{ 
