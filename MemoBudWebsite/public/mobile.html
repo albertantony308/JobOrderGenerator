@@ -1314,18 +1314,30 @@
           updateSyncStatusCard();
         }
 
-        // 2. Verify the staff member still exists
-        const { data: staffData, error: staffError } = await supabaseClient
-          .from('staff')
-          .select('id')
-          .eq('id', appState.staffMember.id);
+        // 2. Verify the staff member still exists under this activation key
+        if (appState.staffMember) {
+          let staffQuery = supabaseClient
+            .from('staff')
+            .select('id, email')
+            .eq('activation_key_id', appState.activationKeyId);
 
-        if (staffError) throw staffError;
+          if (appState.staffMember.id) {
+            staffQuery = staffQuery.eq('id', appState.staffMember.id);
+          } else if (appState.staffMember.email) {
+            staffQuery = staffQuery.eq('email', appState.staffMember.email);
+          } else if (appState.staffMember.phone_number) {
+            staffQuery = staffQuery.eq('phone_number', appState.staffMember.phone_number);
+          }
 
-        if (!staffData || staffData.length === 0) {
-          // Access has been revoked/deleted by the admin! Trigger kickout instantly!
-          triggerInstantRevocationKickout();
-          return false;
+          const { data: staffData, error: staffError } = await staffQuery;
+
+          if (staffError) {
+            console.warn('Staff verification query warning (failing open):', staffError);
+          } else if (!staffData || staffData.length === 0) {
+            // Access has been revoked/deleted by the admin! Trigger kickout instantly!
+            triggerInstantRevocationKickout();
+            return false;
+          }
         }
         return true;
       } catch (err) {
