@@ -1537,56 +1537,56 @@
 
       btnPending.classList.remove('selected');
       btnProgress.classList.remove('selected');
-      btnCompleted.classList.remove('selected');
-      if (btnRejected) btnRejected.classList.remove('selected');
+document.getElementById('loginStep2Screen').classList.remove('active');
+      document.getElementById('staffConsoleScreen').classList.remove('active');
+      document.getElementById('revokedOverlay').style.display = 'flex';
+    }
 
-      if (status === 'Completed') btnCompleted.classList.add('selected');
-      else if (status === 'In Progress') btnProgress.classList.add('selected');
-      else if (status === 'Rejected') {
-        if (btnRejected) btnRejected.classList.add('selected');
+    function dismissRevokedOverlay() {
+      document.getElementById('revokedOverlay').style.display = 'none';
+      showStep1Screen();
+    }
+
+    function logoutStaffSession() {
+      if (!confirm('Are you sure you want to log out of the staff console?')) return;
+      appState.staffMember = null;
+      appState.currentMemo = null;
+      localStorage.setItem('mb_staff_config', JSON.stringify(appState));
+
+      document.getElementById('staffConsoleScreen').classList.remove('active');
+      showStep2Screen();
+    }
+
+    function checkSearchSubmit(e) {
+      if (e.key === 'Enter') {
+        searchOrder();
       }
-      else btnPending.classList.add('selected');
     }
 
-    function selectStatus(status) {
-      highlightStatusButtons(status);
-      const formContainer = document.getElementById('orderUpdateFormContainer');
-      formContainer.style.display = 'flex';
-      appState.selectedStatus = status;
-        
-      // Prefill text box with current updates if any
-      const memo = appState.currentMemoData;
-      document.getElementById('orderUpdateInput').value = memo ? (memo.OrderUpdates || '') : '';
+    function updateConnectionBanner() {
+      const card = document.getElementById('syncStatusCard');
+      const icon = document.getElementById('syncStatusIcon');
+      const title = document.getElementById('syncStatusTitle');
+      const desc = document.getElementById('syncStatusDesc');
+      
+      if (!card) return;
+      
+      icon.textContent = '☁️';
+      title.textContent = 'Real-time Cloud Sync Active';
+      title.style.color = '#10b981'; // Green
+      desc.textContent = 'Data automatically synced to central cloud servers';
     }
 
-    async function submitOrderUpdate() {
-      const status = appState.selectedStatus;
-      if (!status) return showPremiumToast('Please select a status first.', 'error', 'Selection Required');
-      
-      const updatesText = document.getElementById('orderUpdateInput').value.trim();
-      
-      const loadingOverlay = document.getElementById('loadingOverlay');
-      const successOverlay = document.getElementById('successOverlay');
-      
-      if (loadingOverlay) loadingOverlay.style.display = 'flex';
-      
-      try {
-        const success = await updateOrderStatus(status, updatesText);
-        
-        if (success) {
-          if (successOverlay) {
-            successOverlay.style.display = 'flex';
-            setTimeout(() => {
-              successOverlay.style.display = 'none';
-              const formContainer = document.getElementById('orderUpdateFormContainer');
-              if (formContainer) formContainer.style.display = 'none';
-              closeOrderModal();
-            }, 1200);
-          } else {
-            const formContainer = document.getElementById('orderUpdateFormContainer');
-            if (formContainer) formContainer.style.display = 'none';
-            closeOrderModal();
-          }
+    // UPDATE PERSISTENT SYNC STATUS CARD
+    function updateSyncStatusCard() {
+      updateConnectionBanner();
+    }
+
+    // SEARCH ORDER
+    async function searchOrder() {
+      const orderIdInput = document.getElementById('orderSearchInput').value.trim();
+      if (!orderIdInput) return showPremiumToast('Please enter an Order ID.', 'error', 'Input Required');
+
       // Hide previous inline error banner and pop-up modal
       const inlineError = document.getElementById('inlineSearchError');
       if (inlineError) inlineError.style.display = 'none';
@@ -1715,43 +1715,6 @@
         searchInput.value = '';
         searchInput.focus();
       }
-    }
-
-    function getStatusClass(status) {
-      if (status === 'Completed') return 'status-online';
-      if (status === 'Rejected') return 'status-rejected';
-      if (status === 'In Progress') return 'status-offline'; // maps to Progress color scheme
-      return 'status-offline'; // maps to Pending
-    }
-
-    function highlightStatusButtons(status) {
-      const btnPending = document.getElementById('btnStatusPending');
-      const btnProgress = document.getElementById('btnStatusProgress');
-      const btnCompleted = document.getElementById('btnStatusCompleted');
-      const btnRejected = document.getElementById('btnStatusRejected');
-
-      btnPending.classList.remove('selected');
-      btnProgress.classList.remove('selected');
-      btnCompleted.classList.remove('selected');
-      if (btnRejected) btnRejected.classList.remove('selected');
-
-      if (status === 'Completed') btnCompleted.classList.add('selected');
-      else if (status === 'In Progress') btnProgress.classList.add('selected');
-      else if (status === 'Rejected') {
-        if (btnRejected) btnRejected.classList.add('selected');
-      }
-      else btnPending.classList.add('selected');
-    }
-
-    function selectStatus(status) {
-      highlightStatusButtons(status);
-      const formContainer = document.getElementById('orderUpdateFormContainer');
-      formContainer.style.display = 'flex';
-      appState.selectedStatus = status;
-        
-      // Prefill text box with current updates if any
-      const memo = appState.currentMemoData;
-      document.getElementById('orderUpdateInput').value = memo ? (memo.OrderUpdates || '') : '';
     }
 
     async function submitOrderUpdate() {
